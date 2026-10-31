@@ -6,9 +6,9 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native';
-import { Tabs, router, useSegments } from 'expo-router';
+import { Tabs, router } from 'expo-router';
 import { Colors, Fonts } from '@/constants/theme';
-import { HankoStamp } from '@/components/ui/HankoStamp';
+import { HankoStamp } from '@/components/ui/HankoStamp'; 
 
 type TabKey = 'index' | 'overview' | 'settings';
 
@@ -24,30 +24,45 @@ const TABS: TabItem[] = [
   { name: 'settings', label: 'Settings', route: '/(tabs)/settings' },
 ];
 
+type BottomTabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>['tabBar']>>[0];
+
 function CustomTabBar({
   state,
-  navigation,
-}: {
-  state: { index: number };
-  navigation: { navigate: (name: string) => void; emit: (event: any) => any };
-}) {
+  emitter,
+  navigateToTab,
+  insets,
+}: BottomTabBarProps) {
   return (
-    <View style={styles.barContainer}>
+    <View
+      style={[
+        styles.barContainer,
+        { paddingBottom: Math.max(insets.bottom, Platform.OS === 'ios' ? 20 : 8) },
+      ]}
+    >
       <View style={styles.bar}>
         <View style={styles.tabs}>
-          {TABS.map((tab, idx) => {
-            const active = state.index === idx;
+          {TABS.map((tab) => {
+            const currentRoute = state.routes.find((r) => r.name === tab.name);
+            const active = state.routes[state.index]?.name === tab.name;
+
             return (
               <TouchableOpacity
                 key={tab.name}
                 onPress={() => {
-                  const event = navigation.emit({
-                    type: 'tabPress',
-                    target: tab.name,
-                    canPreventDefault: true,
-                  });
+                  const event = currentRoute
+                    ? emitter.emit({
+                        type: 'tabPress',
+                        target: currentRoute.key,
+                        canPreventDefault: true,
+                      })
+                    : null;
+
                   if (!active && !event?.defaultPrevented) {
-                    navigation.navigate(tab.name);
+                    if (currentRoute) {
+                      navigateToTab(currentRoute.key);
+                    } else {
+                      router.push(tab.route);
+                    }
                   }
                 }}
                 activeOpacity={0.7}
@@ -75,9 +90,7 @@ function CustomTabBar({
 export default function TabsLayout() {
   return (
     <Tabs
-      tabBar={(props) => (
-        <CustomTabBar state={props.state} navigation={props.navigation} />
-      )}
+      tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{ headerShown: false }}
     >
       <Tabs.Screen name="index" />
