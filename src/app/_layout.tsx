@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, Redirect } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { ShipporiMincho_600SemiBold } from '@expo-google-fonts/shippori-mincho';
@@ -8,8 +8,43 @@ import {
   PlusJakartaSans_500Medium,
   PlusJakartaSans_700Bold,
 } from '@expo-google-fonts/plus-jakarta-sans';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SQLiteProvider } from 'expo-sqlite';
+import { migrateDb } from '@/db/client';
+import { useAppGate } from '@/hooks/useAppGate';
 
 SplashScreen.preventAutoHideAsync();
+
+/**
+ * Inner component so hooks can read the gate state after fonts load.
+ */
+function GatedStack() {
+  const { gate } = useAppGate();
+
+  // While the async gate check is in flight, render nothing (splash still shown).
+  if (gate === null) return null;
+  if (gate === 'ONBOARDING') return <Redirect href="/(auth)/onboarding" />;
+  if (gate === 'BIOMETRIC_LOCK') return <Redirect href="/(auth)/lock" />;
+
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen
+        name="modals/add-expense"
+        options={{ presentation: 'modal', headerShown: false }}
+      />
+      <Stack.Screen
+        name="modals/income-budget"
+        options={{ presentation: 'modal', headerShown: false }}
+      />
+      <Stack.Screen
+        name="modals/sync-status"
+        options={{ presentation: 'modal', headerShown: false }}
+      />
+    </Stack>
+  );
+}
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -27,5 +62,11 @@ export default function RootLayout() {
 
   if (!loaded && !error) return null;
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <SafeAreaProvider>
+      <SQLiteProvider databaseName="yohaku.db" onInit={migrateDb}>
+        <GatedStack />
+      </SQLiteProvider>
+    </SafeAreaProvider>
+  );
 }

@@ -1,4 +1,5 @@
-import { View, ScrollView,ViewStyle,StyleSheet,StatusBar} from 'react-native'
+import { View, ScrollView,ViewStyle,StyleSheet} from 'react-native'
+import { StatusBar } from 'expo-status-bar'
 import React from 'react'
 import {SafeAreaView,Edge} from 'react-native-safe-area-context';
 import {Colors} from '@/constants/theme';
@@ -19,7 +20,7 @@ const Main = (
 }:ScreenProps) => {
   return (
     <SafeAreaView style={[styles.safeArea,style]} edges={edges}>
-<StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
+<StatusBar style="dark" />
 {scrollable? (
 <ScrollView
 style={styles.flex}
