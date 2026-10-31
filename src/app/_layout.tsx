@@ -15,21 +15,17 @@ import { useAppGate } from '@/hooks/useAppGate';
 
 SplashScreen.preventAutoHideAsync();
 
-/**
- * Inner component so hooks can read the gate state after fonts load.
- */
 function GatedStack() {
-  const { gate } = useAppGate();
-
-  // While the async gate check is in flight, render nothing (splash still shown).
-  if (gate === null) return null;
-  if (gate === 'ONBOARDING') return <Redirect href="/(auth)/onboarding" />;
-  if (gate === 'BIOMETRIC_LOCK') return <Redirect href="/(auth)/lock" />;
+  
+  // const { gate } = useAppGate();
+  // if (gate === null) return null;
+  // if (gate === 'ONBOARDING') return <Redirect href="/(auth)/onboarding" />;
+  // if (gate === 'BIOMETRIC_LOCK') return <Redirect href="/(auth)/lock" />;
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="(auth)" />
       <Stack.Screen
         name="modals/add-expense"
         options={{ presentation: 'modal', headerShown: false }}

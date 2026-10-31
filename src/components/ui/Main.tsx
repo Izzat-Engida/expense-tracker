@@ -39,6 +39,7 @@ showsVerticalScrollIndicator={false}
 }
 
 export default Main
+export { Main }
 
 const styles=StyleSheet.create({
     safeArea:{

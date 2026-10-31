@@ -31,3 +31,29 @@ export const Fonts = {
   sans: 'PlusJakartaSans_500Medium',   // Everyday UI text
   sansBold: 'PlusJakartaSans_700Bold', // Bold list titles ("Morning coffee")
 };
+
+export type CategoryKey = 'food' | 'bills' | 'transport' | 'fun' | 'other';
+
+export const CATEGORIES: {
+  key: CategoryKey;
+  label: string;
+  kanji: string;
+  color: string;
+}[] = [
+  { key: 'food', label: 'Food', kanji: '食費', color: Colors.categoryFood },
+  { key: 'bills', label: 'Bills', kanji: '固定費', color: Colors.categoryBills },
+  { key: 'transport', label: 'Transport', kanji: '交通費', color: Colors.categoryTransport },
+  { key: 'fun', label: 'Fun', kanji: '娯楽', color: Colors.categoryFun },
+  { key: 'other', label: 'Other', kanji: 'その他', color: Colors.categoryOther },
+];
+
+export const CATEGORY_MAP: Record<
+  CategoryKey,
+  { label: string; kanji: string; color: string }
+> = {
+  food: { label: 'Food', kanji: '食費', color: Colors.categoryFood },
+  bills: { label: 'Bills', kanji: '固定費', color: Colors.categoryBills },
+  transport: { label: 'Transport', kanji: '交通費', color: Colors.categoryTransport },
+  fun: { label: 'Fun', kanji: '娯楽', color: Colors.categoryFun },
+  other: { label: 'Other', kanji: 'その他', color: Colors.categoryOther },
+};

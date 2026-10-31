@@ -24,18 +24,32 @@ const TABS: TabItem[] = [
   { name: 'settings', label: 'Settings', route: '/(tabs)/settings' },
 ];
 
-function CustomTabBar({ state }: { state: { index: number } }) {
+function CustomTabBar({
+  state,
+  navigation,
+}: {
+  state: { index: number };
+  navigation: { navigate: (name: string) => void; emit: (event: any) => any };
+}) {
   return (
     <View style={styles.barContainer}>
       <View style={styles.bar}>
-        {/* Text tabs */}
         <View style={styles.tabs}>
           {TABS.map((tab, idx) => {
             const active = state.index === idx;
             return (
               <TouchableOpacity
                 key={tab.name}
-                onPress={() => router.push(tab.route)}
+                onPress={() => {
+                  const event = navigation.emit({
+                    type: 'tabPress',
+                    target: tab.name,
+                    canPreventDefault: true,
+                  });
+                  if (!active && !event?.defaultPrevented) {
+                    navigation.navigate(tab.name);
+                  }
+                }}
                 activeOpacity={0.7}
                 style={[styles.tab, active && styles.tabActive]}
               >
@@ -49,7 +63,6 @@ function CustomTabBar({ state }: { state: { index: number } }) {
           })}
         </View>
 
-        {/* FAB — HankoStamp routes to add-expense modal */}
         <HankoStamp
           size="fab"
           onPress={() => router.push('/modals/add-expense')}
@@ -62,7 +75,9 @@ function CustomTabBar({ state }: { state: { index: number } }) {
 export default function TabsLayout() {
   return (
     <Tabs
-      tabBar={(props) => <CustomTabBar state={props.state} />}
+      tabBar={(props) => (
+        <CustomTabBar state={props.state} navigation={props.navigation} />
+      )}
       screenOptions={{ headerShown: false }}
     >
       <Tabs.Screen name="index" />

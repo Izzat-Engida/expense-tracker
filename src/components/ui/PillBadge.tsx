@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, StyleProp, ViewStyle, TextStyle } from 'react-native';
 import { Colors, Fonts } from '@/constants/theme';
 
 type PillVariant = 'expense' | 'dark' | 'outline' | 'income';
@@ -9,6 +9,8 @@ interface PillBadgeProps {
   variant?: PillVariant;
   onPress?: () => void;
   dotColor?: string;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
 }
 
 interface VariantStyle {
@@ -44,6 +46,8 @@ export function PillBadge({
   variant = 'outline',
   onPress,
   dotColor,
+  style,
+  textStyle,
 }: PillBadgeProps) {
   const vs = VARIANT_STYLES[variant];
 
@@ -54,6 +58,7 @@ export function PillBadge({
       borderWidth: vs.borderWidth ?? 0,
       borderColor: vs.borderColor ?? 'transparent',
     },
+    style,
   ];
 
   const content = (
@@ -61,7 +66,7 @@ export function PillBadge({
       {dotColor && (
         <View style={[styles.dot, { backgroundColor: dotColor }]} />
       )}
-      <Text style={[styles.label, { color: vs.textColor }]}>{label}</Text>
+      <Text style={[styles.label, { color: vs.textColor }, textStyle]}>{label}</Text>
     </>
   );
 

@@ -13,7 +13,8 @@ export function ProgressBar({
   fillColor = Colors.cardDark,
   height = 8,
 }: ProgressBarProps) {
-  const clampedProgress = Math.min(1, Math.max(0, progress));
+  const clampedProgress = Math.min(1, Math.max(0, isNaN(progress) ? 0 : progress));
+  const percent = Math.round(clampedProgress * 100);
 
   return (
     <View
@@ -26,32 +27,23 @@ export function ProgressBar({
       ]}
     >
       <View
-        style={[
-          styles.fill,
-          {
-            flex: clampedProgress,
-            backgroundColor: fillColor,
-            borderRadius: height / 2,
-          },
-        ]}
+        style={{
+          width: `${percent}%`,
+          height: '100%',
+          backgroundColor: fillColor,
+          borderRadius: height / 2,
+        }}
       />
-    
-      {clampedProgress < 1 && (
-        <View style={{ flex: 1 - clampedProgress }} />
-      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   track: {
-    flexDirection: 'row',
     width: '100%',
+    backgroundColor: 'rgba(38, 42, 40, 0.1)',
     borderWidth: 1,
     borderColor: Colors.border,
     overflow: 'hidden',
-  },
-  fill: {
-
   },
 });

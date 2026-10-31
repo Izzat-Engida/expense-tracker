@@ -34,10 +34,9 @@ export function useLedger() {
 
   // Load from SQLite exactly once, after the first mount.
   useEffect(() => {
-    if (!store.isLoading && store.expenses.length === 0) {
+    if (!store.isInitialized && !store.isLoading) {
       store.loadAll();
     }
-    // We only want to trigger this on mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -47,6 +46,7 @@ export function useLedger() {
     incomes: store.incomes,
     budgets: store.budgets,
     isLoading: store.isLoading,
+    isInitialized: store.isInitialized,
     error: store.error,
 
     // ── Actions ────────────────────────────────────────────────────────────
@@ -61,6 +61,9 @@ export function useLedger() {
     createBudget: store.createBudget,
     updateBudget: store.updateBudget,
     deleteBudget: store.deleteBudget,
+
+    seedDemoData: store.seedDemoData,
+    clearAllData: store.clearAllData,
 
     /** Re-sync the in-memory state from SQLite (e.g. after a cold start). */
     reload: store.loadAll,

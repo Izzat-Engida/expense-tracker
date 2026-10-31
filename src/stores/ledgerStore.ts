@@ -50,12 +50,15 @@ interface LedgerState {
   budgets: Budget[];
   /** True while the initial DB load is in flight. */
   isLoading: boolean;
+  isInitialized: boolean;
   error: string | null;
 }
 
 interface LedgerActions {
   /** Bootstrap: load all non-deleted rows from SQLite into memory. */
   loadAll: () => Promise<void>;
+  seedDemoData: () => Promise<void>;
+  clearAllData: () => Promise<void>;
 
   // ── Expenses ──────────────────────────────────────────────────────────────
   createExpense: (input: CreateExpenseInput) => Promise<Expense>;
@@ -83,6 +86,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
   incomes: [],
   budgets: [],
   isLoading: false,
+  isInitialized: false,
   error: null,
 
   // ── Bootstrap ──────────────────────────────────────────────────────────────
@@ -104,9 +108,9 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
           [],
         ),
       ]);
-      set({ expenses, incomes, budgets, isLoading: false });
+      set({ expenses, incomes, budgets, isLoading: false, isInitialized: true });
     } catch (e) {
-      set({ isLoading: false, error: String(e) });
+      set({ isLoading: false, isInitialized: true, error: String(e) });
     }
   },
 
@@ -314,5 +318,95 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
     });
 
     set((s) => ({ budgets: s.budgets.filter((b) => b.id !== id) }));
+  },
+
+  // ── Demo & Maintenance ──────────────────────────────────────────────────────
+
+  seedDemoData: async () => {
+    const db = await getDb();
+    const currentMonth = new Date().toISOString().slice(0, 7); // e.g. "2026-10"
+    const today = new Date().toISOString().slice(0, 10);
+
+    const demoExpenses: CreateExpenseInput[] = [
+      {
+        title: 'Morning Pour-over & Matcha',
+        amount: 680,
+        category: 'food',
+        note: 'Artisanal roast café',
+        date: today,
+      },
+      {
+        title: 'Supermarket Groceries',
+        amount: 4520,
+        category: 'food',
+        note: 'Fresh produce & pantry essentials',
+        date: today,
+      },
+      {
+        title: 'Metro Pass Recharge',
+        amount: 2000,
+        category: 'transport',
+        note: 'Commuter card reload',
+        date: today,
+      },
+      {
+        title: 'High-speed Fiber Internet',
+        amount: 5400,
+        category: 'bills',
+        note: 'Monthly subscription',
+        date: `${currentMonth}-15`,
+      },
+      {
+        title: 'Weekend Cinema & Ramen',
+        amount: 3200,
+        category: 'fun',
+        note: 'Film with friends',
+        date: `${currentMonth}-20`,
+      },
+      {
+        title: 'Notebooks & Fountain Pen Ink',
+        amount: 1850,
+        category: 'other',
+        note: 'Stationery shop',
+        date: `${currentMonth}-12`,
+      },
+    ];
+
+    const demoIncomes: CreateIncomeInput[] = [
+      {
+        source_name: 'Main Salary',
+        amount: 320000,
+        month_key: currentMonth,
+      },
+    ];
+
+    const demoBudgets: CreateBudgetInput[] = [
+      { category: 'food', percentage_or_limit: 45000, month_key: currentMonth },
+      { category: 'bills', percentage_or_limit: 90000, month_key: currentMonth },
+      { category: 'transport', percentage_or_limit: 15000, month_key: currentMonth },
+      { category: 'fun', percentage_or_limit: 25000, month_key: currentMonth },
+      { category: 'other', percentage_or_limit: 20000, month_key: currentMonth },
+    ];
+
+    for (const exp of demoExpenses) {
+      await get().createExpense(exp);
+    }
+    for (const inc of demoIncomes) {
+      await get().createIncome(inc);
+    }
+    for (const bgt of demoBudgets) {
+      await get().createBudget(bgt);
+    }
+  },
+
+  clearAllData: async () => {
+    const db = await getDb();
+    await db.execAsync(`
+      DELETE FROM expenses;
+      DELETE FROM incomes;
+      DELETE FROM budgets;
+      DELETE FROM sync_outbox;
+    `);
+    set({ expenses: [], incomes: [], budgets: [] });
   },
 }));
