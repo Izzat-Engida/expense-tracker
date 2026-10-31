@@ -1,52 +1,31 @@
-import  {useEffect} from 'react';
-import {Stack} from 'expo-router';
-import {StatusBar} from 'expo-status-bar';
+import { useEffect } from 'react';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
+import { ShipporiMincho_600SemiBold } from '@expo-google-fonts/shippori-mincho';
+import { ShareTechMono_400Regular } from '@expo-google-fonts/share-tech-mono';
 import {
-  ShipporiMincho_400Regular,
-  ShipporiMincho_600SemiBold,
-} from '@expo-google-fonts/shippori-mincho';
-import {
-  NotoSansJP_400Regular,
-  NotoSansJP_500Medium,
-} from '@expo-google-fonts/noto-sans-jp';
-import {ThemeProvider,useTheme} from '@/theme/ThemeProvider';
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_700Bold,
+} from '@expo-google-fonts/plus-jakarta-sans';
 
 SplashScreen.preventAutoHideAsync();
 
-
-function Root(){
-  const {colors,isDark}=useTheme();
-  return(
-    <>
-    <StatusBar style={isDark? 'light':'dark'}/>
-    <Stack
-    screenOptions={{
-      headerShown:false,
-      contentStyle:{
-        backgroundColor:colors.bg
-      }
-    }}
-    />
-    </>
-  )
-}
-function RootLayout(){
-const  [loaded]=useFonts({
-    ShipporiMincho_400Regular,
+export default function RootLayout() {
+  const [loaded, error] = useFonts({
     ShipporiMincho_600SemiBold,
-    NotoSansJP_400Regular,
-    NotoSansJP_500Medium,
-});
-useEffect(()=>{
-if (loaded) SplashScreen.hideAsync()
-},[loaded]);
-if(!loaded) return null;
+    ShareTechMono_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_700Bold,
+  });
 
-return (
-  <ThemeProvider>
-    <Root/>
-  </ThemeProvider>
-)
+  useEffect(() => {
+    if (loaded || error) {
+      SplashScreen.hideAsync();
+    }
+  }, [loaded, error]);
+
+  if (!loaded && !error) return null;
+
+  return <Stack screenOptions={{ headerShown: false }} />;
 }
