@@ -41,6 +41,35 @@ export const CREATE_BUDGETS_TABLE = `
   );
 ` as const;
 
+export const CREATE_SAVINGS_TABLE = `
+  CREATE TABLE IF NOT EXISTS savings (
+    id          TEXT PRIMARY KEY NOT NULL,
+    title       TEXT NOT NULL,
+    amount      REAL NOT NULL,
+    category    TEXT NOT NULL,
+    wishlist_id TEXT,
+    note        TEXT,
+    date        TEXT NOT NULL,
+    created_at  TEXT NOT NULL,
+    updated_at  TEXT NOT NULL
+  );
+` as const;
+
+export const CREATE_WISHLIST_TABLE = `
+  CREATE TABLE IF NOT EXISTS wishlist (
+    id            TEXT PRIMARY KEY NOT NULL,
+    title         TEXT NOT NULL,
+    target_amount REAL NOT NULL,
+    saved_amount  REAL NOT NULL DEFAULT 0,
+    category      TEXT NOT NULL,
+    priority      TEXT NOT NULL DEFAULT 'medium',
+    note          TEXT,
+    is_purchased  INTEGER NOT NULL DEFAULT 0,
+    created_at    TEXT NOT NULL,
+    updated_at    TEXT NOT NULL
+  );
+` as const;
+
 /**
  * Outbox for future Google Drive sync.
  * Every mutation writes here first; a background sync worker drains it.
@@ -72,6 +101,8 @@ export const ALL_MIGRATIONS = [
   CREATE_EXPENSES_TABLE,
   CREATE_INCOMES_TABLE,
   CREATE_BUDGETS_TABLE,
+  CREATE_SAVINGS_TABLE,
+  CREATE_WISHLIST_TABLE,
   CREATE_SYNC_OUTBOX_TABLE,
   CREATE_OUTBOX_PENDING_INDEX,
 ] as const;

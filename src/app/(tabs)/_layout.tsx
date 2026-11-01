@@ -10,17 +10,18 @@ import { Tabs, router } from 'expo-router';
 import { Colors, Fonts } from '@/constants/theme';
 import { HankoStamp } from '@/components/ui/HankoStamp'; 
 
-type TabKey = 'index' | 'overview' | 'settings';
+type TabKey = 'index' | 'overview' | 'wishlist' | 'settings';
 
 interface TabItem {
   name: TabKey;
   label: string;
-  route: '/(tabs)' | '/(tabs)/overview' | '/(tabs)/settings';
+  route: '/(tabs)' | '/(tabs)/overview' | '/(tabs)/wishlist' | '/(tabs)/settings';
 }
 
 const TABS: TabItem[] = [
   { name: 'index', label: 'Home', route: '/(tabs)' },
   { name: 'overview', label: 'Overview', route: '/(tabs)/overview' },
+  { name: 'wishlist', label: 'Wishlist', route: '/(tabs)/wishlist' },
   { name: 'settings', label: 'Settings', route: '/(tabs)/settings' },
 ];
 
@@ -95,6 +96,7 @@ export default function TabsLayout() {
     >
       <Tabs.Screen name="index" />
       <Tabs.Screen name="overview" />
+      <Tabs.Screen name="wishlist" />
       <Tabs.Screen name="settings" />
     </Tabs>
   );
@@ -107,7 +109,7 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.border,
     paddingBottom: Platform.OS === 'ios' ? 24 : 8,
     paddingTop: 10,
-    paddingHorizontal: 18,
+    paddingHorizontal: 14,
   },
   bar: {
     flexDirection: 'row',
@@ -116,13 +118,13 @@ const styles = StyleSheet.create({
   },
   tabs: {
     flexDirection: 'row',
-    gap: 4,
+    gap: 3,
     flex: 1,
-    marginRight: 12,
+    marginRight: 8,
   },
   tab: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
     borderRadius: 8,
     borderWidth: 1.5,
     borderColor: 'transparent',
@@ -138,9 +140,9 @@ const styles = StyleSheet.create({
   },
   tabLabel: {
     fontFamily: Fonts.sans,
-    fontSize: 13,
+    fontSize: 12,
     color: Colors.textMuted,
-    letterSpacing: 0.2,
+    letterSpacing: 0.1,
   },
   tabLabelActive: {
     fontFamily: Fonts.sansBold,

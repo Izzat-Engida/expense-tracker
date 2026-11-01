@@ -3,27 +3,6 @@
  *
  * Convenience hook that bootstraps the ledger store on first mount and
  * exposes a clean, ergonomic API over the raw Zustand store.
- *
- * @example
- * ```tsx
- * function AddExpenseButton() {
- *   const { createExpense, isLoading } = useLedger();
- *   return (
- *     <Button
- *       disabled={isLoading}
- *       onPress={() =>
- *         createExpense({
- *           title: 'Morning coffee',
- *           amount: 420,
- *           category: 'food',
- *           note: null,
- *           date: '2026-10-31',
- *         })
- *       }
- *     />
- *   );
- * }
- * ```
  */
 
 import { useEffect } from 'react';
@@ -45,6 +24,8 @@ export function useLedger() {
     expenses: store.expenses,
     incomes: store.incomes,
     budgets: store.budgets,
+    savings: store.savings,
+    wishlist: store.wishlist,
     isLoading: store.isLoading,
     isInitialized: store.isInitialized,
     error: store.error,
@@ -61,6 +42,15 @@ export function useLedger() {
     createBudget: store.createBudget,
     updateBudget: store.updateBudget,
     deleteBudget: store.deleteBudget,
+
+    createSaving: store.createSaving,
+    updateSaving: store.updateSaving,
+    deleteSaving: store.deleteSaving,
+
+    createWishlistItem: store.createWishlistItem,
+    updateWishlistItem: store.updateWishlistItem,
+    deleteWishlistItem: store.deleteWishlistItem,
+    addSavingToWishlist: store.addSavingToWishlist,
 
     seedDemoData: store.seedDemoData,
     clearAllData: store.clearAllData,

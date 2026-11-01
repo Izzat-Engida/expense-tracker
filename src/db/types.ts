@@ -50,10 +50,36 @@ export interface Budget {
   updated_at: string;
 }
 
+export interface Saving {
+  id: string;
+  title: string;
+  amount: number;
+  category: string;
+  wishlist_id: string | null;
+  note: string | null;
+  /** ISO-8601 date string, e.g. "2026-10-31" */
+  date: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WishlistItem {
+  id: string;
+  title: string;
+  target_amount: number;
+  saved_amount: number;
+  category: string;
+  priority: 'low' | 'medium' | 'high';
+  note: string | null;
+  is_purchased: 0 | 1;
+  created_at: string;
+  updated_at: string;
+}
+
 // ─── Sync outbox ─────────────────────────────────────────────────────────────
 
 export type SyncOperation = 'INSERT' | 'UPDATE' | 'DELETE';
-export type SyncTableName = 'expenses' | 'incomes' | 'budgets';
+export type SyncTableName = 'expenses' | 'incomes' | 'budgets' | 'savings' | 'wishlist';
 
 export interface SyncOutboxRow {
   id: string;
@@ -77,3 +103,12 @@ export type UpdateIncomeInput = Partial<Omit<Income, 'id' | 'updated_at'>>;
 
 export type CreateBudgetInput = Omit<Budget, 'id' | 'updated_at'>;
 export type UpdateBudgetInput = Partial<Omit<Budget, 'id' | 'updated_at'>>;
+
+export type CreateSavingInput = Omit<Saving, 'id' | 'created_at' | 'updated_at'>;
+export type UpdateSavingInput = Partial<Omit<Saving, 'id' | 'created_at' | 'updated_at'>>;
+
+export type CreateWishlistItemInput = Omit<WishlistItem, 'id' | 'created_at' | 'updated_at' | 'is_purchased'> & {
+  is_purchased?: 0 | 1;
+  saved_amount?: number;
+};
+export type UpdateWishlistItemInput = Partial<Omit<WishlistItem, 'id' | 'created_at' | 'updated_at'>>;

@@ -33,7 +33,7 @@ const YESTERDAY_EXPENSES: ExpenseItem[] = [
 export default function HomeScreen() {
   return (
     <Main>
-      <BentoCard variant="light" style={styles.monthHeaderCard}>
+      <BentoCard variant="light" art="crane" style={styles.monthHeaderCard}>
       <View style={styles.monthLeft}>
       <AppText style={styles.kanjiMonth}>十{'\n'}月</AppText>
       <View style={styles.verticalDivider} />

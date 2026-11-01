@@ -1,16 +1,10 @@
 /**
  * stores/ledgerStore.ts
  *
- * Zustand store that owns in-memory state for expenses, incomes, and budgets.
+ * Zustand store that owns in-memory state for expenses, incomes, budgets,
+ * savings, and wishlist goals.
  * All write actions persist to SQLite first, then emit to `sync_outbox`,
  * then update the in-memory slice — so the UI never sees stale state.
- *
- * Usage:
- *   const expenses = useLedgerStore((s) => s.expenses);
- *   const { createExpense, deleteExpense } = useLedgerStore();
- *
- * Prefer the `useLedger` hook which wraps this store and exposes a
- * simpler API with loading states.
  */
 
 import { create } from 'zustand';
@@ -20,12 +14,18 @@ import type {
   Expense,
   Income,
   Budget,
+  Saving,
+  WishlistItem,
   CreateExpenseInput,
   UpdateExpenseInput,
   CreateIncomeInput,
   UpdateIncomeInput,
   CreateBudgetInput,
   UpdateBudgetInput,
+  CreateSavingInput,
+  UpdateSavingInput,
+  CreateWishlistItemInput,
+  UpdateWishlistItemInput,
 } from '@/db/types';
 
 // ─── Utility ────────────────────────────────────────────────────────────────
@@ -48,6 +48,8 @@ interface LedgerState {
   expenses: Expense[];
   incomes: Income[];
   budgets: Budget[];
+  savings: Saving[];
+  wishlist: WishlistItem[];
   /** True while the initial DB load is in flight. */
   isLoading: boolean;
   isInitialized: boolean;
@@ -63,7 +65,6 @@ interface LedgerActions {
   // ── Expenses ──────────────────────────────────────────────────────────────
   createExpense: (input: CreateExpenseInput) => Promise<Expense>;
   updateExpense: (id: string, patch: UpdateExpenseInput) => Promise<void>;
-  /** Soft-delete: sets `deleted_at` and enqueues a DELETE sync event. */
   deleteExpense: (id: string) => Promise<void>;
 
   // ── Incomes ───────────────────────────────────────────────────────────────
@@ -75,6 +76,17 @@ interface LedgerActions {
   createBudget: (input: CreateBudgetInput) => Promise<Budget>;
   updateBudget: (id: string, patch: UpdateBudgetInput) => Promise<void>;
   deleteBudget: (id: string) => Promise<void>;
+
+  // ── Savings ───────────────────────────────────────────────────────────────
+  createSaving: (input: CreateSavingInput) => Promise<Saving>;
+  updateSaving: (id: string, patch: UpdateSavingInput) => Promise<void>;
+  deleteSaving: (id: string) => Promise<void>;
+
+  // ── Wishlist ──────────────────────────────────────────────────────────────
+  createWishlistItem: (input: CreateWishlistItemInput) => Promise<WishlistItem>;
+  updateWishlistItem: (id: string, patch: UpdateWishlistItemInput) => Promise<void>;
+  deleteWishlistItem: (id: string) => Promise<void>;
+  addSavingToWishlist: (wishlistId: string, amount: number) => Promise<void>;
 }
 
 type LedgerStore = LedgerState & LedgerActions;
@@ -85,6 +97,8 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
   expenses: [],
   incomes: [],
   budgets: [],
+  savings: [],
+  wishlist: [],
   isLoading: false,
   isInitialized: false,
   error: null,
@@ -94,7 +108,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const db = await getDb();
-      const [expenses, incomes, budgets] = await Promise.all([
+      const [expenses, incomes, budgets, savings, wishlistRows] = await Promise.all([
         db.getAllAsync<Expense>(
           'SELECT * FROM expenses WHERE deleted_at IS NULL ORDER BY date DESC',
           [],
@@ -107,8 +121,81 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
           'SELECT * FROM budgets ORDER BY month_key DESC',
           [],
         ),
+        db.getAllAsync<Saving>(
+          'SELECT * FROM savings ORDER BY date DESC',
+          [],
+        ),
+        db.getAllAsync<WishlistItem>(
+          'SELECT * FROM wishlist ORDER BY created_at DESC',
+          [],
+        ),
       ]);
-      set({ expenses, incomes, budgets, isLoading: false, isInitialized: true });
+
+      let wishlist = wishlistRows;
+      // Seed default wishlist items if empty
+      if (wishlist.length === 0) {
+        const demoItems: CreateWishlistItemInput[] = [
+          {
+            title: 'Sony WH-1000XM5',
+            target_amount: 18000,
+            saved_amount: 12000,
+            category: 'Tech',
+            priority: 'high',
+            note: 'Noise cancelling headphones for deep work',
+          },
+          {
+            title: 'Weekend in Hawassa',
+            target_amount: 8500,
+            saved_amount: 5000,
+            category: 'Travel',
+            priority: 'medium',
+            note: 'Lakeside cabin getaway with family',
+          },
+          {
+            title: 'Mechanical Keyboard',
+            target_amount: 4200,
+            saved_amount: 4200,
+            category: 'Tech',
+            priority: 'low',
+            note: 'Keychron K2 wireless tactile switches',
+            is_purchased: 1,
+          },
+        ];
+
+        for (const item of demoItems) {
+          const created: WishlistItem = {
+            id: uuid(),
+            title: item.title,
+            target_amount: item.target_amount,
+            saved_amount: item.saved_amount ?? 0,
+            category: item.category,
+            priority: item.priority,
+            note: item.note ?? null,
+            is_purchased: item.is_purchased ?? 0,
+            created_at: now(),
+            updated_at: now(),
+          };
+          await db.runAsync(
+            `INSERT INTO wishlist (id, title, target_amount, saved_amount, category, priority, note, is_purchased, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              created.id,
+              created.title,
+              created.target_amount,
+              created.saved_amount,
+              created.category,
+              created.priority,
+              created.note,
+              created.is_purchased,
+              created.created_at,
+              created.updated_at,
+            ],
+          );
+          wishlist.push(created);
+        }
+      }
+
+      set({ expenses, incomes, budgets, savings, wishlist, isLoading: false, isInitialized: true });
     } catch (e) {
       set({ isLoading: false, isInitialized: true, error: String(e) });
     }
@@ -196,7 +283,6 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
       await enqueueOutbox(txn, 'expenses', id, 'DELETE', deleted);
     });
 
-    // Remove from the active in-memory list (soft-delete = hidden from UI)
     set((s) => ({ expenses: s.expenses.filter((e) => e.id !== id) }));
   },
 
@@ -320,11 +406,191 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
     set((s) => ({ budgets: s.budgets.filter((b) => b.id !== id) }));
   },
 
+  // ── Savings ─────────────────────────────────────────────────────────────────
+
+  createSaving: async (input) => {
+    const db = await getDb();
+    const saving: Saving = {
+      id: uuid(),
+      ...input,
+      created_at: now(),
+      updated_at: now(),
+    };
+
+    await db.withExclusiveTransactionAsync(async (txn) => {
+      await txn.runAsync(
+        `INSERT INTO savings (id, title, amount, category, wishlist_id, note, date, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          saving.id,
+          saving.title,
+          saving.amount,
+          saving.category,
+          saving.wishlist_id ?? null,
+          saving.note ?? null,
+          saving.date,
+          saving.created_at,
+          saving.updated_at,
+        ],
+      );
+      await enqueueOutbox(txn, 'savings', saving.id, 'INSERT', saving);
+    });
+
+    set((s) => ({ savings: [saving, ...s.savings] }));
+
+    if (saving.wishlist_id) {
+      await get().addSavingToWishlist(saving.wishlist_id, saving.amount);
+    }
+
+    return saving;
+  },
+
+  updateSaving: async (id, patch) => {
+    const db = await getDb();
+    const existing = get().savings.find((s) => s.id === id);
+    if (!existing) throw new Error(`Saving ${id} not found`);
+
+    const updated: Saving = { ...existing, ...patch, updated_at: now() };
+
+    await db.withExclusiveTransactionAsync(async (txn) => {
+      await txn.runAsync(
+        `UPDATE savings
+         SET title = ?, amount = ?, category = ?, wishlist_id = ?, note = ?, date = ?, updated_at = ?
+         WHERE id = ?`,
+        [
+          updated.title,
+          updated.amount,
+          updated.category,
+          updated.wishlist_id ?? null,
+          updated.note ?? null,
+          updated.date,
+          updated.updated_at,
+          id,
+        ],
+      );
+      await enqueueOutbox(txn, 'savings', id, 'UPDATE', updated);
+    });
+
+    set((s) => ({
+      savings: s.savings.map((it) => (it.id === id ? updated : it)),
+    }));
+  },
+
+  deleteSaving: async (id) => {
+    const db = await getDb();
+    const existing = get().savings.find((s) => s.id === id);
+    if (!existing) throw new Error(`Saving ${id} not found`);
+
+    await db.withExclusiveTransactionAsync(async (txn) => {
+      await txn.runAsync('DELETE FROM savings WHERE id = ?', [id]);
+      await enqueueOutbox(txn, 'savings', id, 'DELETE', existing);
+    });
+
+    set((s) => ({ savings: s.savings.filter((it) => it.id !== id) }));
+  },
+
+  // ── Wishlist ────────────────────────────────────────────────────────────────
+
+  createWishlistItem: async (input) => {
+    const db = await getDb();
+    const item: WishlistItem = {
+      id: uuid(),
+      title: input.title,
+      target_amount: input.target_amount,
+      saved_amount: input.saved_amount ?? 0,
+      category: input.category,
+      priority: input.priority,
+      note: input.note ?? null,
+      is_purchased: input.is_purchased ?? 0,
+      created_at: now(),
+      updated_at: now(),
+    };
+
+    await db.withExclusiveTransactionAsync(async (txn) => {
+      await txn.runAsync(
+        `INSERT INTO wishlist (id, title, target_amount, saved_amount, category, priority, note, is_purchased, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          item.id,
+          item.title,
+          item.target_amount,
+          item.saved_amount,
+          item.category,
+          item.priority,
+          item.note,
+          item.is_purchased,
+          item.created_at,
+          item.updated_at,
+        ],
+      );
+      await enqueueOutbox(txn, 'wishlist', item.id, 'INSERT', item);
+    });
+
+    set((s) => ({ wishlist: [item, ...s.wishlist] }));
+    return item;
+  },
+
+  updateWishlistItem: async (id, patch) => {
+    const db = await getDb();
+    const existing = get().wishlist.find((w) => w.id === id);
+    if (!existing) throw new Error(`WishlistItem ${id} not found`);
+
+    const updated: WishlistItem = { ...existing, ...patch, updated_at: now() };
+
+    await db.withExclusiveTransactionAsync(async (txn) => {
+      await txn.runAsync(
+        `UPDATE wishlist
+         SET title = ?, target_amount = ?, saved_amount = ?, category = ?, priority = ?, note = ?, is_purchased = ?, updated_at = ?
+         WHERE id = ?`,
+        [
+          updated.title,
+          updated.target_amount,
+          updated.saved_amount,
+          updated.category,
+          updated.priority,
+          updated.note,
+          updated.is_purchased,
+          updated.updated_at,
+          id,
+        ],
+      );
+      await enqueueOutbox(txn, 'wishlist', id, 'UPDATE', updated);
+    });
+
+    set((s) => ({
+      wishlist: s.wishlist.map((it) => (it.id === id ? updated : it)),
+    }));
+  },
+
+  deleteWishlistItem: async (id) => {
+    const db = await getDb();
+    const existing = get().wishlist.find((w) => w.id === id);
+    if (!existing) throw new Error(`WishlistItem ${id} not found`);
+
+    await db.withExclusiveTransactionAsync(async (txn) => {
+      await txn.runAsync('DELETE FROM wishlist WHERE id = ?', [id]);
+      await enqueueOutbox(txn, 'wishlist', id, 'DELETE', existing);
+    });
+
+    set((s) => ({ wishlist: s.wishlist.filter((it) => it.id !== id) }));
+  },
+
+  addSavingToWishlist: async (wishlistId, amount) => {
+    const item = get().wishlist.find((w) => w.id === wishlistId);
+    if (!item) return;
+
+    const newSaved = Math.min(item.target_amount, item.saved_amount + amount);
+    await get().updateWishlistItem(wishlistId, {
+      saved_amount: newSaved,
+      is_purchased: newSaved >= item.target_amount ? 1 : item.is_purchased,
+    });
+  },
+
   // ── Demo & Maintenance ──────────────────────────────────────────────────────
 
   seedDemoData: async () => {
     const db = await getDb();
-    const currentMonth = new Date().toISOString().slice(0, 7); // e.g. "2026-10"
+    const currentMonth = new Date().toISOString().slice(0, 7);
     const today = new Date().toISOString().slice(0, 10);
 
     const demoExpenses: CreateExpenseInput[] = [
@@ -405,8 +671,10 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
       DELETE FROM expenses;
       DELETE FROM incomes;
       DELETE FROM budgets;
+      DELETE FROM savings;
+      DELETE FROM wishlist;
       DELETE FROM sync_outbox;
     `);
-    set({ expenses: [], incomes: [], budgets: [] });
+    set({ expenses: [], incomes: [], budgets: [], savings: [], wishlist: [] });
   },
 }));
