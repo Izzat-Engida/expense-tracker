@@ -8,7 +8,8 @@ import {
   ImageSourcePropType,
   ImageStyle,
 } from 'react-native';
-import { Colors } from '@/constants/theme';
+import { Colors, useThemeColors } from '@/constants/theme';
+import { CardSurfaceContext } from './CardSurface';
 
 const ART_IMAGES = {
   wagara: {
@@ -47,14 +48,16 @@ export function BentoCard({
   art = 'wagara',
   artOpacity,
 }: BentoCardProps) {
+  const { colors, isDark: systemIsDark } = useThemeColors();
+
   const bgMap: Record<CardVariant, string> = {
-    light: Colors.card,
-    dark: Colors.cardDark,
-    elevated: Colors.cardElevated,
+    light: colors.card,
+    dark: colors.cardDark,
+    elevated: colors.cardElevated,
   };
 
-  const isDark = variant === 'dark';
-  const defaultOpacity = isDark ? 0.28 : 0.16;
+  const isDarkCard = variant === 'dark' || systemIsDark;
+  const defaultOpacity = isDarkCard ? 0.28 : 0.16;
   const opacity = artOpacity ?? defaultOpacity;
 
   let artSource: ImageSourcePropType | null = null;
@@ -62,37 +65,49 @@ export function BentoCard({
   let resizeMode: 'cover' | 'contain' = 'cover';
 
   if (art === 'wagara') {
-    artSource = isDark ? ART_IMAGES.wagara.dark : ART_IMAGES.wagara.light;
+    artSource = isDarkCard ? ART_IMAGES.wagara.dark : ART_IMAGES.wagara.light;
     artStyle = styles.artWagara;
     resizeMode = 'cover';
   } else if (art === 'wave') {
-    artSource = isDark ? ART_IMAGES.wave.dark : ART_IMAGES.wave.light;
+    artSource = isDarkCard ? ART_IMAGES.wave.dark : ART_IMAGES.wave.light;
     artStyle = styles.artWave;
     resizeMode = 'contain';
   } else if (art === 'crane') {
-    artSource = isDark ? ART_IMAGES.crane.dark : ART_IMAGES.crane.light;
+    artSource = isDarkCard ? ART_IMAGES.crane.dark : ART_IMAGES.crane.light;
     artStyle = styles.artCrane;
     resizeMode = 'contain';
   } else if (art === 'full') {
-    artSource = isDark ? ART_IMAGES.full.dark : ART_IMAGES.full.light;
+    artSource = isDarkCard ? ART_IMAGES.full.dark : ART_IMAGES.full.light;
     artStyle = styles.artFull;
     resizeMode = 'cover';
   }
 
   return (
-    <View style={[styles.cardBase, { backgroundColor: bgMap[variant] }, style]}>
-      {artSource && art !== 'none' && (
-        <View style={styles.artClipper} pointerEvents="none">
-          <Image
-            source={artSource}
-            style={[artStyle, { opacity }]}
-            resizeMode={resizeMode}
-            pointerEvents="none"
-          />
-        </View>
-      )}
-      {children}
-    </View>
+    <CardSurfaceContext.Provider value={variant === 'dark' ? 'dark' : 'light'}>
+      <View
+        style={[
+          styles.cardBase,
+          {
+            backgroundColor: bgMap[variant],
+            borderColor: colors.border,
+            shadowColor: colors.shadow,
+          },
+          style,
+        ]}
+      >
+        {artSource && art !== 'none' && (
+          <View style={styles.artClipper} pointerEvents="none">
+            <Image
+              source={artSource}
+              style={[artStyle, { opacity }]}
+              resizeMode={resizeMode}
+              pointerEvents="none"
+            />
+          </View>
+        )}
+        {children}
+      </View>
+    </CardSurfaceContext.Provider>
   );
 }
 

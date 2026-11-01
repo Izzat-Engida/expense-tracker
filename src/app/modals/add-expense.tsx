@@ -13,8 +13,9 @@ import {
   HankoStamp,
   PillBadge,
 } from '@/components/ui';
-import { Colors, Fonts } from '@/constants/theme';
+import { Colors, Fonts, useThemeColors } from '@/constants/theme';
 import { useLedger } from '@/hooks/useLedger';
+import { localDateKey } from '@/lib/ledger';
 import type { ExpenseCategory } from '@/db/types';
 
 type TransactionMode = 'expense' | 'income' | 'saving';
@@ -54,6 +55,7 @@ export default function AddExpenseModal() {
   const router = useRouter();
   const params = useLocalSearchParams<{ type?: string; wishlistId?: string }>();
   const { createExpense, createIncome, createSaving, wishlist } = useLedger();
+  const { colors } = useThemeColors();
 
   const initialMode: TransactionMode =
     params.type === 'income' ? 'income' : params.type === 'saving' ? 'saving' : 'expense';
@@ -114,8 +116,7 @@ export default function AddExpenseModal() {
 
     setIsSaving(true);
     try {
-      const today = new Date();
-      const dateStr = today.toISOString().slice(0, 10);
+      const dateStr = localDateKey();
       const monthKey = dateStr.slice(0, 7);
 
       if (isExpense) {
@@ -153,10 +154,26 @@ export default function AddExpenseModal() {
   };
 
   const cursorColor = isExpense
-    ? Colors.hankoRed
+    ? colors.hankoRed
     : isIncome
-    ? Colors.bambooGreen
-    : Colors.categoryTransport;
+    ? colors.bambooGreen
+    : colors.categoryTransport;
+
+  const saveBg = isExpense
+    ? colors.selectionBg
+    : isIncome
+    ? colors.incomeBg
+    : colors.savingBg;
+  const saveBorder = isExpense
+    ? colors.selectionBorder
+    : isIncome
+    ? colors.incomeBorder
+    : colors.savingBorder;
+  const saveText = isExpense
+    ? colors.selectionText
+    : isIncome
+    ? colors.incomeText
+    : colors.savingText;
 
   return (
     <Main>
@@ -172,27 +189,30 @@ export default function AddExpenseModal() {
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => router.back()}
-          style={styles.closeBtn}
+          style={[styles.closeBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
         >
-          <AppText variant="body" color={Colors.textSecondary}>
+          <AppText variant="body" color={colors.textPrimary}>
             ✕
           </AppText>
         </TouchableOpacity>
       </View>
 
       {/* 3-Way Switcher: Expense | Salary | Saving */}
-      <View style={styles.segmentContainer}>
+      <View style={[styles.segmentContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={() => setMode('expense')}
           style={[
             styles.segmentButton,
-            isExpense && styles.segmentButtonActiveExpense,
+            isExpense && {
+              backgroundColor: colors.selectionBg,
+              borderColor: colors.selectionBorder,
+            },
           ]}
         >
           <AppText
             variant="bodyBold"
-            color={isExpense ? Colors.textInverse : Colors.textSecondary}
+            color={isExpense ? colors.selectionText : colors.textSecondary}
             style={styles.segmentText}
           >
             支出 Expense
@@ -204,12 +224,15 @@ export default function AddExpenseModal() {
           onPress={() => setMode('income')}
           style={[
             styles.segmentButton,
-            isIncome && styles.segmentButtonActiveIncome,
+            isIncome && {
+              backgroundColor: colors.incomeBg,
+              borderColor: colors.incomeBorder,
+            },
           ]}
         >
           <AppText
             variant="bodyBold"
-            color={isIncome ? Colors.textInverse : Colors.textSecondary}
+            color={isIncome ? colors.incomeText : colors.textSecondary}
             style={styles.segmentText}
           >
             収入 Salary
@@ -221,12 +244,15 @@ export default function AddExpenseModal() {
           onPress={() => setMode('saving')}
           style={[
             styles.segmentButton,
-            isSavingMode && styles.segmentButtonActiveSaving,
+            isSavingMode && {
+              backgroundColor: colors.savingBg,
+              borderColor: colors.savingBorder,
+            },
           ]}
         >
           <AppText
             variant="bodyBold"
-            color={isSavingMode ? Colors.textInverse : Colors.textSecondary}
+            color={isSavingMode ? colors.savingText : colors.textSecondary}
             style={styles.segmentText}
           >
             貯蓄 Saving
@@ -248,11 +274,11 @@ export default function AddExpenseModal() {
         </View>
 
         <View style={styles.lcdRow}>
-          <AppText variant="digital" color={Colors.textInverse} style={styles.lcdText}>
+          <AppText variant="digital" color={colors.textPrimary} style={styles.lcdText}>
             {amount}
           </AppText>
           <View style={[styles.cursorLine, { backgroundColor: cursorColor }]} />
-          <AppText variant="caption" color={Colors.textMuted} style={styles.etbLabel}>
+          <AppText variant="caption" color={colors.textMuted} style={styles.etbLabel}>
             ETB
           </AppText>
         </View>
@@ -261,14 +287,14 @@ export default function AddExpenseModal() {
       {/* Category / Source / Goal Selection */}
       <BentoCard variant="light" style={styles.categoryCard}>
         <View style={styles.categoryHeaderRow}>
-          <AppText variant="caption" color={Colors.textSecondary}>
+          <AppText variant="caption" color={colors.textSecondary}>
             {isExpense
               ? 'Category'
               : isIncome
               ? 'Income Source'
               : 'Saving Target / Goal'}
           </AppText>
-          <AppText variant="caption" color={Colors.textMuted}>
+          <AppText variant="caption" color={colors.textMuted}>
             {isExpense ? '費目' : isIncome ? '給与・収入源' : '貯蓄目標'}
           </AppText>
         </View>
@@ -342,7 +368,7 @@ export default function AddExpenseModal() {
       {/* Note & Date Split Row */}
       <View style={styles.splitRow}>
         <BentoCard variant="light" style={styles.noteCard}>
-          <AppText variant="caption" color={Colors.textSecondary}>
+          <AppText variant="caption" color={colors.textSecondary}>
             {isExpense ? 'Add a note' : isIncome ? 'Source note' : 'Saving note'}
           </AppText>
           <TextInput
@@ -355,18 +381,18 @@ export default function AddExpenseModal() {
                 ? 'e.g. Oct Salary'
                 : 'e.g. Deposit for trip'
             }
-            placeholderTextColor={Colors.textMuted}
-            style={styles.noteInput}
+            placeholderTextColor={colors.textMuted}
+            style={[styles.noteInput, { color: colors.textPrimary }]}
           />
         </BentoCard>
 
         <BentoCard variant="dark" style={styles.dateCard}>
-          <AppText variant="caption" color={Colors.textMuted}>
+          <AppText variant="caption" color={colors.textMuted}>
             Date
           </AppText>
           <AppText
             variant="caption"
-            color={Colors.textInverse}
+            color={colors.textPrimary}
             style={styles.dateValue}
           >
             {formattedDate}
@@ -384,7 +410,7 @@ export default function AddExpenseModal() {
               onPress={() => handleKeyPress(key)}
               style={styles.keyButton}
             >
-              <AppText style={key === '⌫' ? styles.backspaceText : styles.keyText}>
+              <AppText style={[key === '⌫' ? styles.backspaceText : styles.keyText, { color: key === '⌫' ? colors.textSecondary : colors.textPrimary }]}>
                 {key}
               </AppText>
             </TouchableOpacity>
@@ -399,11 +425,13 @@ export default function AddExpenseModal() {
         disabled={isSaving}
         style={[
           styles.saveButton,
-          isIncome && styles.saveButtonIncome,
-          isSavingMode && styles.saveButtonSaving,
+          {
+            backgroundColor: saveBg,
+            borderColor: saveBorder,
+          },
         ]}
       >
-        <AppText variant="bodyBold" color={Colors.textInverse}>
+        <AppText variant="bodyBold" color={saveText}>
           {isSaving
             ? 'Saving...'
             : isExpense
@@ -456,15 +484,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 9,
     borderRadius: 999,
-  },
-  segmentButtonActiveExpense: {
-    backgroundColor: Colors.cardDark,
-  },
-  segmentButtonActiveIncome: {
-    backgroundColor: Colors.bambooGreen,
-  },
-  segmentButtonActiveSaving: {
-    backgroundColor: Colors.categoryTransport,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
   },
   segmentText: {
     fontSize: 12,
@@ -571,11 +592,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 3,
-  },
-  saveButtonIncome: {
-    backgroundColor: Colors.bambooGreen,
-  },
-  saveButtonSaving: {
-    backgroundColor: Colors.categoryTransport,
   },
 });

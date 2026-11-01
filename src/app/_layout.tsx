@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Appearance } from 'react-native';
 import { Stack, Redirect } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
@@ -12,6 +13,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { SQLiteProvider } from 'expo-sqlite';
 import { migrateDb } from '@/db/client';
 import { useAppGate } from '@/hooks/useAppGate';
+import { useSettingsStore } from '@/stores/settingsStore';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -50,13 +52,29 @@ export default function RootLayout() {
     PlusJakartaSans_700Bold,
   });
 
+  const loadSettings = useSettingsStore((s) => s.loadSettings);
+  const isSettingsLoaded = useSettingsStore((s) => s.isLoaded);
+  const themeMode = useSettingsStore((s) => s.themeMode);
+
   useEffect(() => {
-    if (loaded || error) {
+    loadSettings();
+  }, [loadSettings]);
+
+  useEffect(() => {
+    // Keep native controls (Switch, Alerts, keyboard) aligned with the
+    // in-app theme instead of the OS scheme.
+    if (typeof Appearance.setColorScheme === 'function') {
+      Appearance.setColorScheme(themeMode === 'system' ? 'unspecified' : themeMode);
+    }
+  }, [themeMode]);
+
+  useEffect(() => {
+    if ((loaded || error) && isSettingsLoaded) {
       SplashScreen.hideAsync();
     }
-  }, [loaded, error]);
+  }, [loaded, error, isSettingsLoaded]);
 
-  if (!loaded && !error) return null;
+  if ((!loaded && !error) || !isSettingsLoaded) return null;
 
   return (
     <SafeAreaProvider>

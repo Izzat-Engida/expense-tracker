@@ -8,10 +8,11 @@ HankoStamp,
 ProgressBar,
 AppText
 } from '@/components/ui';
-import {Colors,Fonts} from '@/constants/theme';
+import {Colors,Fonts,useThemeColors} from '@/constants/theme';
 
 export default function OnboardingScreen() {
   const router=useRouter();
+  const { colors } = useThemeColors();
 
   const handleContinueWithGoole=()=>{
     //todo later on google outh ans secure store thing
@@ -23,8 +24,8 @@ export default function OnboardingScreen() {
   <View style={styles.topRow}>
     <BentoCard variant='light' style={styles.bradCard}>
     <AppText style={styles.kanjiLogo}>余白</AppText>
-    <AppText variant="caption" style={styles.romajiSub}>Y O H A K U</AppText>
-    <View style={styles.brandUnderline}/>
+    <AppText variant="caption" color={colors.textSecondary} style={styles.romajiSub}>Y O H A K U</AppText>
+    <View style={[styles.brandUnderline, { backgroundColor: colors.border }]}/>
     </BentoCard>
 
     <View style={styles.rightCol}>
@@ -34,10 +35,10 @@ export default function OnboardingScreen() {
                 STAMP IN
       </AppText>
     </BentoCard>
-    <BentoCard variant="dark" style={styles.clarityDarkCard}>
+    <BentoCard variant="dark" art="none" style={styles.clarityDarkCard}>
       <AppText
       variant="caption"
-      color={Colors.textInverse}
+      color={colors.textInverse}
       style={styles.clarityQuote}
       >
        A little room {'\n'}for clarity.
@@ -46,10 +47,15 @@ export default function OnboardingScreen() {
     </View>
   </View>
   <BentoCard variant="light" style={styles.featureCard}>
-          <View style={styles.sailboatBox}>
+          <View
+            style={[
+              styles.sailboatBox,
+              { backgroundColor: colors.background, borderColor: colors.border },
+            ]}
+          >
 
-            <View style={styles.sailTriangle} />
-            <View style={styles.boatHull} />
+            <View style={[styles.sailTriangle, { borderBottomColor: colors.textPrimary }]} />
+            <View style={[styles.boatHull, { borderColor: colors.textPrimary }]} />
           </View>
           <View style={styles.featureTextCol}>
             <AppText variant="bodyBold">Track with clarity</AppText>
@@ -84,7 +90,14 @@ export default function OnboardingScreen() {
     </AppText>
     <TouchableOpacity
     activeOpacity={0.8}
-    style={styles.googleButton}
+    style={[
+      styles.googleButton,
+      {
+        backgroundColor: colors.cardElevated,
+        borderColor: colors.border,
+        shadowColor: colors.shadow,
+      },
+    ]}
     onPress={handleContinueWithGoole}
     >
       <AppText variant="bodyBold" style={styles.googleG}>
@@ -131,14 +144,12 @@ const styles=StyleSheet.create({
   kanjiLogo: {
     fontFamily: Fonts.serif,
     fontSize: 46,
-    color: Colors.textPrimary,
     lineHeight: 54,
   },
   romajiSub: {
     marginTop: 6,
     letterSpacing: 3,
     fontSize: 11,
-    color: Colors.textSecondary,
   },
   brandUnderline: {
     width: 28,

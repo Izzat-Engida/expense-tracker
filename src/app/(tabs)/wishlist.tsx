@@ -7,7 +7,6 @@ import {
   Modal,
   Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import {
   Main,
   BentoCard,
@@ -16,7 +15,7 @@ import {
   PillBadge,
   ProgressBar,
 } from '@/components/ui';
-import { Colors, Fonts } from '@/constants/theme';
+import { Colors, Fonts, useThemeColors } from '@/constants/theme';
 import { useLedger } from '@/hooks/useLedger';
 import type { WishlistItem } from '@/db/types';
 
@@ -24,7 +23,7 @@ const CATEGORIES = ['Tech', 'Travel', 'Home', 'Style', 'Other'] as const;
 const PRIORITIES: ('low' | 'medium' | 'high')[] = ['high', 'medium', 'low'];
 
 export default function WishlistScreen() {
-  const router = useRouter();
+  const { colors, isDark } = useThemeColors();
   const { wishlist, createWishlistItem, updateWishlistItem, deleteWishlistItem } = useLedger();
 
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'ready'>('all');
@@ -172,12 +171,6 @@ export default function WishlistScreen() {
     );
   };
 
-  const getPriorityColor = (p: 'low' | 'medium' | 'high') => {
-    if (p === 'high') return Colors.hankoRed;
-    if (p === 'medium') return Colors.categoryFood;
-    return Colors.categoryBills;
-  };
-
   return (
     <Main>
       {/* Top Header */}
@@ -192,9 +185,9 @@ export default function WishlistScreen() {
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={() => setModalVisible(true)}
-          style={styles.addBtn}
+          style={[styles.addBtn, { backgroundColor: isDark ? colors.cardElevated : colors.cardDark, borderColor: colors.border }]}
         >
-          <AppText variant="bodyBold" color={Colors.textInverse}>
+          <AppText variant="bodyBold" color="#FFFFFF">
             + Add item
           </AppText>
         </TouchableOpacity>
@@ -205,27 +198,27 @@ export default function WishlistScreen() {
         {/* Total Target Card */}
         <BentoCard variant="dark" style={styles.targetCard}>
           <View style={styles.cardHeaderSmall}>
-            <AppText variant="caption" color={Colors.textMuted}>
+            <AppText variant="caption" color={colors.textMuted}>
               目標 · TARGET
             </AppText>
             <HankoStamp size="sm" />
           </View>
           <View style={styles.lcdRow}>
-            <AppText variant="digital" color={Colors.textInverse} style={styles.lcdSmall}>
+            <AppText variant="digital" color={colors.textPrimary} style={styles.lcdSmall}>
               {stats.totalTarget.toLocaleString()}
             </AppText>
-            <AppText variant="caption" color={Colors.textMuted} style={styles.etbLabel}>
+            <AppText variant="caption" color={colors.textMuted} style={styles.etbLabel}>
               ETB
             </AppText>
           </View>
-          <AppText variant="caption" color={Colors.textMuted}>
+          <AppText variant="caption" color={colors.textMuted}>
             Saved: {stats.totalSaved.toLocaleString()} ETB
           </AppText>
         </BentoCard>
 
         {/* Progress Card */}
         <BentoCard variant="light" style={styles.progressCard}>
-          <AppText variant="caption" color={Colors.textSecondary}>
+          <AppText variant="caption" color={colors.textSecondary}>
             進捗 · PROGRESS
           </AppText>
           <View style={styles.progressNumberRow}>
@@ -236,7 +229,7 @@ export default function WishlistScreen() {
               completed
             </AppText>
           </View>
-          <ProgressBar progress={stats.overallProgress} fillColor={Colors.bambooGreen} height={7} />
+          <ProgressBar progress={stats.overallProgress} fillColor={colors.bambooGreen} height={7} />
           <AppText variant="caption" color={Colors.textSecondary} style={styles.leftSummaryText}>
             {stats.totalRemaining.toLocaleString()} ETB left to save
           </AppText>
@@ -292,25 +285,28 @@ export default function WishlistScreen() {
                     label={item.category}
                     style={styles.categoryPill}
                   />
-                  <View style={[styles.priorityBadge, { borderColor: getPriorityColor(item.priority) }]}>
-                    <AppText
-                      variant="caption"
-                      style={[styles.priorityText, { color: getPriorityColor(item.priority) }]}
-                    >
-                      {item.priority}
-                    </AppText>
-                  </View>
+                  <AppText variant="caption" color={colors.textSecondary} style={styles.priorityText}>
+                    {item.priority}
+                  </AppText>
                 </View>
               </View>
 
               {/* Progress & Financial Info */}
-              <View style={styles.itemFinancials}>
+              <View
+                style={[
+                  styles.itemFinancials,
+                  {
+                    backgroundColor: colors.cardElevated,
+                    borderColor: colors.divider,
+                  },
+                ]}
+              >
                 <View style={styles.savedRow}>
                   <View>
                     <AppText variant="caption" color={Colors.textSecondary}>
                       Saved
                     </AppText>
-                    <AppText variant="bodyBold" color={Colors.bambooGreen}>
+                    <AppText variant="bodyBold">
                       {item.saved_amount.toLocaleString()} ETB
                     </AppText>
                   </View>
@@ -329,7 +325,7 @@ export default function WishlistScreen() {
                 <View style={styles.progressBarWrap}>
                   <ProgressBar
                     progress={progress}
-                    fillColor={isReady ? Colors.bambooGreen : Colors.categoryTransport}
+                    fillColor={isReady ? colors.bambooGreen : colors.categoryTransport}
                     height={8}
                   />
                 </View>
@@ -337,22 +333,18 @@ export default function WishlistScreen() {
                 {/* Percent & Amount Remaining Notice */}
                 <View style={styles.leftRow}>
                   <View style={styles.percentBadgeGroup}>
-                    <PillBadge
-                      variant={isReady ? 'income' : 'expense'}
-                      label={isReady ? '✓ 100% saved' : `${percentSaved}% saved`}
-                    />
+                    <AppText variant="caption" color={colors.textSecondary}>
+                      {isReady ? '100% saved' : `${percentSaved}% saved`}
+                    </AppText>
                     {!isReady && (
-                      <AppText variant="caption" color={Colors.textSecondary}>
+                      <AppText variant="caption" color={colors.textMuted}>
                         ({percentLeft}% left)
                       </AppText>
                     )}
                   </View>
 
-                  <AppText
-                    variant="bodyBold"
-                    color={isReady ? Colors.bambooGreen : Colors.hankoRed}
-                  >
-                    {isReady ? 'Ready to buy!' : `${amountLeft.toLocaleString()} ETB left`}
+                  <AppText variant="bodyBold" color={colors.textSecondary}>
+                    {isReady ? 'Ready to buy' : `${amountLeft.toLocaleString()} ETB left`}
                   </AppText>
                 </View>
               </View>
@@ -364,12 +356,14 @@ export default function WishlistScreen() {
                   onPress={() => togglePurchased(item)}
                   style={[
                     styles.actionBtn,
-                    item.is_purchased === 1 ? styles.actionBtnActive : styles.actionBtnOutline,
+                    item.is_purchased === 1
+                      ? [styles.actionBtnActive, { backgroundColor: colors.bambooGreen, borderColor: colors.border }]
+                      : [styles.actionBtnOutline, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : colors.card, borderColor: colors.border }],
                   ]}
                 >
                   <AppText
                     variant="caption"
-                    color={item.is_purchased === 1 ? Colors.textInverse : Colors.textPrimary}
+                    color={item.is_purchased === 1 ? '#FFFFFF' : colors.textPrimary}
                   >
                     {item.is_purchased === 1 ? '✓ Purchased' : 'Mark bought'}
                   </AppText>
@@ -383,9 +377,9 @@ export default function WishlistScreen() {
                         setDepositTargetItem(item);
                         setDepositModalVisible(true);
                       }}
-                      style={styles.depositBtn}
+                      style={[styles.depositBtn, { backgroundColor: isDark ? colors.cardElevated : colors.cardDark, borderColor: colors.border }]}
                     >
-                      <AppText variant="caption" color={Colors.textInverse}>
+                      <AppText variant="caption" color="#FFFFFF">
                         + Deposit saving
                       </AppText>
                     </TouchableOpacity>
@@ -394,9 +388,9 @@ export default function WishlistScreen() {
                   <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={() => handleDelete(item)}
-                    style={styles.deleteBtn}
+                    style={[styles.deleteBtn, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : colors.card, borderColor: colors.border }]}
                   >
-                    <AppText variant="caption" color={Colors.textSecondary}>
+                    <AppText variant="caption" color={colors.textSecondary}>
                       ✕
                     </AppText>
                   </TouchableOpacity>
@@ -413,7 +407,7 @@ export default function WishlistScreen() {
               No wishlist items found
             </AppText>
             <AppText variant="caption" color={Colors.textSecondary} style={styles.emptySubtitle}>
-              Tap the "+ Add item" button above to set your first saving goal!
+              Add your first saving goal with the button above.
             </AppText>
           </BentoCard>
         )}
@@ -426,20 +420,20 @@ export default function WishlistScreen() {
         transparent={true}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <View style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.modalHeader}>
               <View>
                 <AppText variant="serifTitle">New Wishlist Goal</AppText>
-                <AppText variant="caption" color={Colors.textSecondary}>
+                <AppText variant="caption" color={colors.textSecondary}>
                   新しい目標 · Add thing to buy
                 </AppText>
               </View>
               <TouchableOpacity
                 onPress={() => setModalVisible(false)}
-                style={styles.modalCloseBtn}
+                style={[styles.modalCloseBtn, { backgroundColor: isDark ? colors.cardDark : colors.card, borderColor: colors.border }]}
               >
-                <AppText variant="body" color={Colors.textSecondary}>
+                <AppText variant="body" color={colors.textPrimary}>
                   ✕
                 </AppText>
               </TouchableOpacity>
@@ -447,22 +441,22 @@ export default function WishlistScreen() {
 
             {/* Title Input */}
             <View style={styles.formGroup}>
-              <AppText variant="caption" color={Colors.textSecondary}>
+              <AppText variant="caption" color={colors.textSecondary}>
                 Item name / What to buy
               </AppText>
               <TextInput
                 value={newTitle}
                 onChangeText={setNewTitle}
                 placeholder="e.g. Sony WH-1000XM5, Trip to Kyoto"
-                placeholderTextColor={Colors.textMuted}
-                style={styles.formInput}
+                placeholderTextColor={colors.textMuted}
+                style={[styles.formInput, { backgroundColor: isDark ? colors.cardDark : colors.cardElevated, borderColor: colors.border, color: colors.textPrimary }]}
               />
             </View>
 
             {/* Target & Saved Row */}
             <View style={styles.splitRow}>
               <View style={[styles.formGroup, styles.flex1]}>
-                <AppText variant="caption" color={Colors.textSecondary}>
+                <AppText variant="caption" color={colors.textSecondary}>
                   Target cost (ETB)
                 </AppText>
                 <TextInput
@@ -470,13 +464,13 @@ export default function WishlistScreen() {
                   onChangeText={setNewTarget}
                   keyboardType="numeric"
                   placeholder="e.g. 18000"
-                  placeholderTextColor={Colors.textMuted}
-                  style={styles.formInput}
+                  placeholderTextColor={colors.textMuted}
+                  style={[styles.formInput, { backgroundColor: isDark ? colors.cardDark : colors.cardElevated, borderColor: colors.border, color: colors.textPrimary }]}
                 />
               </View>
 
               <View style={[styles.formGroup, styles.flex1]}>
-                <AppText variant="caption" color={Colors.textSecondary}>
+                <AppText variant="caption" color={colors.textSecondary}>
                   Already saved (ETB)
                 </AppText>
                 <TextInput
@@ -484,15 +478,15 @@ export default function WishlistScreen() {
                   onChangeText={setNewSaved}
                   keyboardType="numeric"
                   placeholder="0"
-                  placeholderTextColor={Colors.textMuted}
-                  style={styles.formInput}
+                  placeholderTextColor={colors.textMuted}
+                  style={[styles.formInput, { backgroundColor: isDark ? colors.cardDark : colors.cardElevated, borderColor: colors.border, color: colors.textPrimary }]}
                 />
               </View>
             </View>
 
             {/* Category selection */}
             <View style={styles.formGroup}>
-              <AppText variant="caption" color={Colors.textSecondary}>
+              <AppText variant="caption" color={colors.textSecondary}>
                 Category
               </AppText>
               <View style={styles.pillsRow}>
@@ -512,7 +506,7 @@ export default function WishlistScreen() {
 
             {/* Priority selection */}
             <View style={styles.formGroup}>
-              <AppText variant="caption" color={Colors.textSecondary}>
+              <AppText variant="caption" color={colors.textSecondary}>
                 Priority
               </AppText>
               <View style={styles.pillsRow}>
@@ -532,15 +526,15 @@ export default function WishlistScreen() {
 
             {/* Note input */}
             <View style={styles.formGroup}>
-              <AppText variant="caption" color={Colors.textSecondary}>
+              <AppText variant="caption" color={colors.textSecondary}>
                 Note / Description (Optional)
               </AppText>
               <TextInput
                 value={newNote}
                 onChangeText={setNewNote}
                 placeholder="Why do you want this item?"
-                placeholderTextColor={Colors.textMuted}
-                style={styles.formInput}
+                placeholderTextColor={colors.textMuted}
+                style={[styles.formInput, { backgroundColor: isDark ? colors.cardDark : colors.cardElevated, borderColor: colors.border, color: colors.textPrimary }]}
               />
             </View>
 
@@ -549,9 +543,9 @@ export default function WishlistScreen() {
               activeOpacity={0.85}
               onPress={handleCreateItem}
               disabled={isSubmitting}
-              style={styles.submitModalBtn}
+              style={[styles.submitModalBtn, { backgroundColor: isDark ? colors.cardElevated : colors.cardDark, borderColor: colors.border }]}
             >
-              <AppText variant="bodyBold" color={Colors.textInverse}>
+              <AppText variant="bodyBold" color="#FFFFFF">
                 {isSubmitting ? 'Adding...' : 'Create wishlist goal'}
               </AppText>
             </TouchableOpacity>
@@ -566,34 +560,42 @@ export default function WishlistScreen() {
         transparent={true}
         onRequestClose={() => setDepositModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.depositModalContent}>
+        <View style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}>
+          <View style={[styles.depositModalContent, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.modalHeader}>
               <View>
                 <AppText variant="bodyBold">Deposit to Goal</AppText>
-                <AppText variant="caption" color={Colors.textSecondary}>
+                <AppText variant="caption" color={colors.textSecondary}>
                   {depositTargetItem?.title}
                 </AppText>
               </View>
               <TouchableOpacity
                 onPress={() => setDepositModalVisible(false)}
-                style={styles.modalCloseBtn}
+                style={[styles.modalCloseBtn, { backgroundColor: isDark ? colors.cardDark : colors.card, borderColor: colors.border }]}
               >
-                <AppText variant="body" color={Colors.textSecondary}>
+                <AppText variant="body" color={colors.textPrimary}>
                   ✕
                 </AppText>
               </TouchableOpacity>
             </View>
 
-            <View style={styles.depositTargetInfo}>
-              <AppText variant="caption" color={Colors.textSecondary}>
+            <View
+              style={[
+                styles.depositTargetInfo,
+                {
+                  backgroundColor: colors.cardElevated,
+                  borderColor: colors.divider,
+                },
+              ]}
+            >
+              <AppText variant="caption" color={colors.textSecondary}>
                 Current Saved: {depositTargetItem?.saved_amount.toLocaleString()} ETB /{' '}
                 {depositTargetItem?.target_amount.toLocaleString()} ETB
               </AppText>
             </View>
 
             <View style={styles.formGroup}>
-              <AppText variant="caption" color={Colors.textSecondary}>
+              <AppText variant="caption" color={colors.textSecondary}>
                 Amount to add (ETB)
               </AppText>
               <TextInput
@@ -602,17 +604,23 @@ export default function WishlistScreen() {
                 keyboardType="numeric"
                 autoFocus={true}
                 placeholder="e.g. 1000"
-                placeholderTextColor={Colors.textMuted}
-                style={[styles.formInput, styles.depositBigInput]}
+                placeholderTextColor={colors.textMuted}
+                style={[styles.formInput, styles.depositBigInput, { backgroundColor: isDark ? colors.cardDark : colors.cardElevated, borderColor: colors.border, color: colors.textPrimary }]}
               />
             </View>
 
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={handleQuickDeposit}
-              style={styles.depositSubmitBtn}
+              style={[
+                styles.depositSubmitBtn,
+                {
+                  backgroundColor: colors.incomeBg,
+                  borderColor: colors.incomeBorder,
+                },
+              ]}
             >
-              <AppText variant="bodyBold" color={Colors.textInverse}>
+              <AppText variant="bodyBold" color={colors.incomeText}>
                 Save deposit
               </AppText>
             </TouchableOpacity>
@@ -723,14 +731,8 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     paddingHorizontal: 8,
   },
-  priorityBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-    borderWidth: 1,
-  },
   priorityText: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: Fonts.sansBold,
     textTransform: 'uppercase',
   },
@@ -887,6 +889,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.cardElevated,
     padding: 10,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.divider,
   },
   pillsRow: {
     flexDirection: 'row',

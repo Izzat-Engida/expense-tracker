@@ -1,178 +1,273 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Colors, Fonts } from '@/constants/theme';
-import{
-Main,
-BentoCard,
-AppText,
-HankoStamp,
-ProgressBar
+import { router } from 'expo-router';
+import { Fonts, useThemeColors } from '@/constants/theme';
+import {
+  Main,
+  BentoCard,
+  AppText,
+  HankoStamp,
+  ProgressBar,
 } from '@/components/ui';
+import { useLedger } from '@/hooks/useLedger';
+import {
+  addMonths,
+  currentMonthKey,
+  formatCompactAmount,
+  formatMonthLabel,
+  getOverviewSummary,
+} from '@/lib/ledger';
 
-interface CategoryStat {
-  name: string;
-  amount: number;
-  percentText: string;
-  progress: number;
-  color: string;
-}
-const CATEGORY_STATS: CategoryStat[] = [
-  { name: 'Food', amount: 4680, percentText: '37.5%', progress: 0.375, color: Colors.categoryFood },
-  { name: 'Bills', amount: 4200, percentText: '33.7%', progress: 0.337, color: Colors.categoryBills },
-  { name: 'Transport', amount: 1800, percentText: '14.4%', progress: 0.144, color: Colors.categoryTransport },
-  { name: 'Fun', amount: 1200, percentText: '9.6%', progress: 0.096, color: Colors.categoryFun },
-  { name: 'Other', amount: 600, percentText: '4.8%', progress: 0.048, color: Colors.categoryOther },
-];
-
-// Normalized daily heights (0..1) for days 1..18 to render a clean zero-dependency chart
-const DAILY_BARS = [
-  0.18, 0.25, 0.12, 0.28, 0.22, 0.72, 0.15, 0.19, 0.31, 0.14, 0.24, 0.18, 0.22,
-  0.29, 0.88, 0.32,
-];
 export default function OverviewScreen() {
+  const { colors, isDark } = useThemeColors();
+  const { expenses, isInitialized, error } = useLedger();
+  const [selectedMonth, setSelectedMonth] = useState(currentMonthKey);
+
+  const summary = useMemo(
+    () => getOverviewSummary(expenses, selectedMonth),
+    [expenses, selectedMonth],
+  );
+
+  const hasData = summary.totalSpent > 0;
+  const axisLabels = [
+    1,
+    7,
+    14,
+    21,
+    summary.days,
+  ];
+
+  if (!isInitialized) {
+    return (
+      <Main>
+        <BentoCard variant="light" style={styles.statusCard}>
+          <AppText variant="bodyBold">Loading overview…</AppText>
+          <AppText variant="caption" color={colors.textSecondary}>
+            Reading your local database.
+          </AppText>
+        </BentoCard>
+      </Main>
+    );
+  }
+
+  if (error) {
+    return (
+      <Main>
+        <BentoCard variant="light" style={styles.statusCard}>
+          <AppText variant="bodyBold">Could not load your ledger</AppText>
+          <AppText variant="caption" color={colors.textSecondary}>
+            {error}
+          </AppText>
+        </BentoCard>
+      </Main>
+    );
+  }
+
   return (
     <Main>
       <View style={styles.headerRow}>
         <AppText variant="serifTitle">Overview</AppText>
 
-        <View style={styles.monthSelectorPill}>
-          <TouchableOpacity activeOpacity={0.6}>
-            <AppText variant="caption">‹</AppText>
+        <View
+          style={[
+            styles.monthSelectorPill,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <TouchableOpacity
+            activeOpacity={0.6}
+            onPress={() => setSelectedMonth((month) => addMonths(month, -1))}
+          >
+            <AppText variant="caption" color={colors.textPrimary}>
+              ‹
+            </AppText>
           </TouchableOpacity>
-          <AppText variant="caption" style={styles.monthPillText}>
-            October 2026
+          <AppText
+            variant="caption"
+            style={[styles.monthPillText, { color: colors.textPrimary }]}
+          >
+            {formatMonthLabel(selectedMonth)}
           </AppText>
-          <TouchableOpacity activeOpacity={0.6}>
-            <AppText variant="caption">›</AppText>
+          <TouchableOpacity
+            activeOpacity={0.6}
+            onPress={() => setSelectedMonth((month) => addMonths(month, 1))}
+          >
+            <AppText variant="caption" color={colors.textPrimary}>
+              ›
+            </AppText>
           </TouchableOpacity>
         </View>
       </View>
 
-<BentoCard variant="dark" style={styles.totalCard}>
+      <BentoCard variant="dark" style={styles.totalCard}>
         <View style={styles.rowBetween}>
-          <AppText variant="caption" color={Colors.textMuted}>
+          <AppText variant="caption" color={colors.textMuted}>
             支出 / Total spent
           </AppText>
           <HankoStamp size="sm" />
         </View>
 
         <View style={styles.amountRow}>
-          <AppText variant="digital" color={Colors.textInverse}>
-            12,480
+          <AppText variant="digital" color={colors.textPrimary}>
+            {Math.round(summary.totalSpent).toLocaleString()}
           </AppText>
-          <AppText variant="caption" color={Colors.textMuted}>
+          <AppText variant="caption" color={colors.textMuted}>
             ETB
           </AppText>
         </View>
       </BentoCard>
-    <BentoCard variant="light" style={styles.chartCard}>
-    <View style={styles.rowBetween}>
-          <AppText variant="caption" color={Colors.textSecondary}>
-            Daily spending
-          </AppText>
-          <AppText variant="caption" color={Colors.textMuted}>
-            ETB
-          </AppText>
-        </View>
-      <View style={styles.chartBody}>
 
-        <View style={styles.plotArea}>
+      {hasData ? (
+        <>
+          <BentoCard variant="light" style={styles.chartCard}>
+            <View style={styles.rowBetween}>
+              <AppText variant="caption" color={colors.textSecondary}>
+                Daily spending
+              </AppText>
+              <AppText variant="caption" color={colors.textMuted}>
+                ETB
+              </AppText>
+            </View>
 
-    <View style={[styles.gridLine, { top: '10%' }]} />
-            <View style={[styles.gridLine, { top: '55%' }]} />
-            <View style={[styles.gridLine, { bottom: 0 }]} />
-          <View style={styles.barsRow}>
-            {DAILY_BARS.map((val, idx) => {
-                const isPeak = idx === 14;
-                return (
-                  <View key={idx} style={styles.barColumn}>
-                    <View
-                      style={[
-                        styles.barFill,
-                        {
-                          height: `${val * 100}%`,
-                          backgroundColor: isPeak
-                            ? Colors.hankoRed
-                            : Colors.cardDark,
-                        },
-                      ]}
-                    />
-                  </View>
-                );
-              })}
-          </View>
-        </View>
-        <View style={styles.yAxis}>
-            <AppText variant="caption" color={Colors.textMuted} style={styles.axisText}>
-              2.4k
-            </AppText>
-            <AppText variant="caption" color={Colors.textMuted} style={styles.axisText}>
-              1.2k
-            </AppText>
-            <AppText variant="caption" color={Colors.textMuted} style={styles.axisText}>
-              0
-            </AppText>
-          </View>
-      </View>
-      <View style={styles.xAxis}>
-          {['01', '07', '14', '21', '31'].map((day) => (
-            <AppText
-              key={day}
-              variant="caption"
-              color={Colors.textMuted}
-              style={styles.axisText}
-            >
-              {day}
-            </AppText>
-          ))}
-        </View>
-    </BentoCard>
-    <BentoCard variant="light" style={styles.categoryCard}>
-          <View style={styles.rowBetween}>
-          <AppText variant="caption" color={Colors.textSecondary}>
-            By category
-          </AppText>
-          <AppText variant="caption" color={Colors.textMuted}>
-            ETB
-          </AppText>
-        </View>
-      <View style={styles.categoryList}>
-          {CATEGORY_STATS.map((item) => (
-            <View key={item.name} style={styles.categoryItem}>
-              <View style={styles.rowBetween}>
-                <View style={styles.catLabelGroup}>
-                  <View
-                    style={[styles.dot, { backgroundColor: item.color }]}
-                  />
-                  <AppText variant="bodyBold">{item.name}</AppText>
-                </View>
+            <View style={styles.chartBody}>
+              <View style={styles.plotArea}>
+                <View
+                  style={[styles.gridLine, { top: '10%', backgroundColor: colors.divider }]}
+                />
+                <View
+                  style={[styles.gridLine, { top: '55%', backgroundColor: colors.divider }]}
+                />
+                <View
+                  style={[styles.gridLine, { bottom: 0, backgroundColor: colors.divider }]}
+                />
 
-                <View style={styles.catNumbersGroup}>
-                  <AppText variant="bodyBold" style={styles.catAmount}>
-                    {item.amount.toLocaleString()}
-                  </AppText>
-                  <AppText
-                    variant="caption"
-                    color={Colors.textMuted}
-                    style={styles.catPercent}
-                  >
-                    {item.percentText}
-                  </AppText>
+                <View
+                  style={[
+                    styles.barsRow,
+                    { gap: summary.days > 20 ? 2 : 4 },
+                  ]}
+                >
+                  {summary.dailyBars.map((bar) => (
+                    <View key={bar.day} style={styles.barColumn}>
+                      <View
+                        style={[
+                          styles.barFill,
+                          {
+                            height: `${bar.progress * 100}%`,
+                            backgroundColor: bar.isPeak
+                              ? colors.hankoRed
+                              : isDark
+                              ? colors.cardElevated
+                              : colors.cardDark,
+                            borderColor:
+                              isDark && bar.amount > 0 && !bar.isPeak
+                                ? colors.border
+                                : 'transparent',
+                            borderWidth: isDark && bar.amount > 0 && !bar.isPeak ? 1 : 0,
+                          },
+                        ]}
+                      />
+                    </View>
+                  ))}
                 </View>
               </View>
 
-              <ProgressBar
-                progress={item.progress}
-                fillColor={item.color}
-                height={6}
-              />
+              <View style={styles.yAxis}>
+                <AppText variant="caption" color={colors.textMuted} style={styles.axisText}>
+                  {formatCompactAmount(summary.maxDaily)}
+                </AppText>
+                <AppText variant="caption" color={colors.textMuted} style={styles.axisText}>
+                  {formatCompactAmount(summary.maxDaily / 2)}
+                </AppText>
+                <AppText variant="caption" color={colors.textMuted} style={styles.axisText}>
+                  0
+                </AppText>
+              </View>
             </View>
-          ))}
-      </View>
-    </BentoCard>
+
+            <View style={styles.xAxis}>
+              {axisLabels.map((day) => (
+                <AppText
+                  key={day}
+                  variant="caption"
+                  color={colors.textMuted}
+                  style={styles.axisText}
+                >
+                  {String(day).padStart(2, '0')}
+                </AppText>
+              ))}
+            </View>
+          </BentoCard>
+
+          <BentoCard variant="light" style={styles.categoryCard}>
+            <View style={styles.rowBetween}>
+              <AppText variant="caption" color={colors.textSecondary}>
+                By category
+              </AppText>
+              <AppText variant="caption" color={colors.textMuted}>
+                ETB
+              </AppText>
+            </View>
+
+            <View style={styles.categoryList}>
+              {summary.categoryRows.map((item) => (
+                <View key={item.category} style={styles.categoryItem}>
+                  <View style={styles.rowBetween}>
+                    <View style={styles.catLabelGroup}>
+                      <View
+                        style={[
+                          styles.dot,
+                          { backgroundColor: colors[item.colorKey] },
+                        ]}
+                      />
+                      <AppText variant="bodyBold">{item.label}</AppText>
+                    </View>
+
+                    <View style={styles.catNumbersGroup}>
+                      <AppText variant="bodyBold" style={styles.catAmount}>
+                        {Math.round(item.amount).toLocaleString()}
+                      </AppText>
+                      <AppText
+                        variant="caption"
+                        color={colors.textMuted}
+                        style={styles.catPercent}
+                      >
+                        {item.percentText}
+                      </AppText>
+                    </View>
+                  </View>
+
+                  <ProgressBar
+                    progress={item.progress}
+                    fillColor={colors[item.colorKey]}
+                    height={6}
+                  />
+                </View>
+              ))}
+            </View>
+          </BentoCard>
+        </>
+      ) : (
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => router.push('/modals/add-expense')}
+          accessibilityRole="button"
+          accessibilityLabel="Add expense"
+        >
+          <BentoCard variant="light" style={styles.emptyCard}>
+            <AppText variant="bodyBold">
+              No expenses in {formatMonthLabel(selectedMonth)}
+            </AppText>
+            <AppText variant="caption" color={colors.textSecondary}>
+              Tap here or the stamp below to add an expense.
+            </AppText>
+          </BentoCard>
+        </TouchableOpacity>
+      )}
     </Main>
   );
 }
+
 const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
@@ -183,9 +278,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: Colors.card,
     borderWidth: 1.5,
-    borderColor: Colors.border,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -226,7 +319,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 1,
-    backgroundColor: Colors.divider,
   },
   barsRow: {
     flexDirection: 'row',
@@ -290,5 +382,13 @@ const styles = StyleSheet.create({
     width: 38,
     textAlign: 'right',
     fontSize: 11,
+  },
+  emptyCard: {
+    paddingVertical: 24,
+    gap: 6,
+  },
+  statusCard: {
+    paddingVertical: 24,
+    gap: 6,
   },
 });

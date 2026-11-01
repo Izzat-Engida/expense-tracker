@@ -8,10 +8,11 @@ import {
   HankoStamp,
   PillBadge,
 } from '@/components/ui';
-import { Colors, Fonts } from '@/constants/theme';
+import { Colors, Fonts, useThemeColors } from '@/constants/theme';
 
 export default function BiometricLockScreen() {
   const router = useRouter();
+  const { colors } = useThemeColors();
 
   const handleUnlock = () => {
     // Later: trigger expo-local-authentication.authenticateAsync()
@@ -30,17 +31,22 @@ export default function BiometricLockScreen() {
 
       <BentoCard variant="light" style={styles.brandBento}>
         <AppText style={styles.kanjiLogo}>余白</AppText>
-        <AppText variant="caption" style={styles.romajiSub}>
+        <AppText variant="caption" color={colors.textSecondary} style={styles.romajiSub}>
           Y O H A K U
         </AppText>
-        <View style={styles.brandUnderline} />
+        <View style={[styles.brandUnderline, { backgroundColor: colors.border }]} />
 
 
-        <View style={styles.fingerprintBox}>
-          <View style={styles.fpCornerTL} />
-          <View style={styles.fpCornerTR} />
-          <View style={styles.fpCornerBL} />
-          <View style={styles.fpCornerBR} />
+        <View
+          style={[
+            styles.fingerprintBox,
+            { backgroundColor: colors.cardElevated, borderColor: colors.border },
+          ]}
+        >
+          <View style={[styles.fpCornerTL, { borderColor: colors.border }]} />
+          <View style={[styles.fpCornerTR, { borderColor: colors.border }]} />
+          <View style={[styles.fpCornerBL, { borderColor: colors.border }]} />
+          <View style={[styles.fpCornerBR, { borderColor: colors.border }]} />
           <AppText style={styles.fingerprintIcon}>🫵</AppText>
         </View>
 
@@ -53,9 +59,16 @@ export default function BiometricLockScreen() {
       <TouchableOpacity
         activeOpacity={0.85}
         onPress={handleUnlock}
-        style={styles.unlockButton}
+        style={[
+          styles.unlockButton,
+          {
+            backgroundColor: colors.selectionBg,
+            borderColor: colors.selectionBorder,
+            shadowColor: colors.shadow,
+          },
+        ]}
       >
-        <AppText variant="body" color={Colors.textInverse}>
+        <AppText variant="body" color={colors.selectionText}>
           Unlock local ledger
         </AppText>
       </TouchableOpacity>
@@ -90,7 +103,6 @@ const styles = StyleSheet.create({
   romajiSub: {
     letterSpacing: 3,
     fontSize: 11,
-    color: Colors.textSecondary,
   },
   brandUnderline: {
     width: 32,

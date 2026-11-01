@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { router, useRouter } from 'expo-router';
+import { router } from 'expo-router';
 import {
   Main,
   BentoCard,
@@ -8,190 +8,259 @@ import {
   PillBadge,
   ProgressBar,
 } from '@/components/ui';
-import { Colors, Fonts } from '@/constants/theme';
-
-interface ExpenseItem {
-  id: string;
-  title: string;
-  category: string;
-  dotColor: string;
-  amount: number;
-}
-
-//will remove this latter on
-const TODAY_EXPENSES: ExpenseItem[] = [
-  { id: '1', title: 'Morning coffee', category: 'Food', dotColor: Colors.categoryFood, amount: 180 },
-  { id: '2', title: 'Lunch at work', category: 'Food', dotColor: Colors.categoryFood, amount: 420 },
-  { id: '3', title: 'Minibus', category: 'Transport', dotColor: Colors.categoryTransport, amount: 80 },
-];
-
-const YESTERDAY_EXPENSES: ExpenseItem[] = [
-  { id: '4', title: 'Groceries', category: 'Food', dotColor: Colors.categoryFood, amount: 960 },
-  { id: '5', title: 'Electricity', category: 'Bills', dotColor: Colors.categoryBills, amount: 1200 },
-];
+import { Fonts, useThemeColors } from '@/constants/theme';
+import { useLedger } from '@/hooks/useLedger';
+import {
+  CATEGORY_COLOR_KEYS,
+  CATEGORY_LABELS,
+  formatMonthKanji,
+  formatMonthLabel,
+  formatSignedAmount,
+  getHomeSummary,
+  type DayGroup,
+} from '@/lib/ledger';
 
 export default function HomeScreen() {
+  const { colors } = useThemeColors();
+  const { expenses, incomes, budgets, isInitialized, error } = useLedger();
+
+  const summary = useMemo(
+    () => getHomeSummary(expenses, incomes, budgets),
+    [expenses, incomes, budgets],
+  );
+
+  const { monthKey, monthSpent, monthIncome, budgetTotal, budgetProgress, budgetPercent } =
+    summary;
+  const [monthName, yearLabel] = formatMonthLabel(monthKey).split(' ');
+  const overBudget = budgetTotal > 0 && monthSpent > budgetTotal;
+  const budgetColor = overBudget ? colors.hankoRed : colors.bambooGreen;
+  const hasDayData = summary.today.expenses.length > 0 || summary.yesterday.expenses.length > 0;
+
+  if (!isInitialized) {
+    return (
+      <Main>
+        <BentoCard variant="light" style={styles.statusCard}>
+          <AppText variant="bodyBold">Loading ledger…</AppText>
+          <AppText variant="caption" color={colors.textSecondary}>
+            Reading your local database.
+          </AppText>
+        </BentoCard>
+      </Main>
+    );
+  }
+
+  if (error) {
+    return (
+      <Main>
+        <BentoCard variant="light" style={styles.statusCard}>
+          <AppText variant="bodyBold">Could not load your ledger</AppText>
+          <AppText variant="caption" color={colors.textSecondary}>
+            {error}
+          </AppText>
+        </BentoCard>
+      </Main>
+    );
+  }
+
   return (
     <Main>
       <BentoCard variant="light" art="crane" style={styles.monthHeaderCard}>
-      <View style={styles.monthLeft}>
-      <AppText style={styles.kanjiMonth}>十{'\n'}月</AppText>
-      <View style={styles.verticalDivider} />
-      <View>
+        <View style={styles.monthLeft}>
+          <AppText style={styles.kanjiMonth}>{formatMonthKanji(monthKey)}</AppText>
+          <View style={[styles.verticalDivider, { backgroundColor: colors.divider }]} />
+          <View>
             <AppText variant="bodyBold" style={styles.monthTitle}>
-              October
+              {monthName}
             </AppText>
-            <AppText variant="caption" color={Colors.textSecondary}>
-              2026
+            <AppText variant="caption" color={colors.textSecondary}>
+              {yearLabel}
             </AppText>
           </View>
-      </View>
-      <TouchableOpacity
-      activeOpacity={0.7}
-      onPress={()=>router.push('/modals/sync-status')}
-      style={styles.syncStatusBtn}
-      >
-        <AppText variant="caption" color={Colors.bambooGreen}>
-          ☁
-        </AppText>
-        <AppText variant="caption" color={Colors.textSecondary}>
-            Drive synced
+        </View>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => router.push('/modals/sync-status')}
+          style={styles.syncStatusBtn}
+        >
+          <AppText variant="caption" color={colors.bambooGreen}>
+            ●
           </AppText>
-      </TouchableOpacity>
+          <AppText variant="caption" color={colors.textSecondary}>
+            Local only
+          </AppText>
+        </TouchableOpacity>
       </BentoCard>
-    <View style={styles.bentoRow}>
-      <BentoCard variant="dark" style={styles.spentCard}>
-        <AppText variant="caption" color={Colors.textMuted}>
-          支出 · SPENT
-        </AppText>
-        <View style={styles.spentAmountRow}>
-          <AppText variant="digital" color={Colors.textInverse}>
-              12,480
+
+      <View style={styles.bentoRow}>
+        <BentoCard variant="dark" style={styles.spentCard}>
+          <AppText variant="caption" color={colors.textMuted}>
+            支出 · SPENT
+          </AppText>
+          <View style={styles.spentAmountRow}>
+            <AppText variant="digital" color={colors.textPrimary}>
+              {Math.round(monthSpent).toLocaleString()}
             </AppText>
-            <AppText variant="caption" color={Colors.textMuted}>
+            <AppText variant="caption" color={colors.textMuted}>
               ETB
             </AppText>
-        </View>
-        <PillBadge
+          </View>
+          <PillBadge
             variant="income"
-            label="収入 25,000 ETB income"
+            label={
+              monthIncome > 0
+                ? `収入 ${Math.round(monthIncome).toLocaleString()} ETB income`
+                : '収入 No income yet'
+            }
             onPress={() => router.push('/modals/income-budget')}
           />
-      </BentoCard>
-      <BentoCard variant="light" style={styles.budgetCard}>
-      <TouchableOpacity
-      activeOpacity={0.8}
+        </BentoCard>
+
+        <BentoCard variant="light" style={styles.budgetCard}>
+          <TouchableOpacity
+            activeOpacity={0.8}
             style={styles.budgetTouchArea}
             onPress={() => router.push('/modals/income-budget')}
-      >
-        <View style={styles.budgetCircle}>
+          >
+            <View style={[styles.budgetCircle, { borderColor: budgetColor }]}>
               <AppText variant="bodyBold" style={styles.budgetPercent}>
-                62%
+                {budgetTotal > 0 ? `${budgetPercent}%` : '—'}
               </AppText>
-              <AppText variant="caption" color={Colors.textSecondary} style={styles.budgetSub}>
+              <AppText variant="caption" color={colors.textSecondary} style={styles.budgetSub}>
                 of budget
               </AppText>
             </View>
-          <View style={styles.budgetBarWrap}>
-              <ProgressBar progress={0.62} fillColor={Colors.bambooGreen} height={6} />
+            <View style={styles.budgetBarWrap}>
+              <ProgressBar progress={budgetProgress} fillColor={budgetColor} height={6} />
             </View>
 
-            <AppText variant="caption" color={Colors.textSecondary}>
-              20,000 ETB
+            <AppText variant="caption" color={colors.textSecondary}>
+              {budgetTotal > 0
+                ? `${Math.round(budgetTotal).toLocaleString()} ETB`
+                : 'No budget set'}
             </AppText>
-      </TouchableOpacity>
-      </BentoCard>
-    </View>
-    <BentoCard variant="light" style={styles.ledgerCard}>
-    <View style={styles.dayHeaderRow}>
-    <View style={styles.dayBadgeGroup}>
-    <PillBadge variant="dark" label="今日" />
-        <AppText variant="caption" color={Colors.textSecondary}>
-              Today
-        </AppText>
-    </View>
-    <AppText variant="caption" color={Colors.textSecondary}>
-            680 ETB
-          </AppText>
-    </View>
-    {TODAY_EXPENSES.map((item, idx) => (
-          <View
-            key={item.id}
-            style={[
-              styles.expenseRow,
-              idx < TODAY_EXPENSES.length - 1 && styles.rowBorder,
-            ]}
-          >
-            <View style={styles.expenseInfo}>
-              <AppText variant="bodyBold">{item.title}</AppText>
-              <View style={styles.categoryLine}>
-                <View style={[styles.dot, { backgroundColor: item.dotColor }]} />
-                <AppText variant="caption" color={Colors.textSecondary}>
-                  {item.category}
-                </AppText>
-              </View>
-            </View>
-            <PillBadge variant="expense" label={`-${item.amount.toLocaleString()}`} />
-          </View>
-        ))}
-      <View style={styles.sectionDivider} />
-      <View style={styles.dayHeaderRow}>
-          <View style={styles.dayBadgeGroup}>
-            <PillBadge variant="outline" label="昨日" />
-            <AppText variant="caption" color={Colors.textSecondary}>
-              Yesterday
+          </TouchableOpacity>
+        </BentoCard>
+      </View>
+
+      {hasDayData ? (
+        <BentoCard variant="light" style={styles.ledgerCard}>
+          <DaySection group={summary.today} badgeVariant="dark" />
+          <DaySection group={summary.yesterday} badgeVariant="outline" showDivider />
+        </BentoCard>
+      ) : (
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => router.push('/modals/add-expense')}
+          accessibilityRole="button"
+          accessibilityLabel="Add expense"
+        >
+          <BentoCard variant="light" style={styles.emptyCard}>
+            <AppText variant="bodyBold">Nothing logged yet</AppText>
+            <AppText variant="caption" color={colors.textSecondary}>
+              Tap here or the stamp below to add your first expense.
             </AppText>
-          </View>
-          <AppText variant="caption" color={Colors.textSecondary}>
-            2,160 ETB
-          </AppText>
-        </View>
-      {YESTERDAY_EXPENSES.map((item, idx) => (
-          <View
-            key={item.id}
-            style={[
-              styles.expenseRow,
-              idx < YESTERDAY_EXPENSES.length - 1 && styles.rowBorder,
-            ]}
-          >
-            <View style={styles.expenseInfo}>
-              <AppText variant="bodyBold">{item.title}</AppText>
-              <View style={styles.categoryLine}>
-                <View style={[styles.dot, { backgroundColor: item.dotColor }]} />
-                <AppText variant="caption" color={Colors.textSecondary}>
-                  {item.category}
-                </AppText>
-              </View>
-            </View>
-            <PillBadge variant="expense" label={`-${item.amount.toLocaleString()}`} />
-          </View>
-        ))}
-    </BentoCard>
+          </BentoCard>
+        </TouchableOpacity>
+      )}
     </Main>
   );
 }
-const styles=StyleSheet.create({
-  monthHeaderCard:{
-    flexDirection:'row',
-    justifyContent:'space-between',
-    alignItems:'center',
-    paddingVertical:16
+
+function DaySection({
+  group,
+  badgeVariant,
+  showDivider = false,
+}: {
+  group: DayGroup;
+  badgeVariant: 'dark' | 'outline';
+  showDivider?: boolean;
+}) {
+  const { colors } = useThemeColors();
+
+  return (
+    <View>
+      {showDivider && (
+        <View style={[styles.sectionDivider, { backgroundColor: colors.divider }]} />
+      )}
+
+      <View style={styles.dayHeaderRow}>
+        <View style={styles.dayBadgeGroup}>
+          <PillBadge variant={badgeVariant} label={group.badge} />
+          <AppText variant="caption" color={colors.textSecondary}>
+            {group.label}
+          </AppText>
+        </View>
+        <AppText variant="caption" color={colors.textSecondary}>
+          {Math.round(group.total).toLocaleString()} ETB
+        </AppText>
+      </View>
+
+      {group.expenses.length === 0 ? (
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => router.push('/modals/add-expense')}
+        >
+          <AppText variant="caption" color={colors.textMuted} style={styles.emptyDayText}>
+            No expenses {group.label.toLowerCase()}. Tap to add.
+          </AppText>
+        </TouchableOpacity>
+      ) : (
+        group.expenses.map((item, idx) => (
+          <View
+            key={item.id}
+            style={[
+              styles.expenseRow,
+              idx < group.expenses.length - 1 && [
+                styles.rowBorder,
+                { borderBottomColor: colors.divider },
+              ],
+            ]}
+          >
+            <View style={styles.expenseInfo}>
+              <AppText variant="bodyBold">{item.title}</AppText>
+              <View style={styles.categoryLine}>
+                <View
+                  style={[
+                    styles.dot,
+                    { backgroundColor: colors[CATEGORY_COLOR_KEYS[item.category]] },
+                  ]}
+                />
+                <AppText variant="caption" color={colors.textSecondary}>
+                  {CATEGORY_LABELS[item.category]}
+                </AppText>
+              </View>
+            </View>
+            <PillBadge
+              variant={item.amount < 0 ? 'income' : 'expense'}
+              label={formatSignedAmount(item.amount)}
+            />
+          </View>
+        ))
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  monthHeaderCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
   },
-  monthLeft:{
-    flexDirection:'row',
-    alignItems:'center',
-    gap:12,
+  monthLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
-  kanjiMonth:{
-    fontFamily:Fonts.serif,
-    fontSize:18,
-    lineHeight:22,
-    color:Colors.textPrimary
+  kanjiMonth: {
+    fontFamily: Fonts.serif,
+    fontSize: 18,
+    lineHeight: 22,
   },
   verticalDivider: {
     width: 1.5,
     height: 34,
-    backgroundColor: Colors.divider,
   },
   monthTitle: {
     fontSize: 18,
@@ -230,7 +299,6 @@ const styles=StyleSheet.create({
     height: 78,
     borderRadius: 39,
     borderWidth: 5,
-    borderColor: Colors.bambooGreen,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -266,7 +334,6 @@ const styles=StyleSheet.create({
   },
   rowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
   },
   expenseInfo: {
     gap: 3,
@@ -281,9 +348,22 @@ const styles=StyleSheet.create({
     height: 6,
     borderRadius: 3,
   },
+  rowAmount: {
+    fontSize: 13,
+  },
   sectionDivider: {
     height: 1.5,
-    backgroundColor: Colors.divider,
     marginVertical: 8,
   },
-})
+  emptyCard: {
+    paddingVertical: 24,
+    gap: 6,
+  },
+  emptyDayText: {
+    paddingVertical: 8,
+  },
+  statusCard: {
+    paddingVertical: 24,
+    gap: 6,
+  },
+});

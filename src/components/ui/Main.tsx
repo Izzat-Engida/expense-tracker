@@ -8,9 +8,10 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, Edge } from 'react-native-safe-area-context';
-import { Colors } from '@/constants/theme';
+import { Colors, useThemeColors } from '@/constants/theme';
 
-const UKIYOE_BG = require('../../../assets/images/ukiyoe-crane-wave.jpg');
+const UKIYOE_BG_LIGHT = require('../../../assets/images/ukiyoe-crane-wave.jpg');
+const UKIYOE_BG_DARK = require('../../../assets/images/ukiyoe-linework-light.png');
 
 interface ScreenProps {
   children: React.ReactNode;
@@ -29,15 +30,23 @@ const Main = ({
   contentContainerStyle,
   edges = ['top', 'bottom'],
   showArt = true,
-  artOpacity = 0.14,
+  artOpacity,
 }: ScreenProps) => {
+  const { colors, isDark } = useThemeColors();
+  const defaultOpacity = isDark ? 0.08 : 0.14;
+  const opacity = artOpacity ?? defaultOpacity;
+  const artSource = isDark ? UKIYOE_BG_DARK : UKIYOE_BG_LIGHT;
+
   return (
-    <SafeAreaView style={[styles.safeArea, style]} edges={edges}>
-      <StatusBar style="dark" />
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: colors.background }, style]}
+      edges={edges}
+    >
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       {showArt && (
         <Image
-          source={UKIYOE_BG}
-          style={[styles.bgArt, { opacity: artOpacity }]}
+          source={artSource}
+          style={[styles.bgArt, { opacity }]}
           resizeMode="cover"
           pointerEvents="none"
         />

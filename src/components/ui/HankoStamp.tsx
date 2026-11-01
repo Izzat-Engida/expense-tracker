@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Colors, Fonts } from '@/constants/theme';
+import { Colors, Fonts, useThemeColors } from '@/constants/theme';
 
 type HankoSize = 'sm' | 'md' | 'fab';
 
@@ -22,6 +22,7 @@ const FONT_MAP: Record<HankoSize, number> = {
 };
 
 export function HankoStamp({ size = 'md', onPress }: HankoStampProps) {
+  const { colors } = useThemeColors();
   const dimension = SIZE_MAP[size];
   const fontSize = FONT_MAP[size];
   const isFab = size === 'fab';
@@ -32,11 +33,14 @@ export function HankoStamp({ size = 'md', onPress }: HankoStampProps) {
       width: dimension,
       height: dimension,
       borderRadius: 6,
+      backgroundColor: colors.hankoRed,
+      borderColor: colors.border,
+      shadowColor: colors.shadow,
       transform: isFab ? [{ rotate: '-3deg' }] : [],
     },
   ];
 
-  const textStyle = [styles.character, { fontSize }];
+  const textStyle = [styles.character, { fontSize, color: '#FFFFFF' }];
 
   if (onPress) {
     return (

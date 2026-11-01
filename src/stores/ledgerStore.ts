@@ -10,6 +10,7 @@
 import { create } from 'zustand';
 import { getDb } from '@/db/client';
 import { enqueueOutbox } from '@/db/outbox';
+import { currentMonthKey, dateKeyForOffset, localDateKey } from '@/lib/ledger';
 import type {
   Expense,
   Income,
@@ -131,71 +132,15 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
         ),
       ]);
 
-      let wishlist = wishlistRows;
-      // Seed default wishlist items if empty
-      if (wishlist.length === 0) {
-        const demoItems: CreateWishlistItemInput[] = [
-          {
-            title: 'Sony WH-1000XM5',
-            target_amount: 18000,
-            saved_amount: 12000,
-            category: 'Tech',
-            priority: 'high',
-            note: 'Noise cancelling headphones for deep work',
-          },
-          {
-            title: 'Weekend in Hawassa',
-            target_amount: 8500,
-            saved_amount: 5000,
-            category: 'Travel',
-            priority: 'medium',
-            note: 'Lakeside cabin getaway with family',
-          },
-          {
-            title: 'Mechanical Keyboard',
-            target_amount: 4200,
-            saved_amount: 4200,
-            category: 'Tech',
-            priority: 'low',
-            note: 'Keychron K2 wireless tactile switches',
-            is_purchased: 1,
-          },
-        ];
-
-        for (const item of demoItems) {
-          const created: WishlistItem = {
-            id: uuid(),
-            title: item.title,
-            target_amount: item.target_amount,
-            saved_amount: item.saved_amount ?? 0,
-            category: item.category,
-            priority: item.priority,
-            note: item.note ?? null,
-            is_purchased: item.is_purchased ?? 0,
-            created_at: now(),
-            updated_at: now(),
-          };
-          await db.runAsync(
-            `INSERT INTO wishlist (id, title, target_amount, saved_amount, category, priority, note, is_purchased, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-              created.id,
-              created.title,
-              created.target_amount,
-              created.saved_amount,
-              created.category,
-              created.priority,
-              created.note,
-              created.is_purchased,
-              created.created_at,
-              created.updated_at,
-            ],
-          );
-          wishlist.push(created);
-        }
-      }
-
-      set({ expenses, incomes, budgets, savings, wishlist, isLoading: false, isInitialized: true });
+      set({
+        expenses,
+        incomes,
+        budgets,
+        savings,
+        wishlist: wishlistRows,
+        isLoading: false,
+        isInitialized: true,
+      });
     } catch (e) {
       set({ isLoading: false, isInitialized: true, error: String(e) });
     }
@@ -589,9 +534,9 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
   // ── Demo & Maintenance ──────────────────────────────────────────────────────
 
   seedDemoData: async () => {
-    const db = await getDb();
-    const currentMonth = new Date().toISOString().slice(0, 7);
-    const today = new Date().toISOString().slice(0, 10);
+    const currentMonth = currentMonthKey();
+    const today = localDateKey();
+    const yesterday = dateKeyForOffset(-1);
 
     const demoExpenses: CreateExpenseInput[] = [
       {
@@ -606,14 +551,14 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
         amount: 4520,
         category: 'food',
         note: 'Fresh produce & pantry essentials',
-        date: today,
+        date: yesterday,
       },
       {
         title: 'Metro Pass Recharge',
         amount: 2000,
         category: 'transport',
         note: 'Commuter card reload',
-        date: today,
+        date: yesterday,
       },
       {
         title: 'High-speed Fiber Internet',
@@ -654,6 +599,34 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
       { category: 'other', percentage_or_limit: 20000, month_key: currentMonth },
     ];
 
+    const demoWishlist: CreateWishlistItemInput[] = [
+      {
+        title: 'Sony WH-1000XM5',
+        target_amount: 18000,
+        saved_amount: 12000,
+        category: 'Tech',
+        priority: 'high',
+        note: 'Noise cancelling headphones for deep work',
+      },
+      {
+        title: 'Weekend in Hawassa',
+        target_amount: 8500,
+        saved_amount: 5000,
+        category: 'Travel',
+        priority: 'medium',
+        note: 'Lakeside cabin getaway with family',
+      },
+      {
+        title: 'Mechanical Keyboard',
+        target_amount: 4200,
+        saved_amount: 4200,
+        category: 'Tech',
+        priority: 'low',
+        note: 'Keychron K2 wireless tactile switches',
+        is_purchased: 1,
+      },
+    ];
+
     for (const exp of demoExpenses) {
       await get().createExpense(exp);
     }
@@ -662,6 +635,9 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
     }
     for (const bgt of demoBudgets) {
       await get().createBudget(bgt);
+    }
+    for (const wish of demoWishlist) {
+      await get().createWishlistItem(wish);
     }
   },
 

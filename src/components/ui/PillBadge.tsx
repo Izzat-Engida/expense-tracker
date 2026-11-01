@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, StyleProp, ViewStyle, TextStyle } from 'react-native';
-import { Colors, Fonts } from '@/constants/theme';
+import { Fonts, useThemeColors } from '@/constants/theme';
 
 type PillVariant = 'expense' | 'dark' | 'outline' | 'income';
 
@@ -13,34 +13,6 @@ interface PillBadgeProps {
   textStyle?: StyleProp<TextStyle>;
 }
 
-interface VariantStyle {
-  backgroundColor: string;
-  borderWidth?: number;
-  borderColor?: string;
-  textColor: string;
-}
-
-const VARIANT_STYLES: Record<PillVariant, VariantStyle> = {
-  expense: {
-    backgroundColor: Colors.expensePillBg,
-    textColor: Colors.expensePillText,
-  },
-  dark: {
-    backgroundColor: Colors.cardDark,
-    textColor: Colors.textInverse,
-  },
-  outline: {
-    backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    textColor: Colors.textPrimary,
-  },
-  income: {
-    backgroundColor: Colors.bambooGreen,
-    textColor: Colors.textInverse,
-  },
-};
-
 export function PillBadge({
   label,
   variant = 'outline',
@@ -49,14 +21,41 @@ export function PillBadge({
   style,
   textStyle,
 }: PillBadgeProps) {
-  const vs = VARIANT_STYLES[variant];
+  const { colors, isDark } = useThemeColors();
+
+  const variantStyles = {
+    expense: {
+      backgroundColor: colors.expensePillBg,
+      textColor: colors.expensePillText,
+      borderColor: isDark ? '#6E3834' : 'transparent',
+      borderWidth: isDark ? 1 : 0,
+    },
+    dark: {
+      backgroundColor: colors.selectionBg,
+      textColor: colors.selectionText,
+      borderColor: colors.selectionBorder,
+      borderWidth: 1.5,
+    },
+    outline: {
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : colors.card,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      textColor: colors.textPrimary,
+    },
+    income: {
+      backgroundColor: colors.incomeBg,
+      textColor: colors.incomeText,
+      borderColor: colors.incomeBorder,
+      borderWidth: 1.5,
+    },
+  }[variant];
 
   const pillStyle = [
     styles.pill,
     {
-      backgroundColor: vs.backgroundColor,
-      borderWidth: vs.borderWidth ?? 0,
-      borderColor: vs.borderColor ?? 'transparent',
+      backgroundColor: variantStyles.backgroundColor,
+      borderWidth: variantStyles.borderWidth,
+      borderColor: variantStyles.borderColor,
     },
     style,
   ];
@@ -66,7 +65,7 @@ export function PillBadge({
       {dotColor && (
         <View style={[styles.dot, { backgroundColor: dotColor }]} />
       )}
-      <Text style={[styles.label, { color: vs.textColor }, textStyle]}>{label}</Text>
+      <Text style={[styles.label, { color: variantStyles.textColor }, textStyle]}>{label}</Text>
     </>
   );
 

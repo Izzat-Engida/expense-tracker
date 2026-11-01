@@ -7,7 +7,7 @@ import {
   Platform,
 } from 'react-native';
 import { Tabs, router } from 'expo-router';
-import { Colors, Fonts } from '@/constants/theme';
+import { Colors, Fonts, useThemeColors } from '@/constants/theme';
 import { HankoStamp } from '@/components/ui/HankoStamp'; 
 
 type TabKey = 'index' | 'overview' | 'wishlist' | 'settings';
@@ -33,11 +33,17 @@ function CustomTabBar({
   navigateToTab,
   insets,
 }: BottomTabBarProps) {
+  const { colors, isDark } = useThemeColors();
+
   return (
     <View
       style={[
         styles.barContainer,
-        { paddingBottom: Math.max(insets.bottom, Platform.OS === 'ios' ? 20 : 8) },
+        {
+          backgroundColor: isDark ? colors.card : colors.background,
+          borderTopColor: colors.border,
+          paddingBottom: Math.max(insets.bottom, Platform.OS === 'ios' ? 20 : 8),
+        },
       ]}
     >
       <View style={styles.bar}>
@@ -67,10 +73,31 @@ function CustomTabBar({
                   }
                 }}
                 activeOpacity={0.7}
-                style={[styles.tab, active && styles.tabActive]}
+                style={[
+                  styles.tab,
+                  active && [
+                    styles.tabActive,
+                    {
+                      backgroundColor: colors.cardElevated,
+                      borderColor: isDark ? colors.textMuted : colors.border,
+                      shadowColor: colors.shadow,
+                      shadowOpacity: isDark ? 0 : 1,
+                    },
+                  ],
+                ]}
               >
                 <Text
-                  style={[styles.tabLabel, active && styles.tabLabelActive]}
+                  style={[
+                    styles.tabLabel,
+                    {
+                      color: active
+                        ? colors.textPrimary
+                        : isDark
+                        ? colors.textSecondary
+                        : colors.textMuted,
+                    },
+                    active && styles.tabLabelActive,
+                  ]}
                 >
                   {tab.label}
                 </Text>
@@ -128,6 +155,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1.5,
     borderColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tabActive: {
     backgroundColor: Colors.card,
@@ -146,6 +175,5 @@ const styles = StyleSheet.create({
   },
   tabLabelActive: {
     fontFamily: Fonts.sansBold,
-    color: Colors.textPrimary,
   },
 });
