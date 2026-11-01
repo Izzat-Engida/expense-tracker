@@ -29,7 +29,7 @@ export default function WishlistScreen() {
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'ready'>('all');
   const [modalVisible, setModalVisible] = useState(false);
 
-  // New item form state
+
   const [newTitle, setNewTitle] = useState('');
   const [newTarget, setNewTarget] = useState('');
   const [newSaved, setNewSaved] = useState('');
@@ -38,12 +38,11 @@ export default function WishlistScreen() {
   const [newNote, setNewNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Quick deposit modal state
+
   const [depositModalVisible, setDepositModalVisible] = useState(false);
   const [depositTargetItem, setDepositTargetItem] = useState<WishlistItem | null>(null);
   const [depositAmount, setDepositAmount] = useState('');
 
-  // Statistics calculation
   const stats = useMemo(() => {
     let totalTarget = 0;
     let totalSaved = 0;
@@ -76,7 +75,7 @@ export default function WishlistScreen() {
     };
   }, [wishlist]);
 
-  // Filtered items
+
   const filteredItems = useMemo(() => {
     return wishlist.filter((item) => {
       const isReady = item.is_purchased === 1 || item.saved_amount >= item.target_amount;
@@ -110,7 +109,7 @@ export default function WishlistScreen() {
         is_purchased: savedNum >= targetNum ? 1 : 0,
       });
 
-      // Reset form
+    
       setNewTitle('');
       setNewTarget('');
       setNewSaved('');
@@ -173,7 +172,7 @@ export default function WishlistScreen() {
 
   return (
     <Main>
-      {/* Top Header */}
+      
       <View style={styles.headerRow}>
         <View>
           <AppText variant="serifTitle">Wishlist</AppText>
@@ -193,9 +192,9 @@ export default function WishlistScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Summary Bento Cards Row */}
+   
       <View style={styles.statsRow}>
-        {/* Total Target Card */}
+        
         <BentoCard variant="dark" style={styles.targetCard}>
           <View style={styles.cardHeaderSmall}>
             <AppText variant="caption" color={colors.textMuted}>
@@ -216,7 +215,7 @@ export default function WishlistScreen() {
           </AppText>
         </BentoCard>
 
-        {/* Progress Card */}
+      
         <BentoCard variant="light" style={styles.progressCard}>
           <AppText variant="caption" color={colors.textSecondary}>
             進捗 · PROGRESS
@@ -236,7 +235,7 @@ export default function WishlistScreen() {
         </BentoCard>
       </View>
 
-      {/* Filter Tabs */}
+      
       <View style={styles.filterRow}>
         <PillBadge
           variant={activeFilter === 'all' ? 'dark' : 'outline'}
@@ -255,7 +254,7 @@ export default function WishlistScreen() {
         />
       </View>
 
-      {/* Items List */}
+     
       <View style={styles.itemsList}>
         {filteredItems.map((item) => {
           const progress = Math.min(1, item.target_amount > 0 ? item.saved_amount / item.target_amount : 0);
@@ -266,7 +265,7 @@ export default function WishlistScreen() {
 
           return (
             <BentoCard key={item.id} variant="light" style={styles.itemCard}>
-              {/* Item Header */}
+            
               <View style={styles.itemHeader}>
                 <View style={styles.titleArea}>
                   <AppText variant="bodyBold" style={styles.itemTitle}>
@@ -321,7 +320,7 @@ export default function WishlistScreen() {
                   </View>
                 </View>
 
-                {/* Progress Bar */}
+              
                 <View style={styles.progressBarWrap}>
                   <ProgressBar
                     progress={progress}
@@ -349,7 +348,7 @@ export default function WishlistScreen() {
                 </View>
               </View>
 
-              {/* Action Buttons Footer */}
+            
               <View style={styles.cardActions}>
                 <TouchableOpacity
                   activeOpacity={0.7}
@@ -413,7 +412,7 @@ export default function WishlistScreen() {
         )}
       </View>
 
-      {/* Modal: Create Wishlist Item */}
+      
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -439,7 +438,7 @@ export default function WishlistScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Title Input */}
+        
             <View style={styles.formGroup}>
               <AppText variant="caption" color={colors.textSecondary}>
                 Item name / What to buy
@@ -453,7 +452,7 @@ export default function WishlistScreen() {
               />
             </View>
 
-            {/* Target & Saved Row */}
+           
             <View style={styles.splitRow}>
               <View style={[styles.formGroup, styles.flex1]}>
                 <AppText variant="caption" color={colors.textSecondary}>
@@ -484,7 +483,7 @@ export default function WishlistScreen() {
               </View>
             </View>
 
-            {/* Category selection */}
+            
             <View style={styles.formGroup}>
               <AppText variant="caption" color={colors.textSecondary}>
                 Category
@@ -504,7 +503,7 @@ export default function WishlistScreen() {
               </View>
             </View>
 
-            {/* Priority selection */}
+            
             <View style={styles.formGroup}>
               <AppText variant="caption" color={colors.textSecondary}>
                 Priority
@@ -524,7 +523,7 @@ export default function WishlistScreen() {
               </View>
             </View>
 
-            {/* Note input */}
+         
             <View style={styles.formGroup}>
               <AppText variant="caption" color={colors.textSecondary}>
                 Note / Description (Optional)
@@ -538,7 +537,7 @@ export default function WishlistScreen() {
               />
             </View>
 
-            {/* Submit Button */}
+            
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={handleCreateItem}
@@ -553,7 +552,7 @@ export default function WishlistScreen() {
         </View>
       </Modal>
 
-      {/* Modal: Quick Deposit towards Wishlist Item */}
+    
       <Modal
         visible={depositModalVisible}
         animationType="fade"
