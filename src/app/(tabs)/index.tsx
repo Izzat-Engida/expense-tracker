@@ -8,16 +8,13 @@ import {
   PillBadge,
   ProgressBar,
 } from '@/components/ui';
+import DaySection from '@/components/ui/DaySection'
 import { Fonts, useThemeColors } from '@/constants/theme';
 import { useLedger } from '@/hooks/useLedger';
 import {
-  CATEGORY_COLOR_KEYS,
-  CATEGORY_LABELS,
   formatMonthKanji,
   formatMonthLabel,
-  formatSignedAmount,
   getHomeSummary,
-  type DayGroup,
 } from '@/lib/ledger';
 
 export default function HomeScreen() {
@@ -166,74 +163,6 @@ export default function HomeScreen() {
   );
 }
 
-function DaySection({
-  group,
-  badgeVariant,
-  showDivider = false,
-}: {
-  group: DayGroup;
-  badgeVariant: 'dark' | 'outline';
-  showDivider?: boolean;
-}) {
-  const { colors } = useThemeColors();
-
-  return (
-    <View>
-      {showDivider && (
-        <View style={[styles.sectionDivider, { backgroundColor: colors.divider }]} />
-      )}
-
-      <View style={styles.dayHeaderRow}>
-        <View style={styles.dayBadgeGroup}>
-          <PillBadge variant={badgeVariant} label={group.badge} />
-          <AppText variant="caption" color={colors.textSecondary}>
-            {group.label}
-          </AppText>
-        </View>
-        <AppText variant="caption" color={colors.textSecondary}>
-          {Math.round(group.total).toLocaleString()} ETB
-        </AppText>
-      </View>
-
-      {group.expenses.length === 0 ? (
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => router.push('/modals/add-expense')}
-        >
-          <AppText variant="caption" color={colors.textMuted} style={styles.emptyDayText}>
-            No expenses {group.label.toLowerCase()}. Tap to add.
-          </AppText>
-        </TouchableOpacity>
-      ) : (
-        group.expenses.map((item, idx) => (
-          <View
-            key={item.id}
-            style={[
-              styles.expenseRow,
-              idx < group.expenses.length - 1 && [
-                styles.rowBorder,
-                { borderBottomColor: colors.divider },
-              ],
-            ]}
-          >
-            <View style={styles.expenseInfo}>
-              <AppText variant="bodyBold">{item.title}</AppText>
-              <View style={styles.categoryLine}>
-                <AppText variant="caption" color={colors.textSecondary}>
-                  {CATEGORY_LABELS[item.category]}
-                </AppText>
-              </View>
-            </View>
-            <PillBadge
-              variant={item.amount < 0 ? 'income' : 'expense'}
-              label={formatSignedAmount(item.amount)}
-            />
-          </View>
-        ))
-      )}
-    </View>
-  );
-}
 
 const styles = StyleSheet.create({
   monthHeaderCard: {
@@ -309,48 +238,12 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     gap: 8,
   },
-  dayHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  dayBadgeGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  expenseRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-  rowBorder: {
-    borderBottomWidth: 1,
-  },
-  expenseInfo: {
-    gap: 3,
-  },
-  categoryLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  rowAmount: {
-    fontSize: 13,
-  },
-  sectionDivider: {
-    height: 1.5,
-    marginVertical: 8,
-  },
+ 
   emptyCard: {
     paddingVertical: 24,
     gap: 6,
   },
-  emptyDayText: {
-    paddingVertical: 8,
-  },
+
   statusCard: {
     paddingVertical: 24,
     gap: 6,
