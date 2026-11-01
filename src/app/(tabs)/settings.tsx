@@ -24,10 +24,10 @@ export default function SettingsScreen() {
 
   return (
     <Main>
-      <AppText variant="serifTitle">Categories & Settings</AppText>
+      <AppText variant="serifTitle">Settings</AppText>
 
       <BentoCard variant="light" style={styles.sectionCard}>
-        <AppText variant="caption" color={colors.textSecondary}>Appearance & Theme</AppText>
+        <AppText variant="caption" color={colors.textSecondary}>Theme</AppText>
         <View style={styles.themeSelectorRow}>
           {themeOptions.map((opt) => {
             const active = themeMode === opt.mode;
@@ -69,7 +69,7 @@ export default function SettingsScreen() {
       </BentoCard>
 
       <BentoCard variant="light" style={styles.sectionCard}>
-        <AppText variant="caption" color={colors.textSecondary}>Custom categories</AppText>
+        <AppText variant="caption" color={colors.textSecondary}>Add Categories</AppText>
         <View style={styles.pillWrap}>
           <PillBadge variant="outline" label="Food" />
           <PillBadge variant="outline" label="Transport" />
@@ -86,16 +86,6 @@ export default function SettingsScreen() {
           <Switch
             value={biometricLock}
             onValueChange={setBiometricLock}
-            trackColor={{ false: colors.switchTrackOff, true: colors.bambooGreen }}
-            thumbColor={colors.switchThumb}
-            ios_backgroundColor={colors.switchTrackOff}
-          />
-        </View>
-        <View style={[styles.switchRow, styles.rowBorder, { borderTopColor: colors.divider }]}>
-          <AppText variant="bodyBold">Compact UI</AppText>
-          <Switch
-            value={compactUi}
-            onValueChange={setCompactUi}
             trackColor={{ false: colors.switchTrackOff, true: colors.bambooGreen }}
             thumbColor={colors.switchThumb}
             ios_backgroundColor={colors.switchTrackOff}

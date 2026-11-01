@@ -25,10 +25,7 @@ export function PillBadge({
 
   const variantStyles = {
     expense: {
-      backgroundColor: colors.expensePillBg,
-      textColor: colors.expensePillText,
-      borderColor: isDark ? '#6E3834' : 'transparent',
-      borderWidth: isDark ? 1 : 0,
+      textColor: colors.expensePillText,    
     },
     dark: {
       backgroundColor: colors.selectionBg,

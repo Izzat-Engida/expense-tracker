@@ -219,12 +219,6 @@ function DaySection({
             <View style={styles.expenseInfo}>
               <AppText variant="bodyBold">{item.title}</AppText>
               <View style={styles.categoryLine}>
-                <View
-                  style={[
-                    styles.dot,
-                    { backgroundColor: colors[CATEGORY_COLOR_KEYS[item.category]] },
-                  ]}
-                />
                 <AppText variant="caption" color={colors.textSecondary}>
                   {CATEGORY_LABELS[item.category]}
                 </AppText>
@@ -342,11 +336,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
   },
   rowAmount: {
     fontSize: 13,

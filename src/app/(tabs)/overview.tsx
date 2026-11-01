@@ -112,7 +112,7 @@ export default function OverviewScreen() {
             {Math.round(summary.totalSpent).toLocaleString()}
           </AppText>
           <AppText variant="caption" color={colors.textMuted}>
-            ETB
+            ETB 
           </AppText>
         </View>
       </BentoCard>
@@ -214,12 +214,6 @@ export default function OverviewScreen() {
                 <View key={item.category} style={styles.categoryItem}>
                   <View style={styles.rowBetween}>
                     <View style={styles.catLabelGroup}>
-                      <View
-                        style={[
-                          styles.dot,
-                          { backgroundColor: colors[item.colorKey] },
-                        ]}
-                      />
                       <AppText variant="bodyBold">{item.label}</AppText>
                     </View>
 
@@ -364,12 +358,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    paddingLeft:5
   },
-  dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-  },
+ 
   catNumbersGroup: {
     flexDirection: 'row',
     alignItems: 'baseline',
