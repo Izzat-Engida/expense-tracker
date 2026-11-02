@@ -61,8 +61,7 @@ export default function RootLayout() {
   }, [loadSettings]);
 
   useEffect(() => {
-    // Keep native controls (Switch, Alerts, keyboard) aligned with the
-    // in-app theme instead of the OS scheme.
+ 
     if (typeof Appearance.setColorScheme === 'function') {
       Appearance.setColorScheme(themeMode === 'system' ? 'unspecified' : themeMode);
     }

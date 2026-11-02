@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Switch, TouchableOpacity, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
 import {
   Main,
   BentoCard,
@@ -8,13 +9,23 @@ import {
 } from '@/components/ui';
 import { useThemeColors } from '@/constants/theme';
 import { useLedger } from '@/hooks/useLedger';
+import { useAuthStore } from '@/stores/authStore';
+import { useSyncStore } from '@/stores/syncStore';
 import type { ThemeMode } from '@/stores/settingsStore';
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const { colors, themeMode, setThemeMode } = useThemeColors();
   const { seedDemoData, clearAllData } = useLedger();
-  const [biometricLock, setBiometricLock] = useState(true);
-  const [compactUi, setCompactUi] = useState(false);
+
+  const activeAccount = useAuthStore((s) => s.activeAccount);
+  const accounts = useAuthStore((s) => s.accounts);
+  const updateBiometricSetting = useAuthStore((s) => s.updateBiometricSetting);
+  const lockSession = useAuthStore((s) => s.lockSession);
+  const removeAccount = useAuthStore((s) => s.removeAccount);
+
+  const { syncNow, syncStatus, isDeviceOnline, pendingCount } = useSyncStore();
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const themeOptions: { mode: ThemeMode; label: string; sub: string }[] = [
     { mode: 'dark', label: 'Dark', sub: '墨色 Sumi' },
@@ -22,10 +33,111 @@ export default function SettingsScreen() {
     { mode: 'system', label: 'Auto', sub: 'System' },
   ];
 
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    try {
+      await syncNow();
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleBiometricToggle = async (val: boolean) => {
+    if (!activeAccount) return;
+    await updateBiometricSetting(activeAccount.id, val);
+  };
+
+  const handleLockSession = () => {
+    lockSession();
+    router.replace('/(auth)/select-account');
+  };
+
+  const handleSignOut = () => {
+    if (!activeAccount) return;
+    Alert.alert(
+      'Sign Out',
+      `Sign out of ${activeAccount.name}? Your local ledger will be preserved or removed from this device.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            await removeAccount(activeAccount.id);
+            if (accounts.length <= 1) {
+              router.replace('/(auth)/onboarding');
+            } else {
+              router.replace('/(auth)/select-account');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
-    <Main>
+    <Main contentContainerStyle={styles.container}>
       <AppText variant="serifTitle">Settings</AppText>
 
+      {/* Google Account & Profile Card */}
+      <BentoCard variant="light" style={styles.sectionCard}>
+        <AppText variant="caption" color={colors.textSecondary}>
+          Active Google Account (Isolated Ledger)
+        </AppText>
+        <View style={styles.accountRow}>
+          <View
+            style={[
+              styles.avatarCircle,
+              { backgroundColor: colors.selectionBg, borderColor: colors.border },
+            ]}
+          >
+            <AppText variant="bodyBold" color={colors.selectionText}>
+              {activeAccount?.name?.slice(0, 1).toUpperCase() || 'Y'}
+            </AppText>
+          </View>
+          <View style={{ flex: 1 }}>
+            <AppText variant="bodyBold">{activeAccount?.name || 'Local Ledger'}</AppText>
+            <AppText variant="caption" color={colors.textSecondary}>
+              {activeAccount?.email || 'No Google account linked'}
+            </AppText>
+          </View>
+          <PillBadge
+            variant={isDeviceOnline ? 'income' : 'expense'}
+            label={isDeviceOnline ? '● Online' : '○ Offline'}
+          />
+        </View>
+
+        <View style={styles.accountActionsRow}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => router.push('/(auth)/select-account')}
+            style={[
+              styles.profileBtn,
+              { borderColor: colors.border, backgroundColor: colors.cardElevated },
+            ]}
+          >
+            <AppText variant="bodyBold" style={{ fontSize: 12 }}>
+              Switch Account ({accounts.length})
+            </AppText>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.7}
+            disabled={isSyncing}
+            onPress={handleManualSync}
+            style={[
+              styles.profileBtn,
+              { borderColor: colors.border, backgroundColor: colors.cardElevated },
+            ]}
+          >
+            <AppText variant="bodyBold" style={{ fontSize: 12 }}>
+              {isSyncing ? 'Syncing…' : 'Sync to Drive'}
+            </AppText>
+          </TouchableOpacity>
+        </View>
+      </BentoCard>
+
+      {/* Theme Settings */}
       <BentoCard variant="light" style={styles.sectionCard}>
         <AppText variant="caption" color={colors.textSecondary}>Theme</AppText>
         <View style={styles.themeSelectorRow}>
@@ -68,33 +180,44 @@ export default function SettingsScreen() {
         </View>
       </BentoCard>
 
+      {/* Security: Biometrics & Lock */}
       <BentoCard variant="light" style={styles.sectionCard}>
-        <AppText variant="caption" color={colors.textSecondary}>Add Categories</AppText>
-        <View style={styles.pillWrap}>
-          <PillBadge variant="outline" label="Food" />
-          <PillBadge variant="outline" label="Transport" />
-          <PillBadge variant="outline" label="Bills" />
-          <PillBadge variant="outline" label="Fun" />
-          <PillBadge variant="outline" label="Other" />
-          <PillBadge variant="outline" label="+" />
-        </View>
-      </BentoCard>
-
-      <BentoCard variant="light" style={styles.sectionCard}>
+        <AppText variant="caption" color={colors.textSecondary}>Security & Protection</AppText>
         <View style={styles.switchRow}>
-          <AppText variant="bodyBold">Biometric App Lock</AppText>
+          <View style={{ flex: 1, paddingRight: 8 }}>
+            <AppText variant="bodyBold">Biometric Unlock</AppText>
+            <AppText variant="caption" color={colors.textSecondary}>
+              Unlock this profile with Fingerprint or Face ID
+            </AppText>
+          </View>
           <Switch
-            value={biometricLock}
-            onValueChange={setBiometricLock}
+            value={activeAccount?.biometricEnabled ?? false}
+            onValueChange={handleBiometricToggle}
             trackColor={{ false: colors.switchTrackOff, true: colors.bambooGreen }}
             thumbColor={colors.switchThumb}
             ios_backgroundColor={colors.switchTrackOff}
           />
         </View>
+
+        <View style={[styles.cardDivider, { backgroundColor: colors.border }]} />
+
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={handleLockSession}
+          style={[
+            styles.lockBtn,
+            { borderColor: colors.border, backgroundColor: colors.cardElevated },
+          ]}
+        >
+          <AppText variant="bodyBold" style={{ fontSize: 13 }}>
+            🔒 Lock App / Switch Profile
+          </AppText>
+        </TouchableOpacity>
       </BentoCard>
 
+      {/* Sample Data & Reset */}
       <BentoCard variant="light" style={styles.sectionCard}>
-        <AppText variant="caption" color={colors.textSecondary}>Sample Data & Reset</AppText>
+        <AppText variant="caption" color={colors.textSecondary}>Profile Data & Reset</AppText>
         <View style={styles.dataButtonsRow}>
           <TouchableOpacity
             activeOpacity={0.7}
@@ -109,7 +232,7 @@ export default function SettingsScreen() {
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => {
-              Alert.alert('Reset Ledger', 'Are you sure you want to clear all data?', [
+              Alert.alert('Reset Ledger', 'Are you sure you want to clear this account’s data?', [
                 { text: 'Cancel', style: 'cancel' },
                 {
                   text: 'Clear All',
@@ -127,20 +250,58 @@ export default function SettingsScreen() {
         </View>
       </BentoCard>
 
-      <BentoCard variant="light" style={styles.exportCard}>
-        <View style={[styles.exportBtn, { borderColor: colors.border, backgroundColor: colors.cardElevated }]}>
-          <AppText variant="bodyBold">Export Ledger</AppText>
-        </View>
-        <View style={[styles.exportBtn, styles.exportCsvBtn, { borderColor: colors.selectionBorder, backgroundColor: colors.selectionBg }]}>
-          <AppText variant="bodyBold" color={colors.selectionText}>Export Ledger (.CSV)</AppText>
-        </View>
-      </BentoCard>
+      {/* Sign Out */}
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={handleSignOut}
+        style={[
+          styles.signOutBtn,
+          { borderColor: colors.hankoRed, backgroundColor: colors.card },
+        ]}
+      >
+        <AppText variant="bodyBold" color={colors.hankoRed}>
+          Sign Out of This Profile
+        </AppText>
+      </TouchableOpacity>
     </Main>
   );
 }
 
 const styles = StyleSheet.create({
-  sectionCard: { paddingVertical: 16, gap: 12 },
+  container: {
+    gap: 14,
+    paddingBottom: 28,
+  },
+  sectionCard: {
+    paddingVertical: 16,
+    gap: 12,
+  },
+  accountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  avatarCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  accountActionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 4,
+  },
+  profileBtn: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   themeSelectorRow: {
     flexDirection: 'row',
     gap: 8,
@@ -155,10 +316,24 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     gap: 2,
   },
-  pillWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
-  switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4 },
-  rowBorder: { borderTopWidth: 1, paddingTop: 12 },
-  exportCard: { paddingVertical: 14, gap: 10 },
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 2,
+  },
+  cardDivider: {
+    height: 1,
+    width: '100%',
+    opacity: 0.15,
+  },
+  lockBtn: {
+    borderWidth: 1.5,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   dataButtonsRow: {
     flexDirection: 'row',
     gap: 10,
@@ -172,6 +347,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  exportBtn: { borderWidth: 1.5, borderRadius: 12, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
-  exportCsvBtn: {},
+  signOutBtn: {
+    borderWidth: 1.5,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
 });

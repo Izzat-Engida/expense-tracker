@@ -27,7 +27,7 @@ export const LightColors = {
   categoryFun: '#6E5A7F',
   categoryOther: '#7A827E',
 
-  // Selected controls (inverted ink)
+ 
   selectionBg: '#262A28',
   selectionText: '#ECEEED',
   selectionBorder: '#262A28',
@@ -49,8 +49,7 @@ export const LightColors = {
   overlay: 'rgba(38, 42, 40, 0.55)',
 };
 
-// Derived directly from the attached manga neo-brutalist widget colors:
-// Optimized with elevated button surfaces and crisp visible outlines for dark mode.
+
 export const DarkColors = {
   background: '#141817',
   card: '#1F2624',
@@ -77,7 +76,7 @@ export const DarkColors = {
   categoryFun: '#9C82B5',
   categoryOther: '#9DA8A4',
 
-  // Selected controls (inverted ink)
+  
   selectionBg: '#F2F5F4',
   selectionText: '#141817',
   selectionBorder: '#F2F5F4',
@@ -122,8 +121,9 @@ export function useThemeColors() {
 export const Fonts = {
   serif: 'ShipporiMincho_600SemiBold', // Headers, Kanji, Numpad numbers
   digital: 'ShareTechMono_400Regular', // LCD Expense numbers (12,480 / 420)
+  mono: 'ShareTechMono_400Regular',    // Code / Inputs / Monospace
   sans: 'PlusJakartaSans_500Medium',   // Everyday UI text
-  sansBold: 'PlusJakartaSans_700Bold', // Bold list titles ("Morning coffee")
+  sansBold: 'PlusJakartaSans_700Bold', // Bold list titles
 };
 
 export type CategoryKey = 'food' | 'bills' | 'transport' | 'fun' | 'other';

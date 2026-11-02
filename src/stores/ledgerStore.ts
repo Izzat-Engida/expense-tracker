@@ -1,12 +1,3 @@
-/**
- * stores/ledgerStore.ts
- *
- * Zustand store that owns in-memory state for expenses, incomes, budgets,
- * savings, and wishlist goals.
- * All write actions persist to SQLite first, then emit to `sync_outbox`,
- * then update the in-memory slice — so the UI never sees stale state.
- */
-
 import { create } from 'zustand';
 import { getDb } from '@/db/client';
 import { enqueueOutbox } from '@/db/outbox';
@@ -29,8 +20,6 @@ import type {
   UpdateWishlistItemInput,
 } from '@/db/types';
 
-// ─── Utility ────────────────────────────────────────────────────────────────
-
 function uuid(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
@@ -43,7 +32,6 @@ function now(): string {
   return new Date().toISOString();
 }
 
-// ─── State shape ─────────────────────────────────────────────────────────────
 
 interface LedgerState {
   expenses: Expense[];
@@ -51,39 +39,36 @@ interface LedgerState {
   budgets: Budget[];
   savings: Saving[];
   wishlist: WishlistItem[];
-  /** True while the initial DB load is in flight. */
   isLoading: boolean;
   isInitialized: boolean;
   error: string | null;
 }
 
 interface LedgerActions {
-  /** Bootstrap: load all non-deleted rows from SQLite into memory. */
   loadAll: () => Promise<void>;
   seedDemoData: () => Promise<void>;
   clearAllData: () => Promise<void>;
 
-  // ── Expenses ──────────────────────────────────────────────────────────────
+
   createExpense: (input: CreateExpenseInput) => Promise<Expense>;
   updateExpense: (id: string, patch: UpdateExpenseInput) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
 
-  // ── Incomes ───────────────────────────────────────────────────────────────
+
   createIncome: (input: CreateIncomeInput) => Promise<Income>;
   updateIncome: (id: string, patch: UpdateIncomeInput) => Promise<void>;
   deleteIncome: (id: string) => Promise<void>;
 
-  // ── Budgets ───────────────────────────────────────────────────────────────
   createBudget: (input: CreateBudgetInput) => Promise<Budget>;
   updateBudget: (id: string, patch: UpdateBudgetInput) => Promise<void>;
   deleteBudget: (id: string) => Promise<void>;
 
-  // ── Savings ───────────────────────────────────────────────────────────────
+
   createSaving: (input: CreateSavingInput) => Promise<Saving>;
   updateSaving: (id: string, patch: UpdateSavingInput) => Promise<void>;
   deleteSaving: (id: string) => Promise<void>;
 
-  // ── Wishlist ──────────────────────────────────────────────────────────────
+ 
   createWishlistItem: (input: CreateWishlistItemInput) => Promise<WishlistItem>;
   updateWishlistItem: (id: string, patch: UpdateWishlistItemInput) => Promise<void>;
   deleteWishlistItem: (id: string) => Promise<void>;
@@ -92,7 +77,6 @@ interface LedgerActions {
 
 type LedgerStore = LedgerState & LedgerActions;
 
-// ─── Store ───────────────────────────────────────────────────────────────────
 
 export const useLedgerStore = create<LedgerStore>((set, get) => ({
   expenses: [],
@@ -104,7 +88,6 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
   isInitialized: false,
   error: null,
 
-  // ── Bootstrap ──────────────────────────────────────────────────────────────
   loadAll: async () => {
     set({ isLoading: true, error: null });
     try {
@@ -146,7 +129,6 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
     }
   },
 
-  // ── Expenses ────────────────────────────────────────────────────────────────
 
   createExpense: async (input) => {
     const db = await getDb();
@@ -231,8 +213,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
     set((s) => ({ expenses: s.expenses.filter((e) => e.id !== id) }));
   },
 
-  // ── Incomes ─────────────────────────────────────────────────────────────────
-
+ 
   createIncome: async (input) => {
     const db = await getDb();
     const income: Income = { id: uuid(), ...input, updated_at: now() };
@@ -285,7 +266,6 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
     set((s) => ({ incomes: s.incomes.filter((i) => i.id !== id) }));
   },
 
-  // ── Budgets ─────────────────────────────────────────────────────────────────
 
   createBudget: async (input) => {
     const db = await getDb();
@@ -351,8 +331,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
     set((s) => ({ budgets: s.budgets.filter((b) => b.id !== id) }));
   },
 
-  // ── Savings ─────────────────────────────────────────────────────────────────
-
+ 
   createSaving: async (input) => {
     const db = await getDb();
     const saving: Saving = {
@@ -433,8 +412,6 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
 
     set((s) => ({ savings: s.savings.filter((it) => it.id !== id) }));
   },
-
-  // ── Wishlist ────────────────────────────────────────────────────────────────
 
   createWishlistItem: async (input) => {
     const db = await getDb();
@@ -531,7 +508,6 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
     });
   },
 
-  // ── Demo & Maintenance ──────────────────────────────────────────────────────
 
   seedDemoData: async () => {
     const currentMonth = currentMonthKey();

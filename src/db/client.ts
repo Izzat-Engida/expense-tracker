@@ -1,61 +1,55 @@
-/**
- * db/client.ts
- *
- * Single shared SQLite database handle for the app.
- * Open it once with `getDb()` — subsequent calls return the cached handle.
- *
- * The `SQLiteProvider` component in `_layout.tsx` is the recommended React
- * integration; this module gives you the bare `SQLiteDatabase` for use
- * outside of React (e.g. in Zustand actions or background tasks).
- */
-
 import { openDatabaseAsync, type SQLiteDatabase } from 'expo-sqlite';
 import { ALL_MIGRATIONS } from './schema';
 
-const DB_NAME = 'yohaku.db';
+const dbInstances = new Map<string, SQLiteDatabase>();
+let currentActiveAccountId: string | null = null;
 
-let _db: SQLiteDatabase | null = null;
+export function sanitizeAccountId(accountId: string): string {
+  return accountId.replace(/[^a-zA-Z0-9_-]/g, '_');
+}
 
-/**
- * Returns the shared, fully-initialised database instance.
- * Safe to call multiple times — the database is opened and migrated exactly once.
- */
-export async function getDb(): Promise<SQLiteDatabase> {
-  if (_db) return _db;
+export function getDatabaseName(accountId?: string | null): string {
+  if (!accountId || accountId === 'default') {
+    return 'yohaku.db';
+  }
+  return `yohaku_${sanitizeAccountId(accountId)}.db`;
+}
 
-  const db = await openDatabaseAsync(DB_NAME);
+export function setCurrentDatabaseAccount(accountId: string | null): void {
+  currentActiveAccountId = accountId;
+}
 
-  // Run WAL mode for better concurrent read performance.
+export function getCurrentDatabaseAccount(): string | null {
+  return currentActiveAccountId;
+}
+
+export async function getDb(forAccountId?: string | null): Promise<SQLiteDatabase> {
+  const targetId = forAccountId !== undefined ? forAccountId : currentActiveAccountId;
+  const dbName = getDatabaseName(targetId);
+
+  const existing = dbInstances.get(dbName);
+  if (existing) {
+    return existing;
+  }
+
+  const db = await openDatabaseAsync(dbName);
+
   await db.execAsync('PRAGMA journal_mode = WAL;');
   await db.execAsync('PRAGMA foreign_keys = ON;');
 
-  // Apply all DDL migrations idempotently.
   for (const sql of ALL_MIGRATIONS) {
     await db.execAsync(sql);
   }
 
-  _db = db;
+  dbInstances.set(dbName, db);
   return db;
 }
 
-/**
- * `onInit` callback for `<SQLiteProvider>`.
- * Pass this to the provider so the component-tree version also runs migrations.
- *
- * @example
- * ```tsx
- * <SQLiteProvider databaseName="yohaku.db" onInit={migrateDb}>
- *   <App />
- * </SQLiteProvider>
- * ```
- */
+
 export async function migrateDb(db: SQLiteDatabase): Promise<void> {
   await db.execAsync('PRAGMA journal_mode = WAL;');
   await db.execAsync('PRAGMA foreign_keys = ON;');
   for (const sql of ALL_MIGRATIONS) {
     await db.execAsync(sql);
   }
-  // Keep the module-level handle in sync so `getDb()` callers get
-  // the same connection that the Provider already opened.
-  _db = db;
 }

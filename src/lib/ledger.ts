@@ -40,9 +40,7 @@ const MONTH_NAMES = [
 
 const MONTH_KANJI = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'];
 
-// ─── Dates ──────────────────────────────────────────────────────────────────
 
-/** Local calendar date as YYYY-MM-DD (not UTC, so "today" matches the device). */
 export function localDateKey(date = new Date()): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -80,13 +78,11 @@ export function formatMonthLabel(monthKey: string): string {
   return `${MONTH_NAMES[month - 1] ?? ''} ${year}`;
 }
 
-/** Returns a two-line kanji month label, e.g. 十\n月 for October. */
+
 export function formatMonthKanji(monthKey: string): string {
   const [, month] = monthKey.split('-').map(Number);
   return `${MONTH_KANJI[month - 1] ?? ''}\n月`;
 }
-
-// ─── Amounts ────────────────────────────────────────────────────────────────
 
 export function formatSignedAmount(amount: number): string {
   return `${amount < 0 ? '+' : '-'}${Math.abs(Math.round(amount)).toLocaleString()}`;
@@ -105,8 +101,6 @@ export function formatCompactAmount(amount: number): string {
 function trimDecimal(value: number): string {
   return value.toFixed(1).replace(/\.0$/, '');
 }
-
-// ─── Ledger queries ─────────────────────────────────────────────────────────
 
 export function expensesForMonth(expenses: Expense[], monthKey: string): Expense[] {
   return expenses.filter((expense) => monthKeyFromDateKey(expense.date) === monthKey);
@@ -134,7 +128,6 @@ export function monthlyBudget(budgets: Budget[], monthKey: string): number {
     .reduce((sum, budget) => sum + budget.percentage_or_limit, 0);
 }
 
-// ─── Home summary ───────────────────────────────────────────────────────────
 
 export interface DayGroup {
   label: 'Today' | 'Yesterday';
@@ -193,7 +186,6 @@ export function getHomeSummary(
   };
 }
 
-// ─── Overview summary ───────────────────────────────────────────────────────
 
 export interface CategoryRow {
   category: ExpenseCategory;

@@ -1,12 +1,3 @@
-/**
- * db/schema.ts
- *
- * Canonical SQL DDL for every table in the Yohaku local database.
- * All timestamps are stored as ISO-8601 strings (TEXT) for portability.
- * `deleted_at` is used for soft-deletes so the sync outbox can emit a
- * proper DELETE operation before the row is physically removed.
- */
-
 export const CREATE_EXPENSES_TABLE = `
   CREATE TABLE IF NOT EXISTS expenses (
     id          TEXT PRIMARY KEY NOT NULL,
@@ -70,14 +61,6 @@ export const CREATE_WISHLIST_TABLE = `
   );
 ` as const;
 
-/**
- * Outbox for future Google Drive sync.
- * Every mutation writes here first; a background sync worker drains it.
- *
- * `operation` is one of: 'INSERT' | 'UPDATE' | 'DELETE'
- * `payload_json` is a JSON-serialised snapshot of the full row at mutation time.
- * `synced` is 0 (pending) or 1 (acked by remote).
- */
 export const CREATE_SYNC_OUTBOX_TABLE = `
   CREATE TABLE IF NOT EXISTS sync_outbox (
     id           TEXT PRIMARY KEY NOT NULL,
@@ -90,13 +73,13 @@ export const CREATE_SYNC_OUTBOX_TABLE = `
   );
 ` as const;
 
-/** Convenience index so the sync worker can cheaply fetch pending rows. */
+
 export const CREATE_OUTBOX_PENDING_INDEX = `
   CREATE INDEX IF NOT EXISTS idx_sync_outbox_pending
     ON sync_outbox (synced, created_at);
 ` as const;
 
-/** Run all DDL statements in order. Call this from `client.ts` `onInit`. */
+
 export const ALL_MIGRATIONS = [
   CREATE_EXPENSES_TABLE,
   CREATE_INCOMES_TABLE,

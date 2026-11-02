@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import {
@@ -11,6 +11,8 @@ import {
 import DaySection from '@/components/ui/DaySection'
 import { Fonts, useThemeColors } from '@/constants/theme';
 import { useLedger } from '@/hooks/useLedger';
+import { useAuthStore } from '@/stores/authStore';
+import { useSyncStore } from '@/stores/syncStore';
 import {
   formatMonthKanji,
   formatMonthLabel,
@@ -20,6 +22,13 @@ import {
 export default function HomeScreen() {
   const { colors } = useThemeColors();
   const { expenses, incomes, budgets, isInitialized, error } = useLedger();
+  const activeAccount = useAuthStore((s) => s.activeAccount);
+  const { syncStatus, isDeviceOnline, pendingCount, autoSyncIfConnected, refreshStatus } = useSyncStore();
+
+  useEffect(() => {
+    refreshStatus();
+    autoSyncIfConnected();
+  }, [refreshStatus, autoSyncIfConnected]);
 
   const summary = useMemo(
     () => getHomeSummary(expenses, incomes, budgets),
@@ -79,12 +88,41 @@ export default function HomeScreen() {
           onPress={() => router.push('/modals/sync-status')}
           style={styles.syncStatusBtn}
         >
-          <AppText variant="caption" color={colors.bambooGreen}>
-            ●
-          </AppText>
-          <AppText variant="caption" color={colors.textSecondary}>
-            Local only
-          </AppText>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <AppText
+              variant="caption"
+              color={
+                syncStatus === 'syncing'
+                  ? colors.categoryFun
+                  : !isDeviceOnline
+                  ? colors.hankoRed
+                  : pendingCount > 0
+                  ? colors.categoryFood
+                  : colors.bambooGreen
+              }
+            >
+              ●
+            </AppText>
+            <AppText variant="caption" color={colors.textSecondary}>
+              {syncStatus === 'syncing'
+                ? 'Syncing…'
+                : !isDeviceOnline
+                ? 'Offline'
+                : pendingCount > 0
+                ? `${pendingCount} queued`
+                : 'Drive synced'}
+            </AppText>
+          </View>
+          {activeAccount && (
+            <AppText
+              variant="caption"
+              color={colors.textMuted}
+              style={{ fontSize: 9, letterSpacing: 0.5 }}
+              numberOfLines={1}
+            >
+              {activeAccount.name}
+            </AppText>
+          )}
         </TouchableOpacity>
       </BentoCard>
 
