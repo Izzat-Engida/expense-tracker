@@ -2,6 +2,7 @@ import * as SecureStore from 'expo-secure-store';
 import * as Crypto from 'expo-crypto';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
+import Constants, { AppOwnership, ExecutionEnvironment } from 'expo-constants';
 import { Platform } from 'react-native';
 import type { GoogleAccount, AuthTokens, GoogleUserProfile } from '@/types/auth';
 
@@ -113,6 +114,21 @@ export async function setActiveAccountId(id: string | null): Promise<void> {
   }
 }
 
+export function getRedirectUri(): string {
+  // In development / Expo Go, use the Expo Auth Proxy registered in Google Cloud Console
+  if (
+    Constants.appOwnership === AppOwnership.Expo ||
+    Constants.executionEnvironment === ExecutionEnvironment.StoreClient ||
+    __DEV__
+  ) {
+    return 'https://auth.expo.io/@izorium/expense';
+  }
+  return AuthSession.makeRedirectUri({
+    scheme: 'expense',
+    path: 'oauth',
+  });
+}
+
 export async function promptGoogleAuth(): Promise<{
   profile: GoogleUserProfile;
   tokens: AuthTokens;
@@ -122,10 +138,7 @@ export async function promptGoogleAuth(): Promise<{
     throw new Error('MISSING_CLIENT_ID');
   }
 
-  const redirectUri = AuthSession.makeRedirectUri({
-    scheme: 'expense',
-    path: 'oauth',
-  });
+  const redirectUri = getRedirectUri();
 
   const request = new AuthSession.AuthRequest({
     clientId,

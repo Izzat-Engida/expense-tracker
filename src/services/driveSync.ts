@@ -65,17 +65,11 @@ export async function syncAccountWithGoogleDrive(accountId: string): Promise<Syn
   const token = await refreshGoogleTokenIfNeeded(accountId);
   const db = await getDb(accountId);
 
-
-  if (!token || token.startsWith('mock_')) {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    const pendingCount = await getPendingOutboxCount(accountId);
-    await db.runAsync('UPDATE sync_outbox SET synced = 1 WHERE synced = 0');
-    const nowIso = new Date().toISOString();
+  if (!token) {
     return {
-      success: true,
-      message: 'Synced locally (Dev / Offline mode)',
-      syncedAt: nowIso,
-      outboxDrained: pendingCount,
+      success: false,
+      reason: 'unauthenticated',
+      message: 'Google authorization expired or missing. Please re-authenticate.',
     };
   }
 

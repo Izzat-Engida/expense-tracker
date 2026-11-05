@@ -2,9 +2,9 @@ import { create } from 'zustand';
 import {
   isOnline,
   getPendingOutboxCount,
-  syncAccountWithGoogleDrive,
+  syncAccountWithFirebase,
   type SyncResult,
-} from '@/services/driveSync';
+} from '@/services/firebaseSync';
 import { useAuthStore } from './authStore';
 import { useLedgerStore } from './ledgerStore';
 
@@ -45,7 +45,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
         ? 'Offline (changes saved in local SQLite)'
         : count > 0
         ? `${count} change${count > 1 ? 's' : ''} queued`
-        : 'Up to date with Google Drive',
+        : 'Up to date with Cloud (Firestore)',
     });
   },
 
@@ -59,35 +59,34 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
       return null;
     }
 
-    set({ syncStatus: 'syncing', statusMessage: 'Connecting to Google Drive…' });
+    set({ syncStatus: 'syncing', statusMessage: 'Syncing with Firestore…' });
 
-    const result = await syncAccountWithGoogleDrive(activeAccount.id);
+    try {
+      const result = await syncAccountWithFirebase(activeAccount.id);
 
-    if (result.success) {
-      await useAuthStore.getState().updateAccountSyncTime(activeAccount.id, result.syncedAt);
-      await useLedgerStore.getState().loadAll();
-      const count = await getPendingOutboxCount(activeAccount.id);
+      if (result.success) {
+        await useAuthStore.getState().updateAccountSyncTime(activeAccount.id, result.syncedAt);
+        await useLedgerStore.getState().loadAll();
 
-      set({
-        syncStatus: 'success',
-        lastSyncedAt: result.syncedAt,
-        pendingCount: count,
-        statusMessage: result.message,
-      });
+        set({
+          syncStatus: 'success',
+          lastSyncedAt: result.syncedAt,
+          pendingCount: 0,
+          statusMessage: 'Sync complete',
+        });
+      } else {
+        set({
+          syncStatus: result.reason === 'offline' ? 'offline' : 'error',
+          statusMessage: result.message,
+        });
+      }
 
-      setTimeout(() => {
-        if (get().syncStatus === 'success') {
-          set({ syncStatus: 'idle' });
-        }
-      }, 3000);
-    } else {
-      set({
-        syncStatus: result.reason === 'offline' ? 'offline' : 'error',
-        statusMessage: result.message,
-      });
+      return result;
+    } catch (err: any) {
+      const msg = err?.message || 'Sync failed unexpectedly';
+      set({ syncStatus: 'error', statusMessage: msg });
+      return { success: false, reason: 'error', message: msg };
     }
-
-    return result;
   },
 
   autoSyncIfConnected: async () => {
@@ -96,6 +95,9 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
     const activeAccount = useAuthStore.getState().activeAccount;
     if (!activeAccount) return;
 
-    await get().syncNow();
+    const count = await getPendingOutboxCount(activeAccount.id);
+    if (count > 0 || !activeAccount.lastSyncedAt) {
+      await get().syncNow();
+    }
   },
 }));

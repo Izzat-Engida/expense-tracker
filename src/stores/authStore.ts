@@ -28,8 +28,7 @@ interface AuthActions {
   initAuth: () => Promise<void>;
   startAccountOnboarding: (
     profile: GoogleUserProfile,
-    tokens: AuthTokens,
-    isDevMock?: boolean
+    tokens: AuthTokens
   ) => Promise<GoogleAccount>;
   completePasswordSetup: (
     password: string,

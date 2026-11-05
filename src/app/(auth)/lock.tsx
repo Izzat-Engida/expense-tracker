@@ -47,7 +47,7 @@ export default function BiometricLockScreen() {
           <View style={[styles.fpCornerTR, { borderColor: colors.border }]} />
           <View style={[styles.fpCornerBL, { borderColor: colors.border }]} />
           <View style={[styles.fpCornerBR, { borderColor: colors.border }]} />
-          <AppText style={styles.fingerprintIcon}>🫵</AppText>
+      
         </View>
 
         <AppText variant="bodyBold" style={styles.unlockPrompt}>

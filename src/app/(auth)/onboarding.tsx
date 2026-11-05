@@ -3,9 +3,11 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
-  Modal,
   TextInput,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -17,292 +19,239 @@ import {
 } from '@/components/ui';
 import { Colors, Fonts, useThemeColors } from '@/constants/theme';
 import { useAuthStore } from '@/stores/authStore';
-import { promptGoogleAuth, getGoogleClientId } from '@/services/auth';
-import type { GoogleUserProfile, AuthTokens } from '@/types/auth';
+import { loginAnonymously, loginWithEmail } from '@/services/firebaseAuth';
 
 export default function OnboardingScreen() {
   const router = useRouter();
   const { colors, isDark } = useThemeColors();
   const startAccountOnboarding = useAuthStore((s) => s.startAccountOnboarding);
 
-  const [devModalVisible, setDevModalVisible] = useState(false);
-  const [customEmail, setCustomEmail] = useState('');
-  const [customName, setCustomName] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-  const handleContinueWithGoogle = async () => {
-    const clientId = getGoogleClientId();
-
-    if (!clientId) {
-      // In development or when Google Cloud client ID is not yet provided:
-      setDevModalVisible(true);
-      return;
-    }
-
+  const handleGuestLogin = async () => {
     setIsProcessing(true);
     try {
-      const res = await promptGoogleAuth();
-      if (res) {
-        await startAccountOnboarding(res.profile, res.tokens);
-        router.push('/(auth)/setup-password');
-      }
+      const res = await loginAnonymously();
+      await startAccountOnboarding(res.profile, res.tokens);
+      router.push('/(auth)/setup-password');
     } catch (err: any) {
-      Alert.alert(
-        'Google Authentication',
-        err?.message || 'Could not complete Google Sign-In.'
-      );
+      Alert.alert('Sign In', err?.message || 'Could not sign in with Firebase.');
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handleDevCreateAccount = async (name: string, email: string) => {
-    setDevModalVisible(false);
-    const mockProfile: GoogleUserProfile = {
-      id: `dev_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      name,
-      email,
-    };
-    const mockTokens: AuthTokens = {
-      accessToken: `mock_access_token_${Date.now()}`,
-      refreshToken: `mock_refresh_token_${Date.now()}`,
-      expiresAt: Date.now() + 3600 * 1000,
-    };
-
-    await startAccountOnboarding(mockProfile, mockTokens, true);
-    router.push('/(auth)/setup-password');
+  const handleEmailAuth = async () => {
+    if (!email.trim() || !password.trim()) {
+      Alert.alert('Required', 'Please enter email and password.');
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      const res = await loginWithEmail(email.trim(), password.trim());
+      await startAccountOnboarding(res.profile, res.tokens);
+      router.push('/(auth)/setup-password');
+    } catch (err: any) {
+      Alert.alert('Email Auth Error', err?.message || 'Failed to authenticate with Firebase.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
-    <Main contentContainerStyle={styles.screenContainer}>
-      <View style={styles.mainContent}>
-        <View style={styles.topRow}>
-          <BentoCard variant="light" style={styles.brandCard}>
-            <AppText style={styles.kanjiLogo}>余白</AppText>
-            <AppText
-              variant="caption"
-              color={colors.textSecondary}
-              style={styles.romajiSub}
-            >
-              Y O H A K U
-            </AppText>
-            <View style={[styles.brandUnderline, { backgroundColor: colors.border }]} />
-          </BentoCard>
-
-          <View style={styles.rightCol}>
-            <BentoCard variant="light" style={styles.stampCard}>
-              <HankoStamp size="md" />
-              <AppText variant="caption" style={styles.stampLabel}>
-                STAMP IN
-              </AppText>
-            </BentoCard>
-            <BentoCard variant="dark" art="none" style={styles.clarityDarkCard}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.keyboardContainer}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.mainContent}>
+          <View style={styles.topRow}>
+            <BentoCard variant="light" style={styles.brandCard}>
+              <AppText style={styles.kanjiLogo}>余白</AppText>
               <AppText
                 variant="caption"
-                color={colors.textInverse}
-                style={styles.clarityQuote}
+                color={colors.textSecondary}
+                style={styles.romajiSub}
               >
-                A little room {'\n'}for clarity.
+                Y O H A K U
               </AppText>
+              <View style={[styles.brandUnderline, { backgroundColor: colors.border }]} />
             </BentoCard>
-          </View>
-        </View>
 
-        <BentoCard variant="light" style={styles.featureCard}>
-          <View
-            style={[
-              styles.sailboatBox,
-              { backgroundColor: colors.background, borderColor: colors.border },
-            ]}
-          >
-            <View style={[styles.sailTriangle, { borderBottomColor: colors.textPrimary }]} />
-            <View style={[styles.boatHull, { borderColor: colors.textPrimary }]} />
+            <View style={styles.rightCol}>
+              <BentoCard variant="light" style={styles.stampCard}>
+                <HankoStamp size="md" />
+                <AppText variant="caption" style={styles.stampLabel}>
+                  STAMP IN
+                </AppText>
+              </BentoCard>
+              <BentoCard variant="dark" art="none" style={styles.clarityDarkCard}>
+                <AppText
+                  variant="caption"
+                  color={colors.textInverse}
+                  style={styles.clarityQuote}
+                >
+                  A little room {'\n'}for clarity.
+                </AppText>
+              </BentoCard>
+            </View>
           </View>
-          <View style={styles.featureTextCol}>
-            <AppText variant="bodyBold">Track with clarity</AppText>
+
+          <BentoCard variant="light" style={styles.featureCard}>
+            <View
+              style={[
+                styles.sailboatBox,
+                { backgroundColor: colors.background, borderColor: colors.border },
+              ]}
+            >
+              <View style={[styles.sailTriangle, { borderBottomColor: colors.textPrimary }]} />
+              <View style={[styles.boatHull, { borderColor: colors.textPrimary }]} />
+            </View>
+            <View style={styles.featureTextCol}>
+              <AppText variant="bodyBold">Track with clarity</AppText>
+              <AppText
+                variant="caption"
+                color={colors.textSecondary}
+                style={styles.featureDesc}
+              >
+                Offline SQLite first. Cloud sync with Firebase.
+              </AppText>
+            </View>
+          </BentoCard>
+
+          <BentoCard variant="light" style={styles.driveStripCard}>
+            <View style={styles.rowBetween}>
+              <AppText variant="caption" style={styles.driveStripTitle}>
+                FIREBASE CLOUD SYNC
+              </AppText>
+              <AppText variant="caption" color={colors.textSecondary}>
+                Local SQLite + Firestore
+              </AppText>
+            </View>
+            <ProgressBar progress={1.0} height={10} />
+          </BentoCard>
+
+          <BentoCard variant="light" style={styles.authCard}>
             <AppText
               variant="caption"
               color={colors.textSecondary}
-              style={styles.featureDesc}
+              style={styles.getStartedLabel}
             >
-              Your expenses. Your Google Drive. Zero external servers.
-            </AppText>
-          </View>
-        </BentoCard>
-
-        <BentoCard variant="light" style={styles.driveStripCard}>
-          <View style={styles.rowBetween}>
-            <AppText variant="caption" style={styles.driveStripTitle}>
-              PRIVATE GOOGLE DRIVE SYNC
-            </AppText>
-            <AppText variant="caption" color={colors.textSecondary}>
-              Hidden AppData
-            </AppText>
-          </View>
-          <ProgressBar progress={0.88} height={10} />
-        </BentoCard>
-
-        <BentoCard variant="light" style={styles.authCard}>
-          <AppText
-            variant="caption"
-            color={colors.textSecondary}
-            style={styles.getStartedLabel}
-          >
-            G E T   S T A R T E D
-          </AppText>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            disabled={isProcessing}
-            style={[
-              styles.googleButton,
-              {
-                backgroundColor: colors.cardElevated,
-                borderColor: colors.border,
-                shadowColor: colors.shadow,
-              },
-            ]}
-            onPress={handleContinueWithGoogle}
-          >
-            <AppText variant="bodyBold" style={styles.googleG}>
-              G
-            </AppText>
-            <AppText variant="body">
-              {isProcessing ? 'Connecting to Google…' : 'Continue with Google'}
-            </AppText>
-          </TouchableOpacity>
-          <AppText
-            variant="caption"
-            color={colors.textMuted}
-            style={styles.privacySub}
-          >
-            Data stays in your private Google Drive and device SQLite.
-          </AppText>
-        </BentoCard>
-      </View>
-
-      <AppText variant="caption" color={colors.textSecondary} style={styles.footerText}>
-        Less noise. More intention.
-      </AppText>
-
-      {/* Dev Mode Account Picker Modal */}
-      <Modal
-        visible={devModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setDevModalVisible(false)}
-      >
-        <View style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}>
-          <View
-            style={[
-              styles.modalBox,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
-          >
-            <AppText variant="serifTitle">Sign In (Developer Mode)</AppText>
-            <AppText variant="caption" color={colors.textSecondary}>
-              Google OAuth client ID is not yet configured in `.env`. Choose a sample
-              profile or enter your email to test multi-account isolation:
+              G E T   S T A R T E D
             </AppText>
 
-            <View style={styles.sampleButtonsWrap}>
-              <TouchableOpacity
-                style={[styles.sampleBtn, { borderColor: colors.border }]}
-                onPress={() =>
-                  handleDevCreateAccount('Personal Account', 'personal.savings@gmail.com')
-                }
-              >
-                <AppText variant="bodyBold">🏠 Personal Account</AppText>
-                <AppText variant="caption" color={colors.textSecondary}>
-                  personal.savings@gmail.com
-                </AppText>
-              </TouchableOpacity>
+            {showEmailForm ? (
+              <View style={styles.emailForm}>
+                <TextInput
+                  placeholder="Email address"
+                  placeholderTextColor={colors.textMuted}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  style={[
+                    styles.input,
+                    { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.background },
+                  ]}
+                />
+                <TextInput
+                  placeholder="Password (min 6 chars)"
+                  placeholderTextColor={colors.textMuted}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                  style={[
+                    styles.input,
+                    { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.background },
+                  ]}
+                />
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  disabled={isProcessing}
+                  style={[
+                    styles.primaryButton,
+                    { backgroundColor: colors.textPrimary },
+                  ]}
+                  onPress={handleEmailAuth}
+                >
+                  <AppText variant="bodyBold" color={colors.background}>
+                    {isProcessing ? 'Connecting…' : 'Sign In or Register'}
+                  </AppText>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setShowEmailForm(false)}
+                  style={styles.switchButton}
+                >
+                  <AppText variant="caption" color={colors.textSecondary}>
+                    ← Back to options
+                  </AppText>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={{ gap: 10 }}>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  disabled={isProcessing}
+                  style={[
+                    styles.primaryButton,
+                    { backgroundColor: colors.textPrimary },
+                  ]}
+                  onPress={handleGuestLogin}
+                >
+                  <AppText variant="bodyBold" color={colors.background}>
+                    {isProcessing ? 'Setting up…' : 'Start Instant (Guest Mode)'}
+                  </AppText>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.sampleBtn, { borderColor: colors.border }]}
-                onPress={() =>
-                  handleDevCreateAccount('Work Account', 'work.finance@company.com')
-                }
-              >
-                <AppText variant="bodyBold">💼 Work Account</AppText>
-                <AppText variant="caption" color={colors.textSecondary}>
-                  work.finance@company.com
-                </AppText>
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  disabled={isProcessing}
+                  style={[
+                    styles.secondaryButton,
+                    { borderColor: colors.border, backgroundColor: colors.cardElevated },
+                  ]}
+                  onPress={() => setShowEmailForm(true)}
+                >
+                  <AppText variant="bodyBold" color={colors.textPrimary}>
+                    Sign in with Email
+                  </AppText>
+                </TouchableOpacity>
+              </View>
+            )}
 
-            <View style={[styles.modalDivider, { backgroundColor: colors.divider }]} />
-
-            <AppText variant="caption" color={colors.textSecondary}>
-              Or enter custom profile info:
+            <AppText
+              variant="caption"
+              color={colors.textMuted}
+              style={styles.privacySub}
+            >
+              Offline-first. Your data syncs securely with Firebase.
             </AppText>
-
-            <TextInput
-              value={customName}
-              onChangeText={setCustomName}
-              placeholder="Your Name (e.g. Alex)"
-              placeholderTextColor={colors.textMuted}
-              style={[
-                styles.modalInput,
-                {
-                  borderColor: colors.border,
-                  backgroundColor: colors.background,
-                  color: colors.textPrimary,
-                },
-              ]}
-            />
-            <TextInput
-              value={customEmail}
-              onChangeText={setCustomEmail}
-              placeholder="Google Email (e.g. alex@gmail.com)"
-              placeholderTextColor={colors.textMuted}
-              style={[
-                styles.modalInput,
-                {
-                  borderColor: colors.border,
-                  backgroundColor: colors.background,
-                  color: colors.textPrimary,
-                },
-              ]}
-              autoCapitalize="none"
-              keyboardType="email-address"
-            />
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                onPress={() => setDevModalVisible(false)}
-                style={[styles.cancelBtn, { borderColor: colors.border }]}
-              >
-                <AppText variant="body">Cancel</AppText>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => {
-                  if (!customEmail.trim()) {
-                    Alert.alert('Required', 'Please enter an email.');
-                    return;
-                  }
-                  handleDevCreateAccount(
-                    customName.trim() || customEmail.split('@')[0],
-                    customEmail.trim()
-                  );
-                }}
-                style={[styles.confirmBtn, { backgroundColor: colors.selectionBg }]}
-              >
-                <AppText variant="bodyBold" color={colors.selectionText}>
-                  Continue
-                </AppText>
-              </TouchableOpacity>
-            </View>
-          </View>
+          </BentoCard>
         </View>
-      </Modal>
-    </Main>
+
+        <AppText variant="caption" color={colors.textSecondary} style={styles.footerText}>
+          Less noise. More intention.
+        </AppText>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  screenContainer: {
+  keyboardContainer: {
+    flex: 1,
+  },
+  scrollContent: {
     flexGrow: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 18,
     justifyContent: 'space-between',
   },
   mainContent: {
@@ -341,33 +290,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
-    gap: 8,
   },
   stampLabel: {
-    fontSize: 10,
+    marginTop: 6,
     letterSpacing: 1.5,
+    fontSize: 9,
   },
   clarityDarkCard: {
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    padding: 12,
   },
   clarityQuote: {
-    fontFamily: Fonts.serif,
-    textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: 14,
+    fontStyle: 'italic',
+    fontSize: 10,
   },
   featureCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
+    padding: 14,
   },
   sailboatBox: {
-    width: 54,
-    height: 54,
-    borderRadius: 14,
-    borderWidth: 1.5,
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -375,121 +322,87 @@ const styles = StyleSheet.create({
     width: 0,
     height: 0,
     borderLeftWidth: 10,
-    borderRightWidth: 10,
+    borderRightWidth: 0,
     borderBottomWidth: 16,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
+    marginBottom: 2,
   },
   boatHull: {
-    width: 26,
-    height: 6,
+    width: 24,
+    height: 4,
     borderBottomWidth: 2,
     borderLeftWidth: 2,
     borderRightWidth: 2,
-    marginTop: 2,
+    borderRadius: 2,
   },
   featureTextCol: {
     flex: 1,
-    gap: 2,
   },
   featureDesc: {
-    marginTop: 2,
+    marginTop: 4,
+    lineHeight: 16,
   },
   driveStripCard: {
-    paddingVertical: 14,
+    padding: 14,
     gap: 8,
-  },
-  driveStripTitle: {
-    letterSpacing: 1,
   },
   rowBetween: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  driveStripTitle: {
+    letterSpacing: 1.2,
+    fontSize: 10,
+    fontWeight: '600',
+  },
   authCard: {
-    alignItems: 'center',
-    paddingVertical: 18,
+    padding: 16,
     gap: 12,
   },
   getStartedLabel: {
     letterSpacing: 2,
+    fontSize: 10,
+    textAlign: 'center',
   },
-  googleButton: {
-    flexDirection: 'row',
+  primaryButton: {
+    paddingVertical: 14,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    width: '100%',
-    paddingVertical: 14,
-    borderRadius: 999,
-    borderWidth: 1.5,
-    shadowOffset: { width: 2, height: 3 },
-    shadowOpacity: 1,
-    elevation: 3,
   },
-  googleG: {
-    fontSize: 20,
-    fontFamily: Fonts.serif,
+  secondaryButton: {
+    paddingVertical: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emailForm: {
+    gap: 10,
+  },
+  input: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    fontSize: 14,
+  },
+  switchButton: {
+    alignItems: 'center',
+    paddingVertical: 6,
   },
   privacySub: {
     textAlign: 'center',
-    fontSize: 11,
+    fontSize: 10,
+    lineHeight: 14,
+    marginTop: 4,
   },
   footerText: {
     textAlign: 'center',
-    paddingVertical: 8,
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalBox: {
-    width: '100%',
-    borderRadius: 16,
-    borderWidth: 2,
-    padding: 20,
-    gap: 12,
-  },
-  sampleButtonsWrap: {
-    gap: 8,
-    marginTop: 4,
-  },
-  sampleBtn: {
-    borderWidth: 1.5,
-    borderRadius: 10,
-    padding: 12,
-    gap: 2,
-  },
-  modalDivider: {
-    height: 1,
-    width: '100%',
-    marginVertical: 4,
-  },
-  modalInput: {
-    borderWidth: 1.5,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 44,
-    fontSize: 14,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 10,
-    marginTop: 8,
-  },
-  cancelBtn: {
-    borderWidth: 1.5,
-    borderRadius: 999,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-  },
-  confirmBtn: {
-    borderRadius: 999,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    letterSpacing: 1,
+    marginVertical: 14,
+    fontSize: 11,
   },
 });
