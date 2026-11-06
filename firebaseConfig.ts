@@ -5,24 +5,40 @@ import { getReactNativePersistence } from "@firebase/auth/dist/rn/index.js";
 import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
 import { initializeFirestore } from "firebase/firestore";
 
-const firebaseConfig = {
-  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || "AIzaSyCzO40ltx0D44miBDO6REbzFImgo66xK8A",
-  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || "expense-tracker-e32cb.firebaseapp.com",
-  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || "expense-tracker-e32cb",
-  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || "expense-tracker-e32cb.firebasestorage.app",
-  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "318282129979",
-  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || "1:318282129979:web:17acd8957bab951ef0b21e",
+const rawFirebaseConfig = {
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase App
+const missingConfig = Object.entries(rawFirebaseConfig)
+  .filter(([, value]) => !value)
+  .map(([key]) => key);
+
+if (missingConfig.length > 0) {
+  throw new Error(
+    `Missing Firebase configuration: ${missingConfig.join(', ')}. ` +
+      'Copy .env.example to .env.local and fill in the values.',
+  );
+}
+
+const firebaseConfig = rawFirebaseConfig as Record<
+  keyof typeof rawFirebaseConfig,
+  string
+>;
+
+
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Initialize Auth with React Native AsyncStorage persistence
+
 export const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(ReactNativeAsyncStorage),
 });
 
-// Initialize Firestore with long-polling to prevent React Native WebSocket/gRPC timeout warnings
+
 export const db = initializeFirestore(app, {
   experimentalAutoDetectLongPolling: true,
 });

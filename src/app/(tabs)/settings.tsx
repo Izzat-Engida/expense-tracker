@@ -11,20 +11,27 @@ import { useThemeColors } from '@/constants/theme';
 import { useLedger } from '@/hooks/useLedger';
 import { useAuthStore } from '@/stores/authStore';
 import { useSyncStore } from '@/stores/syncStore';
-import type { ThemeMode } from '@/stores/settingsStore';
+import {
+  CURRENCIES,
+  useSettingsStore,
+} from '@/stores/settingsStore';
+import type { CurrencyCode, ThemeMode } from '@/stores/settingsStore';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { colors, themeMode, setThemeMode } = useThemeColors();
-  const { seedDemoData, clearAllData } = useLedger();
+  const currency = useSettingsStore((s) => s.currency);
+  const setCurrency = useSettingsStore((s) => s.setCurrency);
+  const { clearAllData } = useLedger();
 
   const activeAccount = useAuthStore((s) => s.activeAccount);
   const accounts = useAuthStore((s) => s.accounts);
   const updateBiometricSetting = useAuthStore((s) => s.updateBiometricSetting);
   const lockSession = useAuthStore((s) => s.lockSession);
   const removeAccount = useAuthStore((s) => s.removeAccount);
+  const deleteAccount = useAuthStore((s) => s.deleteAccount);
 
-  const { syncNow, syncStatus, isDeviceOnline, pendingCount } = useSyncStore();
+  const { syncNow, isDeviceOnline } = useSyncStore();
   const [isSyncing, setIsSyncing] = useState(false);
 
   const themeOptions: { mode: ThemeMode; label: string; sub: string }[] = [
@@ -45,11 +52,6 @@ export default function SettingsScreen() {
   const handleBiometricToggle = async (val: boolean) => {
     if (!activeAccount) return;
     await updateBiometricSetting(activeAccount.id, val);
-  };
-
-  const handleLockSession = () => {
-    lockSession();
-    router.replace('/(auth)/select-account');
   };
 
   const handleSignOut = () => {
@@ -75,6 +77,33 @@ export default function SettingsScreen() {
     );
   };
 
+  const handleDeleteAccount = () => {
+    if (!activeAccount) return;
+    Alert.alert(
+      'Delete Account & Data',
+      `Permanently delete account "${activeAccount.name}"? This will delete all local transactions, database files, and cloud backups from Firebase. This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Permanently',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteAccount(activeAccount.id);
+              if (accounts.length <= 1) {
+                router.replace('/(auth)/onboarding');
+              } else {
+                router.replace('/(auth)/select-account');
+              }
+            } catch (err: any) {
+              Alert.alert('Delete Failed', err?.message || 'Could not delete account.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <Main contentContainerStyle={styles.container}>
       <AppText variant="serifTitle">Settings</AppText>
@@ -82,7 +111,7 @@ export default function SettingsScreen() {
       {/* Google Account & Profile Card */}
       <BentoCard variant="light" style={styles.sectionCard}>
         <AppText variant="caption" color={colors.textSecondary}>
-          Active Google Account (Isolated Ledger)
+          Active Account (Isolated Ledger)
         </AppText>
         <View style={styles.accountRow}>
           <View
@@ -98,7 +127,7 @@ export default function SettingsScreen() {
           <View style={{ flex: 1 }}>
             <AppText variant="bodyBold">{activeAccount?.name || 'Local Ledger'}</AppText>
             <AppText variant="caption" color={colors.textSecondary}>
-              {activeAccount?.email || 'No Google account linked'}
+              {activeAccount?.email || 'No account linked'}
             </AppText>
           </View>
           <PillBadge
@@ -110,7 +139,10 @@ export default function SettingsScreen() {
         <View style={styles.accountActionsRow}>
           <TouchableOpacity
             activeOpacity={0.7}
-            onPress={() => router.push('/(auth)/select-account')}
+            onPress={() => {
+              lockSession();
+              router.push('/(auth)/select-account');
+            }}
             style={[
               styles.profileBtn,
               { borderColor: colors.border, backgroundColor: colors.cardElevated },
@@ -131,7 +163,7 @@ export default function SettingsScreen() {
             ]}
           >
             <AppText variant="bodyBold" style={{ fontSize: 12 }}>
-              {isSyncing ? 'Syncing…' : 'Sync to Drive'}
+              {isSyncing ? 'Syncing…' : 'Sync to Cloud'}
             </AppText>
           </TouchableOpacity>
         </View>
@@ -180,7 +212,44 @@ export default function SettingsScreen() {
         </View>
       </BentoCard>
 
-      {/* Security: Biometrics & Lock */}
+      {/* Currency */}
+      <BentoCard variant="light" style={styles.sectionCard}>
+        <AppText variant="caption" color={colors.textSecondary}>Currency</AppText>
+        <View style={styles.currencyRow}>
+          {CURRENCIES.map((code) => {
+            const active = currency === code;
+            return (
+              <TouchableOpacity
+                key={code}
+                activeOpacity={0.7}
+                onPress={() => setCurrency(code as CurrencyCode)}
+                style={[
+                  styles.currencyBtn,
+                  {
+                    borderColor: active ? colors.selectionBorder : colors.border,
+                    backgroundColor: active ? colors.selectionBg : colors.cardElevated,
+                  },
+                ]}
+              >
+                <AppText
+                  variant="bodyBold"
+                  style={{
+                    color: active ? colors.selectionText : colors.textPrimary,
+                    fontSize: 12,
+                  }}
+                >
+                  {code}
+                </AppText>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        <AppText variant="caption" color={colors.textMuted}>
+          Amounts across the app are shown in this currency.
+        </AppText>
+      </BentoCard>
+
+      {/* Security: Biometrics */}
       <BentoCard variant="light" style={styles.sectionCard}>
         <AppText variant="caption" color={colors.textSecondary}>Security & Protection</AppText>
         <View style={styles.switchRow}>
@@ -198,37 +267,12 @@ export default function SettingsScreen() {
             ios_backgroundColor={colors.switchTrackOff}
           />
         </View>
-
-        <View style={[styles.cardDivider, { backgroundColor: colors.border }]} />
-
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={handleLockSession}
-          style={[
-            styles.lockBtn,
-            { borderColor: colors.border, backgroundColor: colors.cardElevated },
-          ]}
-        >
-          <AppText variant="bodyBold" style={{ fontSize: 13 }}>
-            🔒 Lock App / Switch Profile
-          </AppText>
-        </TouchableOpacity>
       </BentoCard>
 
-      {/* Sample Data & Reset */}
+      {/* Reset */}
       <BentoCard variant="light" style={styles.sectionCard}>
         <AppText variant="caption" color={colors.textSecondary}>Profile Data & Reset</AppText>
         <View style={styles.dataButtonsRow}>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={async () => {
-              await seedDemoData();
-              Alert.alert('Demo Data', 'Seeded sample expenses, incomes, budgets, and wishlist items.');
-            }}
-            style={[styles.actionBtn, { borderColor: colors.border, backgroundColor: colors.cardElevated }]}
-          >
-            <AppText variant="bodyBold" style={{ fontSize: 13 }}>Seed Demo Data</AppText>
-          </TouchableOpacity>
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => {
@@ -250,19 +294,34 @@ export default function SettingsScreen() {
         </View>
       </BentoCard>
 
-      {/* Sign Out */}
-      <TouchableOpacity
-        activeOpacity={0.7}
-        onPress={handleSignOut}
-        style={[
-          styles.signOutBtn,
-          { borderColor: colors.hankoRed, backgroundColor: colors.card },
-        ]}
-      >
-        <AppText variant="bodyBold" color={colors.hankoRed}>
-          Sign Out of This Profile
-        </AppText>
-      </TouchableOpacity>
+      {/* Account Actions */}
+      <View style={styles.accountBottomActions}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={handleSignOut}
+          style={[
+            styles.signOutBtn,
+            { borderColor: colors.border, backgroundColor: colors.card },
+          ]}
+        >
+          <AppText variant="bodyBold" color={colors.textSecondary}>
+            Sign Out of This Profile
+          </AppText>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={handleDeleteAccount}
+          style={[
+            styles.deleteBtn,
+            { borderColor: colors.hankoRed, backgroundColor: colors.card },
+          ]}
+        >
+          <AppText variant="bodyBold" color={colors.hankoRed}>
+            Delete Account & All Data
+          </AppText>
+        </TouchableOpacity>
+      </View>
     </Main>
   );
 }
@@ -316,23 +375,25 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     gap: 2,
   },
+  currencyRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  currencyBtn: {
+    minWidth: 58,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 999,
+    borderWidth: 1.5,
+  },
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 2,
-  },
-  cardDivider: {
-    height: 1,
-    width: '100%',
-    opacity: 0.15,
-  },
-  lockBtn: {
-    borderWidth: 1.5,
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   dataButtonsRow: {
     flexDirection: 'row',
@@ -347,12 +408,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  accountBottomActions: {
+    gap: 10,
+    marginTop: 6,
+  },
   signOutBtn: {
     borderWidth: 1.5,
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
+  },
+  deleteBtn: {
+    borderWidth: 1.5,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

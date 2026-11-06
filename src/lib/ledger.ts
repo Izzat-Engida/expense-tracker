@@ -213,6 +213,61 @@ export interface OverviewSummary {
   peakDay: number | null;
 }
 
+export function cumulativeSeries(dailyBars: DailyBar[]): number[] {
+  let running = 0;
+  return dailyBars.map((bar) => {
+    running += bar.amount;
+    return running;
+  });
+}
+
+const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
+
+export interface WeekdaySpend {
+  dayIndex: number;
+  label: string;
+  amount: number;
+}
+
+export function getWeekdaySpending(expenses: Expense[]): WeekdaySpend[] {
+  const totals = Array.from({ length: 7 }, () => 0);
+  for (const expense of expenses) {
+    const [year, month, day] = expense.date.split('-').map(Number);
+    if (!year || !month || !day) continue;
+    const mondayFirstIndex = (new Date(year, month - 1, day).getDay() + 6) % 7;
+    totals[mondayFirstIndex] += expense.amount;
+  }
+  return totals.map((amount, dayIndex) => ({
+    dayIndex,
+    label: WEEKDAY_LABELS[dayIndex],
+    amount,
+  }));
+}
+
+export interface MonthTrendPoint {
+  monthKey: string;
+  label: string;
+  amount: number;
+}
+
+export function getMonthlyTrend(
+  expenses: Expense[],
+  endMonthKey: string,
+  count = 6,
+): MonthTrendPoint[] {
+  const points: MonthTrendPoint[] = [];
+  for (let offset = count - 1; offset >= 0; offset -= 1) {
+    const monthKey = addMonths(endMonthKey, -offset);
+    const [, month] = monthKey.split('-').map(Number);
+    points.push({
+      monthKey,
+      label: (MONTH_NAMES[month - 1] ?? '').slice(0, 3),
+      amount: totalAmount(expensesForMonth(expenses, monthKey)),
+    });
+  }
+  return points;
+}
+
 export function getOverviewSummary(expenses: Expense[], monthKey: string): OverviewSummary {
   const monthExpenses = expensesForMonth(expenses, monthKey);
   const totalSpent = totalAmount(monthExpenses);

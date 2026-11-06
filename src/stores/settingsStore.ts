@@ -6,22 +6,25 @@ const KEY_THEME = 'yohaku.theme';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 
+export const CURRENCIES = ['ETB', 'USD', 'EUR', 'GBP', 'JPY', 'KES'] as const;
+export type CurrencyCode = (typeof CURRENCIES)[number];
+
 interface SettingsState {
-  currency: string;
+  currency: CurrencyCode;
   themeMode: ThemeMode;
   isLoaded: boolean;
-  setCurrency: (currency: string) => Promise<void>;
+  setCurrency: (currency: CurrencyCode) => Promise<void>;
   setThemeMode: (themeMode: ThemeMode) => Promise<void>;
   formatAmount: (amount: number) => string;
   loadSettings: () => Promise<void>;
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
-  currency: '¥',
+  currency: 'ETB',
   themeMode: 'dark',
   isLoaded: false,
 
-  setCurrency: async (currency: string) => {
+  setCurrency: async (currency: CurrencyCode) => {
     set({ currency });
     try {
       await SecureStore.setItemAsync(KEY_CURRENCY, currency);
@@ -43,14 +46,14 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const { currency } = get();
     const isNegative = amount < 0;
     const formatted = Math.abs(Math.round(amount)).toLocaleString('en-US');
-    return isNegative ? `-${currency}${formatted}` : `${currency}${formatted}`;
+    return `${isNegative ? '-' : ''}${formatted} ${currency}`;
   },
 
   loadSettings: async () => {
     try {
       const storedCurrency = await SecureStore.getItemAsync(KEY_CURRENCY);
-      if (storedCurrency) {
-        set({ currency: storedCurrency });
+      if (storedCurrency && CURRENCIES.includes(storedCurrency as CurrencyCode)) {
+        set({ currency: storedCurrency as CurrencyCode });
       }
       const storedTheme = await SecureStore.getItemAsync(KEY_THEME);
       if (storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system') {

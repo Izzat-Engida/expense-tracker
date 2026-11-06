@@ -8,7 +8,6 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -18,12 +17,12 @@ import {
   HankoStamp,
   PillBadge,
 } from '@/components/ui';
-import { Colors, Fonts, useThemeColors } from '@/constants/theme';
+import { Fonts, useThemeColors } from '@/constants/theme';
 import { useAuthStore } from '@/stores/authStore';
 
 export default function SetupPasswordScreen() {
   const router = useRouter();
-  const { colors, isDark } = useThemeColors();
+  const { colors } = useThemeColors();
 
   const pendingAccount = useAuthStore((s) => s.pendingAccount);
   const completePasswordSetup = useAuthStore((s) => s.completePasswordSetup);

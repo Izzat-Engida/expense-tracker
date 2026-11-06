@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { router } from 'expo-router';
 import {
   Main,
@@ -13,6 +13,7 @@ import { Fonts, useThemeColors } from '@/constants/theme';
 import { useLedger } from '@/hooks/useLedger';
 import { useAuthStore } from '@/stores/authStore';
 import { useSyncStore } from '@/stores/syncStore';
+import { useSettingsStore } from '@/stores/settingsStore';
 import {
   formatMonthKanji,
   formatMonthLabel,
@@ -21,7 +22,8 @@ import {
 
 export default function HomeScreen() {
   const { colors } = useThemeColors();
-  const { expenses, incomes, budgets, isInitialized, error } = useLedger();
+  const currency = useSettingsStore((s) => s.currency);
+  const { expenses, incomes, budgets, savings, deleteSaving, isInitialized, error } = useLedger();
   const activeAccount = useAuthStore((s) => s.activeAccount);
   const { syncStatus, isDeviceOnline, pendingCount, autoSyncIfConnected, refreshStatus } = useSyncStore();
 
@@ -41,6 +43,29 @@ export default function HomeScreen() {
   const overBudget = budgetTotal > 0 && monthSpent > budgetTotal;
   const budgetColor = overBudget ? colors.hankoRed : colors.bambooGreen;
   const hasDayData = summary.today.expenses.length > 0 || summary.yesterday.expenses.length > 0;
+
+  const totalSavings = useMemo(
+    () => savings.reduce((sum, saving) => sum + saving.amount, 0),
+    [savings],
+  );
+  const recentSavings = useMemo(() => savings.slice(0, 3), [savings]);
+
+  const handleDeleteSaving = (id: string, title: string) => {
+    Alert.alert('Delete saving', `Remove "${title}" from your savings history?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteSaving(id);
+          } catch (err) {
+            console.warn('Failed to delete saving:', err);
+          }
+        },
+      },
+    ]);
+  };
 
   if (!isInitialized) {
     return (
@@ -110,7 +135,7 @@ export default function HomeScreen() {
                 ? 'Offline'
                 : pendingCount > 0
                 ? `${pendingCount} queued`
-                : 'Drive synced'}
+                : 'Cloud synced'}
             </AppText>
           </View>
           {activeAccount && (
@@ -136,14 +161,14 @@ export default function HomeScreen() {
               {Math.round(monthSpent).toLocaleString()}
             </AppText>
             <AppText variant="caption" color={colors.textMuted}>
-              ETB
+              {currency}
             </AppText>
           </View>
           <PillBadge
             variant="income"
             label={
               monthIncome > 0
-                ? `収入 ${Math.round(monthIncome).toLocaleString()} ETB income`
+                ? `収入 ${Math.round(monthIncome).toLocaleString()} ${currency} income`
                 : '収入 No income yet'
             }
             onPress={() => router.push('/modals/income-budget')}
@@ -170,7 +195,7 @@ export default function HomeScreen() {
 
             <AppText variant="caption" color={colors.textSecondary}>
               {budgetTotal > 0
-                ? `${Math.round(budgetTotal).toLocaleString()} ETB`
+                ? `${Math.round(budgetTotal).toLocaleString()} ${currency}`
                 : 'No budget set'}
             </AppText>
           </TouchableOpacity>
@@ -196,6 +221,69 @@ export default function HomeScreen() {
             </AppText>
           </BentoCard>
         </TouchableOpacity>
+      )}
+
+      {savings.length > 0 && (
+        <BentoCard variant="light" style={styles.savingsCard}>
+          <View style={styles.savingsHeaderRow}>
+            <AppText variant="caption" color={colors.textSecondary}>
+              Savings
+            </AppText>
+            <AppText variant="caption" color={colors.textMuted}>
+              {savings.length} {savings.length === 1 ? 'entry' : 'entries'}
+            </AppText>
+          </View>
+
+          <View style={styles.savingsTotalRow}>
+            <AppText variant="serifTitle" style={styles.savingsTotal}>
+              {Math.round(totalSavings).toLocaleString()}
+            </AppText>
+            <AppText variant="caption" color={colors.textSecondary}>
+              {currency} saved
+            </AppText>
+          </View>
+
+          {recentSavings.map((saving, index) => (
+            <View
+              key={saving.id}
+              style={[
+                styles.savingsRow,
+                index > 0 && [styles.savingsRowBorder, { borderTopColor: colors.divider }],
+              ]}
+            >
+              <View style={styles.savingsInfo}>
+                <AppText variant="bodyBold" numberOfLines={1}>
+                  {saving.title}
+                </AppText>
+                <AppText variant="caption" color={colors.textSecondary} numberOfLines={1}>
+                  {saving.category}
+                  {saving.note ? ` · ${saving.note}` : ''}
+                </AppText>
+              </View>
+              <View style={styles.savingsRight}>
+                <AppText variant="bodyBold">
+                  {Math.round(saving.amount).toLocaleString()}
+                </AppText>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel={`Delete saving ${saving.title}`}
+                  onPress={() => handleDeleteSaving(saving.id, saving.title)}
+                  style={[styles.savingsDeleteBtn, { borderColor: colors.border }]}
+                >
+                  <AppText variant="caption" color={colors.hankoRed}>
+                    ✕
+                  </AppText>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+
+          {savings.length > recentSavings.length && (
+            <AppText variant="caption" color={colors.textMuted}>
+              +{savings.length - recentSavings.length} more in the ledger
+            </AppText>
+          )}
+        </BentoCard>
       )}
     </Main>
   );
@@ -280,6 +368,50 @@ const styles = StyleSheet.create({
   emptyCard: {
     paddingVertical: 24,
     gap: 6,
+  },
+  savingsCard: {
+    paddingVertical: 16,
+    gap: 10,
+  },
+  savingsHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  savingsTotalRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+  },
+  savingsTotal: {
+    fontSize: 24,
+  },
+  savingsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 10,
+  },
+  savingsRowBorder: {
+    borderTopWidth: 1,
+    paddingTop: 8,
+  },
+  savingsInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  savingsRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  savingsDeleteBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   statusCard: {

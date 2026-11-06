@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   StyleSheet,
@@ -20,11 +20,12 @@ import type { GoogleAccount } from '@/types/auth';
 
 export default function SelectAccountScreen() {
   const router = useRouter();
-  const { colors, isDark } = useThemeColors();
+  const { colors } = useThemeColors();
 
   const accounts = useAuthStore((s) => s.accounts);
   const unlockWithBiometrics = useAuthStore((s) => s.unlockWithBiometrics);
   const removeAccount = useAuthStore((s) => s.removeAccount);
+  const deleteAccount = useAuthStore((s) => s.deleteAccount);
 
   const handleSelectAccount = async (account: GoogleAccount) => {
     if (account.biometricEnabled) {
@@ -47,18 +48,41 @@ export default function SelectAccountScreen() {
 
   const confirmRemoveAccount = (account: GoogleAccount) => {
     Alert.alert(
-      'Remove Account',
-      `Are you sure you want to remove ${account.name} (${account.email}) from this device?`,
+      'Account Options',
+      `Manage "${account.name}" (${account.email}):`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Remove',
-          style: 'destructive',
+          text: 'Unlink from Device',
+          style: 'default',
           onPress: async () => {
             await removeAccount(account.id);
             if (accounts.length <= 1) {
               router.replace('/(auth)/onboarding');
             }
+          },
+        },
+        {
+          text: 'Delete Account & Data',
+          style: 'destructive',
+          onPress: async () => {
+            Alert.alert(
+              'Confirm Permanent Deletion',
+              `Are you sure you want to permanently delete "${account.name}"? All local and cloud data will be destroyed.`,
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Delete Permanently',
+                  style: 'destructive',
+                  onPress: async () => {
+                    await deleteAccount(account.id);
+                    if (accounts.length <= 1) {
+                      router.replace('/(auth)/onboarding');
+                    }
+                  },
+                },
+              ]
+            );
           },
         },
       ]

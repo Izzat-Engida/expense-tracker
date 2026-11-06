@@ -18,7 +18,6 @@ export default function SyncStatusModal() {
 
   const activeAccount = useAuthStore((s) => s.activeAccount);
   const {
-    syncStatus,
     isDeviceOnline,
     pendingCount,
     lastSyncedAt,
@@ -44,19 +43,13 @@ export default function SyncStatusModal() {
 
   const formatLastSync = (iso: string | null) => {
     if (!iso) return 'Never synced';
-    const date = new Date(iso);
-    const diffMins = Math.floor((Date.now() - date.getTime()) / (1000 * 60));
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    return date.toLocaleDateString();
+    return new Date(iso).toLocaleString();
   };
 
   return (
     <Main contentContainerStyle={styles.container}>
       <View style={styles.headerRow}>
-        <AppText variant="serifTitle">Google Drive Sync</AppText>
+        <AppText variant="serifTitle">Cloud Sync</AppText>
         <TouchableOpacity
           onPress={() => router.back()}
           style={[styles.closeBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
@@ -133,15 +126,15 @@ export default function SyncStatusModal() {
           {!isDeviceOnline
             ? 'Waiting for internet connection'
             : pendingCount === 0
-            ? 'Local database matches Drive snapshot'
-            : 'Pending upload to hidden appDataFolder'}
+            ? 'Local database matches cloud snapshot'
+            : 'Pending upload to Firestore'}
         </AppText>
       </BentoCard>
 
    
       <BentoCard variant="light" style={styles.lastSyncCard}>
         <AppText variant="caption" color={colors.textSecondary}>
-          Google Drive (Hidden AppData Storage):
+          Firebase Cloud (Firestore):
         </AppText>
         <View style={styles.syncMetaRow}>
           <AppText variant="bodyBold" color={colors.textPrimary}>☁</AppText>
@@ -175,7 +168,7 @@ export default function SyncStatusModal() {
           </View>
         ) : (
           <AppText variant="bodyBold" color="#FFFFFF">
-            {isDeviceOnline ? 'Sync Now with Drive' : 'Retry Connection'}
+            {isDeviceOnline ? 'Sync Now with Cloud' : 'Retry Connection'}
           </AppText>
         )}
       </TouchableOpacity>

@@ -21,6 +21,8 @@ interface ScreenProps {
   edges?: Edge[];
   showArt?: boolean;
   artOpacity?: number;
+  keyboardShouldPersistTaps?: 'always' | 'never' | 'handled';
+  keyboardDismissMode?: 'none' | 'on-drag' | 'interactive';
 }
 
 const Main = ({
@@ -31,6 +33,8 @@ const Main = ({
   edges = ['top', 'bottom'],
   showArt = true,
   artOpacity,
+  keyboardShouldPersistTaps = 'handled',
+  keyboardDismissMode = 'on-drag',
 }: ScreenProps) => {
   const { colors, isDark } = useThemeColors();
   const defaultOpacity = isDark ? 0.08 : 0.14;
@@ -56,6 +60,8 @@ const Main = ({
           style={styles.flex}
           contentContainerStyle={[styles.container, contentContainerStyle]}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps={keyboardShouldPersistTaps}
+          keyboardDismissMode={keyboardDismissMode}
         >
           {children}
         </ScrollView>

@@ -11,19 +11,19 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
-  Main,
   BentoCard,
   HankoStamp,
   ProgressBar,
   AppText,
 } from '@/components/ui';
-import { Colors, Fonts, useThemeColors } from '@/constants/theme';
+import { Fonts, useThemeColors } from '@/constants/theme';
 import { useAuthStore } from '@/stores/authStore';
 import { loginAnonymously, loginWithEmail } from '@/services/firebaseAuth';
+// import { promptGoogleAuth } from '@/services/auth';
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const { colors, isDark } = useThemeColors();
+  const { colors } = useThemeColors();
   const startAccountOnboarding = useAuthStore((s) => s.startAccountOnboarding);
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -43,6 +43,29 @@ export default function OnboardingScreen() {
       setIsProcessing(false);
     }
   };
+
+  /*
+  const handleGoogleLogin = async () => {
+    setIsProcessing(true);
+    try {
+      const res = await promptGoogleAuth();
+      if (!res) return;
+      await startAccountOnboarding(res.profile, res.tokens);
+      router.push('/(auth)/setup-password');
+    } catch (err: any) {
+      if (err?.message === 'MISSING_CLIENT_ID') {
+        Alert.alert(
+          'Google Sign-In',
+          'Add EXPO_PUBLIC_GOOGLE_CLIENT_ID (or platform-specific client IDs) to your environment to enable Google sign-in.',
+        );
+      } else {
+        Alert.alert('Google Sign-In', err?.message || 'Could not sign in with Google.');
+      }
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+  */
 
   const handleEmailAuth = async () => {
     if (!email.trim() || !password.trim()) {
@@ -196,6 +219,22 @@ export default function OnboardingScreen() {
               </View>
             ) : (
               <View style={{ gap: 10 }}>
+                {/* Google OAuth - commented out
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  disabled={isProcessing}
+                  style={[
+                    styles.primaryButton,
+                    { backgroundColor: colors.textPrimary },
+                  ]}
+                  onPress={handleGoogleLogin}
+                >
+                  <AppText variant="bodyBold" color={colors.background}>
+                    {isProcessing ? 'Connecting…' : 'Continue with Google'}
+                  </AppText>
+                </TouchableOpacity>
+                */}
+
                 <TouchableOpacity
                   activeOpacity={0.8}
                   disabled={isProcessing}

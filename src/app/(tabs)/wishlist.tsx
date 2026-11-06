@@ -17,6 +17,8 @@ import {
 } from '@/components/ui';
 import { Colors, Fonts, useThemeColors } from '@/constants/theme';
 import { useLedger } from '@/hooks/useLedger';
+import { useSettingsStore } from '@/stores/settingsStore';
+import { localDateKey } from '@/lib/ledger';
 import type { WishlistItem } from '@/db/types';
 
 const CATEGORIES = ['Tech', 'Travel', 'Home', 'Style', 'Other'] as const;
@@ -24,7 +26,9 @@ const PRIORITIES: ('low' | 'medium' | 'high')[] = ['high', 'medium', 'low'];
 
 export default function WishlistScreen() {
   const { colors, isDark } = useThemeColors();
-  const { wishlist, createWishlistItem, updateWishlistItem, deleteWishlistItem } = useLedger();
+  const currency = useSettingsStore((s) => s.currency);
+  const { wishlist, createWishlistItem, updateWishlistItem, deleteWishlistItem, createSaving } =
+    useLedger();
 
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'ready'>('all');
   const [modalVisible, setModalVisible] = useState(false);
@@ -132,15 +136,14 @@ export default function WishlistScreen() {
       return;
     }
 
-    const newSaved = Math.min(
-      depositTargetItem.target_amount,
-      depositTargetItem.saved_amount + addAmt
-    );
-
     try {
-      await updateWishlistItem(depositTargetItem.id, {
-        saved_amount: newSaved,
-        is_purchased: newSaved >= depositTargetItem.target_amount ? 1 : depositTargetItem.is_purchased,
+      await createSaving({
+        title: depositTargetItem.title,
+        amount: addAmt,
+        category: depositTargetItem.category,
+        wishlist_id: depositTargetItem.id,
+        note: depositTargetItem.note,
+        date: localDateKey(),
       });
       setDepositModalVisible(false);
       setDepositAmount('');
@@ -207,11 +210,11 @@ export default function WishlistScreen() {
               {stats.totalTarget.toLocaleString()}
             </AppText>
             <AppText variant="caption" color={colors.textMuted} style={styles.etbLabel}>
-              ETB
+              {currency}
             </AppText>
           </View>
           <AppText variant="caption" color={colors.textMuted}>
-            Saved: {stats.totalSaved.toLocaleString()} ETB
+            Saved: {stats.totalSaved.toLocaleString()} {currency}
           </AppText>
         </BentoCard>
 
@@ -230,7 +233,7 @@ export default function WishlistScreen() {
           </View>
           <ProgressBar progress={stats.overallProgress} fillColor={colors.bambooGreen} height={7} />
           <AppText variant="caption" color={Colors.textSecondary} style={styles.leftSummaryText}>
-            {stats.totalRemaining.toLocaleString()} ETB left to save
+            {stats.totalRemaining.toLocaleString()} {currency} left to save
           </AppText>
         </BentoCard>
       </View>
@@ -306,7 +309,7 @@ export default function WishlistScreen() {
                       Saved
                     </AppText>
                     <AppText variant="bodyBold">
-                      {item.saved_amount.toLocaleString()} ETB
+                      {item.saved_amount.toLocaleString()} {currency}
                     </AppText>
                   </View>
 
@@ -315,7 +318,7 @@ export default function WishlistScreen() {
                       Target
                     </AppText>
                     <AppText variant="bodyBold">
-                      {item.target_amount.toLocaleString()} ETB
+                      {item.target_amount.toLocaleString()} {currency}
                     </AppText>
                   </View>
                 </View>
@@ -343,7 +346,7 @@ export default function WishlistScreen() {
                   </View>
 
                   <AppText variant="bodyBold" color={colors.textSecondary}>
-                    {isReady ? 'Ready to buy' : `${amountLeft.toLocaleString()} ETB left`}
+                    {isReady ? 'Ready to buy' : `${amountLeft.toLocaleString()} ${currency} left`}
                   </AppText>
                 </View>
               </View>
@@ -456,7 +459,7 @@ export default function WishlistScreen() {
             <View style={styles.splitRow}>
               <View style={[styles.formGroup, styles.flex1]}>
                 <AppText variant="caption" color={colors.textSecondary}>
-                  Target cost (ETB)
+                  Target cost ({currency})
                 </AppText>
                 <TextInput
                   value={newTarget}
@@ -470,7 +473,7 @@ export default function WishlistScreen() {
 
               <View style={[styles.formGroup, styles.flex1]}>
                 <AppText variant="caption" color={colors.textSecondary}>
-                  Already saved (ETB)
+                  Already saved ({currency})
                 </AppText>
                 <TextInput
                   value={newSaved}
@@ -588,14 +591,14 @@ export default function WishlistScreen() {
               ]}
             >
               <AppText variant="caption" color={colors.textSecondary}>
-                Current Saved: {depositTargetItem?.saved_amount.toLocaleString()} ETB /{' '}
-                {depositTargetItem?.target_amount.toLocaleString()} ETB
+                Current Saved: {depositTargetItem?.saved_amount.toLocaleString()} {currency} /{' '}
+                {depositTargetItem?.target_amount.toLocaleString()} {currency}
               </AppText>
             </View>
 
             <View style={styles.formGroup}>
               <AppText variant="caption" color={colors.textSecondary}>
-                Amount to add (ETB)
+                Amount to add ({currency})
               </AppText>
               <TextInput
                 value={depositAmount}

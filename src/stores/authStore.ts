@@ -10,10 +10,12 @@ import {
   verifyAccountPassword,
   saveAccountTokens,
   removeAccountTokens,
-  hashPassword,
+  removeAccountPassword,
 } from '@/services/auth';
-import { setCurrentDatabaseAccount } from '@/db/client';
+import { setCurrentDatabaseAccount, deleteAccountDatabase } from '@/db/client';
+import { deleteAccountFromFirebase } from '@/services/firebaseSync';
 import { useLedgerStore } from '@/stores/ledgerStore';
+import { useSyncStore } from '@/stores/syncStore';
 
 interface AuthState {
   accounts: GoogleAccount[];
@@ -41,6 +43,7 @@ interface AuthActions {
   changePassword: (accountId: string, newPassword: string) => Promise<void>;
   updateAccountSyncTime: (accountId: string, syncedAt: string) => Promise<void>;
   removeAccount: (accountId: string) => Promise<void>;
+  deleteAccount: (accountId: string) => Promise<void>;
   lockSession: () => void;
 }
 
@@ -130,6 +133,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
     setCurrentDatabaseAccount(readyAccount.id);
     await useLedgerStore.getState().loadAll();
+
+    // On new login/device, immediately download cloud data if available
+    try {
+      await useSyncStore.getState().syncNow();
+    } catch (e) {
+      console.warn('Initial login sync notice:', e);
+    }
 
     set({
       accounts: updatedAccounts,
@@ -249,6 +259,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     const remaining = get().accounts.filter((a) => a.id !== accountId);
     await saveRegisteredAccounts(remaining);
     await removeAccountTokens(accountId);
+    await removeAccountPassword(accountId);
 
     let nextActive = remaining.length > 0 ? remaining[0] : null;
     await setActiveAccountId(nextActive ? nextActive.id : null);
@@ -256,6 +267,56 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
     if (nextActive) {
       await useLedgerStore.getState().loadAll();
+    } else {
+      useLedgerStore.setState({
+        expenses: [],
+        incomes: [],
+        budgets: [],
+        savings: [],
+        wishlist: [],
+      });
+    }
+
+    set({
+      accounts: remaining,
+      activeAccount: nextActive,
+      isAuthenticated: !!nextActive,
+    });
+  },
+
+  deleteAccount: async (accountId: string) => {
+    // 1. Permanently delete cloud data from Firebase
+    try {
+      await deleteAccountFromFirebase(accountId);
+    } catch (e) {
+      console.warn('Could not delete Firebase cloud data:', e);
+    }
+
+    // 2. Permanently delete local SQLite database file
+    await deleteAccountDatabase(accountId);
+
+    // 3. Remove SecureStore keys
+    await removeAccountTokens(accountId);
+    await removeAccountPassword(accountId);
+
+    // 4. Remove account from local registered accounts list
+    const remaining = get().accounts.filter((a) => a.id !== accountId);
+    await saveRegisteredAccounts(remaining);
+
+    let nextActive = remaining.length > 0 ? remaining[0] : null;
+    await setActiveAccountId(nextActive ? nextActive.id : null);
+    setCurrentDatabaseAccount(nextActive ? nextActive.id : null);
+
+    if (nextActive) {
+      await useLedgerStore.getState().loadAll();
+    } else {
+      useLedgerStore.setState({
+        expenses: [],
+        incomes: [],
+        budgets: [],
+        savings: [],
+        wishlist: [],
+      });
     }
 
     set({

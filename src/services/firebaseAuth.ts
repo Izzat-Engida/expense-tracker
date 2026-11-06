@@ -3,7 +3,6 @@ import {
   signInAnonymously,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  updateProfile,
 } from 'firebase/auth';
 import type { GoogleUserProfile, AuthTokens } from '@/types/auth';
 

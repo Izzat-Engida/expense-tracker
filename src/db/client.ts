@@ -1,4 +1,4 @@
-import { openDatabaseAsync, type SQLiteDatabase } from 'expo-sqlite';
+import { openDatabaseAsync, deleteDatabaseAsync, type SQLiteDatabase } from 'expo-sqlite';
 import { ALL_MIGRATIONS } from './schema';
 
 const dbInstances = new Map<string, SQLiteDatabase>();
@@ -51,5 +51,23 @@ export async function migrateDb(db: SQLiteDatabase): Promise<void> {
   await db.execAsync('PRAGMA foreign_keys = ON;');
   for (const sql of ALL_MIGRATIONS) {
     await db.execAsync(sql);
+  }
+}
+
+export async function deleteAccountDatabase(accountId: string): Promise<void> {
+  const dbName = getDatabaseName(accountId);
+  const existing = dbInstances.get(dbName);
+  if (existing) {
+    try {
+      await existing.closeAsync();
+    } catch (e) {
+      console.warn(`Error closing database ${dbName}:`, e);
+    }
+    dbInstances.delete(dbName);
+  }
+  try {
+    await deleteDatabaseAsync(dbName);
+  } catch (e) {
+    console.warn(`Error deleting database ${dbName}:`, e);
   }
 }

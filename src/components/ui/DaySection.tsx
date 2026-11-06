@@ -4,7 +4,8 @@ import {
   type DayGroup,
 } from '@/lib/ledger';
 import React from 'react';
-import { Fonts, useThemeColors } from '@/constants/theme';
+import { useThemeColors } from '@/constants/theme';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import {AppText} from './AppText';
@@ -15,6 +16,7 @@ export default function DaySection({group,badgeVariant,showDivider = false,}: {
   showDivider?: boolean;
 }) {
   const { colors } = useThemeColors();
+  const currency = useSettingsStore((s) => s.currency);
 
   return (
     <View>
@@ -30,7 +32,7 @@ export default function DaySection({group,badgeVariant,showDivider = false,}: {
           </AppText>
         </View>
         <AppText variant="caption" color={colors.textSecondary}>
-          {Math.round(group.total).toLocaleString()} ETB
+          {Math.round(group.total).toLocaleString()} {currency}
         </AppText>
       </View>
 
@@ -45,8 +47,17 @@ export default function DaySection({group,badgeVariant,showDivider = false,}: {
         </TouchableOpacity>
       ) : (
         group.expenses.map((item, idx) => (
-          <View
+          <TouchableOpacity
             key={item.id}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`Edit ${item.title}`}
+            onPress={() =>
+              router.push({
+                pathname: '/modals/add-expense',
+                params: { expenseId: item.id },
+              })
+            }
             style={[
               styles.expenseRow,
               idx < group.expenses.length - 1 && [
@@ -67,7 +78,7 @@ export default function DaySection({group,badgeVariant,showDivider = false,}: {
               variant={item.amount < 0 ? 'income' : 'expense'}
               label={formatSignedAmount(item.amount)}
             />
-          </View>
+          </TouchableOpacity>
         ))
       )}
     </View>

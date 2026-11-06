@@ -9,7 +9,8 @@ export function useLedger() {
     if (!store.isInitialized && !store.isLoading) {
       store.loadAll();
     }
-
+    // Intentionally run once on mount; loading is guarded by store flags.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return {
@@ -23,7 +24,7 @@ export function useLedger() {
     isInitialized: store.isInitialized,
     error: store.error,
 
-    // ── Actions ────────────────────────────────────────────────────────────
+
     createExpense: store.createExpense,
     updateExpense: store.updateExpense,
     deleteExpense: store.deleteExpense,

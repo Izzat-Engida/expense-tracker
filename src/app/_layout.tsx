@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Appearance } from 'react-native';
-import { Stack, Redirect } from 'expo-router';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { ShipporiMincho_600SemiBold } from '@expo-google-fonts/shippori-mincho';
@@ -12,18 +12,11 @@ import {
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { SQLiteProvider } from 'expo-sqlite';
 import { migrateDb } from '@/db/client';
-import { useAppGate } from '@/hooks/useAppGate';
 import { useSettingsStore } from '@/stores/settingsStore';
 
 SplashScreen.preventAutoHideAsync();
 
 function GatedStack() {
-  
-  // const { gate } = useAppGate();
-  // if (gate === null) return null;
-  // if (gate === 'ONBOARDING') return <Redirect href="/(auth)/onboarding" />;
-  // if (gate === 'BIOMETRIC_LOCK') return <Redirect href="/(auth)/lock" />;
-
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />

@@ -4,6 +4,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
+  Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
@@ -15,6 +16,7 @@ import {
 } from '@/components/ui';
 import { Colors, Fonts, useThemeColors } from '@/constants/theme';
 import { useLedger } from '@/hooks/useLedger';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { localDateKey } from '@/lib/ledger';
 import type { ExpenseCategory } from '@/db/types';
 
@@ -53,22 +55,47 @@ const KEYPAD_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫
 
 export default function AddExpenseModal() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ type?: string; wishlistId?: string }>();
-  const { createExpense, createIncome, createSaving, wishlist } = useLedger();
+  const params = useLocalSearchParams<{
+    type?: string;
+    wishlistId?: string;
+    expenseId?: string;
+  }>();
+  const {
+    expenses,
+    createExpense,
+    updateExpense,
+    deleteExpense,
+    createIncome,
+    createSaving,
+    wishlist,
+  } = useLedger();
   const { colors } = useThemeColors();
+  const currency = useSettingsStore((s) => s.currency);
+
+  const isEditing = Boolean(params.expenseId);
+  const existingExpense = useMemo(
+    () => expenses.find((expense) => expense.id === params.expenseId),
+    [expenses, params.expenseId],
+  );
 
   const initialMode: TransactionMode =
     params.type === 'income' ? 'income' : params.type === 'saving' ? 'saving' : 'expense';
 
-  const [mode, setMode] = useState<TransactionMode>(initialMode);
-  const [amount, setAmount] = useState('0');
-  const [selectedCategory, setSelectedCategory] = useState<ExpenseCategory>('food');
+  const [mode, setMode] = useState<TransactionMode>(
+    existingExpense ? 'expense' : initialMode,
+  );
+  const [amount, setAmount] = useState(
+    existingExpense ? String(existingExpense.amount) : '0',
+  );
+  const [selectedCategory, setSelectedCategory] = useState<ExpenseCategory>(
+    existingExpense?.category ?? 'food',
+  );
   const [selectedIncomeSource, setSelectedIncomeSource] = useState<string>('Salary');
   const [selectedSavingGoal, setSelectedSavingGoal] = useState<string>('General');
   const [selectedWishlistId, setSelectedWishlistId] = useState<string | null>(
     params.wishlistId ?? null
   );
-  const [note, setNote] = useState('');
+  const [note, setNote] = useState(existingExpense?.note ?? '');
   const [isSaving, setIsSaving] = useState(false);
 
   const isExpense = mode === 'expense';
@@ -81,11 +108,13 @@ export default function AddExpenseModal() {
   );
 
   const formattedDate = useMemo(() => {
-    const today = new Date();
-    const day = today.getDate();
-    const month = today.toLocaleString('en-US', { month: 'long' });
-    return `Today, ${day} ${month}`;
-  }, []);
+    const dateKey = existingExpense?.date ?? localDateKey();
+    const [year, month, day] = dateKey.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    const monthName = date.toLocaleString('en-US', { month: 'long' });
+    const isToday = localDateKey() === dateKey;
+    return `${isToday ? 'Today, ' : ''}${day} ${monthName}`;
+  }, [existingExpense?.date]);
 
   const handleKeyPress = (key: string) => {
     if (key === '⌫') {
@@ -114,15 +143,29 @@ export default function AddExpenseModal() {
       return;
     }
 
+    if (isEditing && !existingExpense) {
+      Alert.alert('Expense not found', 'This expense is no longer available.');
+      return;
+    }
+
     setIsSaving(true);
     try {
       const dateStr = localDateKey();
       const monthKey = dateStr.slice(0, 7);
+      const catObj = EXPENSE_CATEGORIES.find((c) => c.key === selectedCategory);
+      const title = note.trim() || (catObj ? catObj.label : 'Expense');
 
-      if (isExpense) {
-        const catObj = EXPENSE_CATEGORIES.find((c) => c.key === selectedCategory);
+      if (isEditing && existingExpense) {
+        await updateExpense(existingExpense.id, {
+          title,
+          amount: numAmount,
+          category: selectedCategory,
+          note: note.trim() || null,
+          date: existingExpense.date,
+        });
+      } else if (isExpense) {
         await createExpense({
-          title: note.trim() || (catObj ? catObj.label : 'Expense'),
+          title,
           amount: numAmount,
           category: selectedCategory,
           note: note.trim() || null,
@@ -153,6 +196,29 @@ export default function AddExpenseModal() {
     }
   };
 
+  const handleDelete = () => {
+    if (!existingExpense) return;
+    Alert.alert(
+      'Delete expense',
+      `Delete "${existingExpense.title}"? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteExpense(existingExpense.id);
+              router.back();
+            } catch (e) {
+              console.warn('Error deleting expense:', e);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const cursorColor = isExpense
     ? colors.hankoRed
     : isIncome
@@ -180,7 +246,9 @@ export default function AddExpenseModal() {
       {/* Header */}
       <View style={styles.headerRow}>
         <AppText variant="serifTitle">
-          {isExpense
+          {isEditing
+            ? 'Edit expense'
+            : isExpense
             ? 'Add expense'
             : isIncome
             ? 'Add salary / income'
@@ -198,6 +266,7 @@ export default function AddExpenseModal() {
       </View>
 
       {/* 3-Way Switcher: Expense | Salary | Saving */}
+      {!isEditing && (
       <View style={[styles.segmentContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <TouchableOpacity
           activeOpacity={0.8}
@@ -259,12 +328,15 @@ export default function AddExpenseModal() {
           </AppText>
         </TouchableOpacity>
       </View>
+      )}
 
       {/* Amount BentoCard */}
       <BentoCard variant="dark" style={styles.amountCard}>
         <View style={styles.amountTopRow}>
           <AppText variant="caption" color={Colors.textMuted}>
-            {isExpense
+            {isEditing
+              ? '支出 / Edit expense'
+              : isExpense
               ? '支出 / Expense'
               : isIncome
               ? '収入 / Salary · Income'
@@ -279,7 +351,7 @@ export default function AddExpenseModal() {
           </AppText>
           <View style={[styles.cursorLine, { backgroundColor: cursorColor }]} />
           <AppText variant="caption" color={colors.textMuted} style={styles.etbLabel}>
-            ETB
+            {currency}
           </AppText>
         </View>
       </BentoCard>
@@ -434,6 +506,8 @@ export default function AddExpenseModal() {
         <AppText variant="bodyBold" color={saveText}>
           {isSaving
             ? 'Saving...'
+            : isEditing
+            ? 'Save changes'
             : isExpense
             ? 'Save expense'
             : isIncome
@@ -441,6 +515,21 @@ export default function AddExpenseModal() {
             : 'Save saving deposit'}
         </AppText>
       </TouchableOpacity>
+
+      {isEditing && (
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={handleDelete}
+          style={[
+            styles.deleteButton,
+            { borderColor: colors.hankoRed, backgroundColor: colors.card },
+          ]}
+        >
+          <AppText variant="bodyBold" color={colors.hankoRed}>
+            Delete expense
+          </AppText>
+        </TouchableOpacity>
+      )}
     </Main>
   );
 }
@@ -592,5 +681,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 3,
+  },
+  deleteButton: {
+    borderRadius: 999,
+    borderWidth: 1.5,
+    paddingVertical: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
   },
 });

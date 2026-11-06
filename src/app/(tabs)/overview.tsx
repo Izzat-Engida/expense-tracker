@@ -7,20 +7,26 @@ import {
   BentoCard,
   AppText,
   HankoStamp,
-  ProgressBar,
 } from '@/components/ui';
+import { DonutChart, TrendLineChart, VerticalBarChart } from '@/components/charts';
 import { useLedger } from '@/hooks/useLedger';
+import { useSettingsStore } from '@/stores/settingsStore';
 import {
   addMonths,
+  cumulativeSeries,
   currentMonthKey,
   formatCompactAmount,
   formatMonthLabel,
+  getMonthlyTrend,
   getOverviewSummary,
+  getWeekdaySpending,
+  monthlyIncome,
 } from '@/lib/ledger';
 
 export default function OverviewScreen() {
   const { colors, isDark } = useThemeColors();
-  const { expenses, isInitialized, error } = useLedger();
+  const { expenses, incomes, isInitialized, error } = useLedger();
+  const currency = useSettingsStore((s) => s.currency);
   const [selectedMonth, setSelectedMonth] = useState(currentMonthKey);
 
   const summary = useMemo(
@@ -28,14 +34,39 @@ export default function OverviewScreen() {
     [expenses, selectedMonth],
   );
 
+  const monthIncome = useMemo(
+    () => monthlyIncome(incomes, selectedMonth),
+    [incomes, selectedMonth],
+  );
+
+  const weekdaySpending = useMemo(
+    () => getWeekdaySpending(summary.monthExpenses),
+    [summary.monthExpenses],
+  );
+
+  const monthlyTrend = useMemo(
+    () => getMonthlyTrend(expenses, selectedMonth, 6),
+    [expenses, selectedMonth],
+  );
+
+  const cumulative = useMemo(
+    () => cumulativeSeries(summary.dailyBars),
+    [summary.dailyBars],
+  );
+
+  const categoryData = useMemo(
+    () =>
+      summary.categoryRows.map((row) => ({
+        label: row.label,
+        value: row.amount,
+        color: colors[row.colorKey],
+      })),
+    [summary.categoryRows, colors],
+  );
+
   const hasData = summary.totalSpent > 0;
-  const axisLabels = [
-    1,
-    7,
-    14,
-    21,
-    summary.days,
-  ];
+  const net = monthIncome - summary.totalSpent;
+  const axisLabels = [1, 7, 14, 21, summary.days];
 
   if (!isInitialized) {
     return (
@@ -112,7 +143,7 @@ export default function OverviewScreen() {
             {Math.round(summary.totalSpent).toLocaleString()}
           </AppText>
           <AppText variant="caption" color={colors.textMuted}>
-            ETB 
+            {currency}
           </AppText>
         </View>
       </BentoCard>
@@ -125,7 +156,7 @@ export default function OverviewScreen() {
                 Daily spending
               </AppText>
               <AppText variant="caption" color={colors.textMuted}>
-                ETB
+                {currency}
               </AppText>
             </View>
 
@@ -199,45 +230,106 @@ export default function OverviewScreen() {
             </View>
           </BentoCard>
 
-          <BentoCard variant="light" style={styles.categoryCard}>
+          <BentoCard variant="light" style={styles.chartCard}>
             <View style={styles.rowBetween}>
               <AppText variant="caption" color={colors.textSecondary}>
                 By category
               </AppText>
               <AppText variant="caption" color={colors.textMuted}>
-                ETB
+                {currency}
               </AppText>
             </View>
+            <DonutChart
+              data={categoryData}
+              centerLabel={formatCompactAmount(summary.totalSpent)}
+              centerSubLabel={currency}
+            />
+          </BentoCard>
 
-            <View style={styles.categoryList}>
-              {summary.categoryRows.map((item) => (
-                <View key={item.category} style={styles.categoryItem}>
-                  <View style={styles.rowBetween}>
-                    <View style={styles.catLabelGroup}>
-                      <AppText variant="bodyBold">{item.label}</AppText>
-                    </View>
+          <BentoCard variant="light" style={styles.chartCard}>
+            <View style={styles.rowBetween}>
+              <AppText variant="caption" color={colors.textSecondary}>
+                Spending pace
+              </AppText>
+              <AppText variant="caption" color={colors.textMuted}>
+                {formatCompactAmount(summary.totalSpent)} {currency}
+              </AppText>
+            </View>
+            <TrendLineChart
+              points={cumulative}
+              labels={summary.dailyBars.map((bar) => String(bar.day))}
+              color={colors.bambooGreen}
+            />
+          </BentoCard>
 
-                    <View style={styles.catNumbersGroup}>
-                      <AppText variant="bodyBold" style={styles.catAmount}>
-                        {Math.round(item.amount).toLocaleString()}
-                      </AppText>
-                      <AppText
-                        variant="caption"
-                        color={colors.textMuted}
-                        style={styles.catPercent}
-                      >
-                        {item.percentText}
-                      </AppText>
-                    </View>
-                  </View>
+          <BentoCard variant="light" style={styles.chartCard}>
+            <View style={styles.rowBetween}>
+              <AppText variant="caption" color={colors.textSecondary}>
+                By weekday
+              </AppText>
+              <AppText variant="caption" color={colors.textMuted}>
+                {currency}
+              </AppText>
+            </View>
+            <VerticalBarChart
+              data={weekdaySpending.map((day) => ({
+                label: day.label,
+                value: day.amount,
+                color: colors.categoryTransport,
+              }))}
+              height={116}
+              showValues={false}
+            />
+          </BentoCard>
 
-                  <ProgressBar
-                    progress={item.progress}
-                    fillColor={colors[item.colorKey]}
-                    height={6}
-                  />
-                </View>
-              ))}
+          <BentoCard variant="light" style={styles.chartCard}>
+            <View style={styles.rowBetween}>
+              <AppText variant="caption" color={colors.textSecondary}>
+                Six-month trend
+              </AppText>
+              <AppText variant="caption" color={colors.textMuted}>
+                {currency}
+              </AppText>
+            </View>
+            <VerticalBarChart
+              data={monthlyTrend.map((month) => ({
+                label: month.label,
+                value: month.amount,
+                color: colors.categoryFun,
+              }))}
+              height={116}
+              showValues
+            />
+          </BentoCard>
+
+          <BentoCard variant="light" style={styles.chartCard}>
+            <View style={styles.rowBetween}>
+              <AppText variant="caption" color={colors.textSecondary}>
+                Income vs expense
+              </AppText>
+              <AppText variant="caption" color={colors.textMuted}>
+                {formatMonthLabel(selectedMonth)}
+              </AppText>
+            </View>
+            <VerticalBarChart
+              data={[
+                { label: 'Income', value: monthIncome, color: colors.bambooGreen },
+                { label: 'Spent', value: summary.totalSpent, color: colors.hankoRed },
+              ]}
+              height={104}
+              showValues
+            />
+            <View style={[styles.netRow, { borderTopColor: colors.divider }]}>
+              <AppText variant="caption" color={colors.textSecondary}>
+                Net this month
+              </AppText>
+              <AppText
+                variant="bodyBold"
+                color={net >= 0 ? colors.positiveText : colors.negativeText}
+              >
+                {net >= 0 ? '+' : '-'}
+                {Math.round(Math.abs(net)).toLocaleString()} {currency}
+              </AppText>
             </View>
           </BentoCard>
         </>
@@ -344,35 +436,12 @@ const styles = StyleSheet.create({
   axisText: {
     fontSize: 10,
   },
-  categoryCard: {
-    paddingVertical: 16,
-    gap: 14,
-  },
-  categoryList: {
-    gap: 14,
-  },
-  categoryItem: {
-    gap: 6,
-  },
-  catLabelGroup: {
+  netRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 8,
-    paddingLeft:5
-  },
- 
-  catNumbersGroup: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 10,
-  },
-  catAmount: {
-    fontFamily: Fonts.serif,
-  },
-  catPercent: {
-    width: 38,
-    textAlign: 'right',
-    fontSize: 11,
+    borderTopWidth: 1,
+    paddingTop: 10,
   },
   emptyCard: {
     paddingVertical: 24,

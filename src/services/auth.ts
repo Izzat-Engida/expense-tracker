@@ -20,7 +20,6 @@ export const GOOGLE_SCOPES = [
   'openid',
   'profile',
   'email',
-  'https://www.googleapis.com/auth/drive.appdata',
 ];
 
 export const GOOGLE_DISCOVERY: AuthSession.DiscoveryDocument = {
@@ -70,6 +69,10 @@ export async function verifyAccountPassword(accountId: string, inputPassword: st
   return storedHash === inputHash;
 }
 
+export async function removeAccountPassword(accountId: string): Promise<void> {
+  await SecureStore.deleteItemAsync(getPasswordKey(accountId));
+}
+
 export async function saveAccountTokens(accountId: string, tokens: AuthTokens): Promise<void> {
   await SecureStore.setItemAsync(getTokensKey(accountId), JSON.stringify(tokens));
 }
@@ -115,7 +118,7 @@ export async function setActiveAccountId(id: string | null): Promise<void> {
 }
 
 export function getRedirectUri(): string {
-  // In development / Expo Go, use the Expo Auth Proxy registered in Google Cloud Console
+
   if (
     Constants.appOwnership === AppOwnership.Expo ||
     Constants.executionEnvironment === ExecutionEnvironment.StoreClient ||
@@ -124,7 +127,7 @@ export function getRedirectUri(): string {
     return 'https://auth.expo.io/@izorium/expense';
   }
   return AuthSession.makeRedirectUri({
-    scheme: 'expense',
+    scheme: 'yohaku',
     path: 'oauth',
   });
 }
@@ -179,7 +182,27 @@ export async function promptGoogleAuth(): Promise<{
     throw new Error(`Failed to fetch user profile: ${profileRes.statusText}`);
   }
 
-  const profile = (await profileRes.json()) as GoogleUserProfile;
+  const rawProfile = (await profileRes.json()) as {
+    sub?: string;
+    email?: string;
+    name?: string;
+    given_name?: string;
+    picture?: string;
+    verified_email?: boolean;
+  };
+
+  if (!rawProfile.email) {
+    throw new Error('Google profile did not include an email address.');
+  }
+
+  const profile: GoogleUserProfile = {
+    id: rawProfile.sub ?? rawProfile.email,
+    email: rawProfile.email,
+    name: rawProfile.name ?? rawProfile.given_name ?? rawProfile.email.split('@')[0],
+    given_name: rawProfile.given_name,
+    picture: rawProfile.picture,
+    verified_email: rawProfile.verified_email,
+  };
 
   return {
     profile,
