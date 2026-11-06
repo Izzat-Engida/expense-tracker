@@ -58,7 +58,9 @@ export default function SettingsScreen() {
     if (!activeAccount) return;
     Alert.alert(
       'Sign Out',
-      `Sign out of ${activeAccount.name}? Your local ledger will be preserved or removed from this device.`,
+      activeAccount.isLocal
+        ? `Close session for "${activeAccount.name}"? Your local ledger will remain saved on this device.`
+        : `Sign out of ${activeAccount.name}? Your local ledger will be preserved or removed from this device.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -79,9 +81,12 @@ export default function SettingsScreen() {
 
   const handleDeleteAccount = () => {
     if (!activeAccount) return;
+    const isLocal = activeAccount.isLocal;
     Alert.alert(
       'Delete Account & Data',
-      `Permanently delete account "${activeAccount.name}"? This will delete all local transactions, database files, and cloud backups from Firebase. This action cannot be undone.`,
+      isLocal
+        ? `Permanently delete profile "${activeAccount.name}"? This will delete all local transactions and database files on this device. This action cannot be undone.`
+        : `Permanently delete account "${activeAccount.name}"? This will delete all local transactions, database files, and cloud backups from Firebase. This action cannot be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -108,10 +113,10 @@ export default function SettingsScreen() {
     <Main contentContainerStyle={styles.container}>
       <AppText variant="serifTitle">Settings</AppText>
 
-      {/* Google Account & Profile Card */}
+      {/* Profile / Account Card */}
       <BentoCard variant="light" style={styles.sectionCard}>
         <AppText variant="caption" color={colors.textSecondary}>
-          Active Account (Isolated Ledger)
+          Active Profile (Isolated Ledger)
         </AppText>
         <View style={styles.accountRow}>
           <View
@@ -127,13 +132,17 @@ export default function SettingsScreen() {
           <View style={{ flex: 1 }}>
             <AppText variant="bodyBold">{activeAccount?.name || 'Local Ledger'}</AppText>
             <AppText variant="caption" color={colors.textSecondary}>
-              {activeAccount?.email || 'No account linked'}
+              {activeAccount?.isLocal ? 'Local SQLite · Offline' : (activeAccount?.email || 'No account linked')}
             </AppText>
           </View>
-          <PillBadge
-            variant={isDeviceOnline ? 'income' : 'expense'}
-            label={isDeviceOnline ? '● Online' : '○ Offline'}
-          />
+          {activeAccount?.isLocal ? (
+            <PillBadge variant="outline" label="Local" />
+          ) : (
+            <PillBadge
+              variant={isDeviceOnline ? 'income' : 'expense'}
+              label={isDeviceOnline ? '● Online' : '○ Offline'}
+            />
+          )}
         </View>
 
         <View style={styles.accountActionsRow}>
@@ -153,19 +162,21 @@ export default function SettingsScreen() {
             </AppText>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            activeOpacity={0.7}
-            disabled={isSyncing}
-            onPress={handleManualSync}
-            style={[
-              styles.profileBtn,
-              { borderColor: colors.border, backgroundColor: colors.cardElevated },
-            ]}
-          >
-            <AppText variant="bodyBold" style={{ fontSize: 12 }}>
-              {isSyncing ? 'Syncing…' : 'Sync to Cloud'}
-            </AppText>
-          </TouchableOpacity>
+          {!activeAccount?.isLocal && (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              disabled={isSyncing}
+              onPress={handleManualSync}
+              style={[
+                styles.profileBtn,
+                { borderColor: colors.border, backgroundColor: colors.cardElevated },
+              ]}
+            >
+              <AppText variant="bodyBold" style={{ fontSize: 12 }}>
+                {isSyncing ? 'Syncing…' : 'Sync to Cloud'}
+              </AppText>
+            </TouchableOpacity>
+          )}
         </View>
       </BentoCard>
 

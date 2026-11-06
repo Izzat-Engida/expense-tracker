@@ -3,6 +3,8 @@ export interface GoogleAccount {
   email: string;
   name: string;
   avatarUrl?: string;
+  /** True for guest profiles that never touch Firebase and stay on this device. */
+  isLocal?: boolean;
   hasPassword: boolean;
   biometricEnabled: boolean;
   createdAt: string;

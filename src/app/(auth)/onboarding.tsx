@@ -7,10 +7,10 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
+  Main,
   BentoCard,
   HankoStamp,
   ProgressBar,
@@ -18,27 +18,27 @@ import {
 } from '@/components/ui';
 import { Fonts, useThemeColors } from '@/constants/theme';
 import { useAuthStore } from '@/stores/authStore';
-import { loginAnonymously, loginWithEmail } from '@/services/firebaseAuth';
+import { loginWithEmail } from '@/services/firebaseAuth';
 // import { promptGoogleAuth } from '@/services/auth';
 
 export default function OnboardingScreen() {
   const router = useRouter();
   const { colors } = useThemeColors();
   const startAccountOnboarding = useAuthStore((s) => s.startAccountOnboarding);
+  const startLocalAccountOnboarding = useAuthStore((s) => s.startLocalAccountOnboarding);
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleGuestLogin = async () => {
+  const handleGuestMode = async () => {
     setIsProcessing(true);
     try {
-      const res = await loginAnonymously();
-      await startAccountOnboarding(res.profile, res.tokens);
+      await startLocalAccountOnboarding();
       router.push('/(auth)/setup-password');
     } catch (err: any) {
-      Alert.alert('Sign In', err?.message || 'Could not sign in with Firebase.');
+      Alert.alert('Guest Mode', err?.message || 'Could not create a local profile.');
     } finally {
       setIsProcessing(false);
     }
@@ -86,14 +86,10 @@ export default function OnboardingScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.keyboardContainer}
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
+      <Main contentContainerStyle={styles.scrollContent}>
         <View style={styles.mainContent}>
           <View style={styles.topRow}>
             <BentoCard variant="light" style={styles.brandCard}>
@@ -144,7 +140,7 @@ export default function OnboardingScreen() {
                 color={colors.textSecondary}
                 style={styles.featureDesc}
               >
-                Offline SQLite first. Cloud sync with Firebase.
+                Guest mode stays on this device. Email accounts can sync.
               </AppText>
             </View>
           </BentoCard>
@@ -152,10 +148,10 @@ export default function OnboardingScreen() {
           <BentoCard variant="light" style={styles.driveStripCard}>
             <View style={styles.rowBetween}>
               <AppText variant="caption" style={styles.driveStripTitle}>
-                FIREBASE CLOUD SYNC
+                LOCAL FIRST
               </AppText>
               <AppText variant="caption" color={colors.textSecondary}>
-                Local SQLite + Firestore
+                Guest stays local · Email can sync
               </AppText>
             </View>
             <ProgressBar progress={1.0} height={10} />
@@ -242,12 +238,19 @@ export default function OnboardingScreen() {
                     styles.primaryButton,
                     { backgroundColor: colors.textPrimary },
                   ]}
-                  onPress={handleGuestLogin}
+                  onPress={handleGuestMode}
                 >
                   <AppText variant="bodyBold" color={colors.background}>
-                    {isProcessing ? 'Setting up…' : 'Start Instant (Guest Mode)'}
+                    {isProcessing ? 'Setting up…' : 'Guest Mode'}
                   </AppText>
                 </TouchableOpacity>
+                <AppText
+                  variant="caption"
+                  color={colors.textMuted}
+                  style={styles.guestNote}
+                >
+                  Local only · no account needed
+                </AppText>
 
                 <TouchableOpacity
                   activeOpacity={0.8}
@@ -270,7 +273,7 @@ export default function OnboardingScreen() {
               color={colors.textMuted}
               style={styles.privacySub}
             >
-              Offline-first. Your data syncs securely with Firebase.
+              Guest mode is offline-first. Email accounts sync securely with Firebase.
             </AppText>
           </BentoCard>
         </View>
@@ -278,7 +281,7 @@ export default function OnboardingScreen() {
         <AppText variant="caption" color={colors.textSecondary} style={styles.footerText}>
           Less noise. More intention.
         </AppText>
-      </ScrollView>
+      </Main>
     </KeyboardAvoidingView>
   );
 }
@@ -437,6 +440,11 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 14,
     marginTop: 4,
+  },
+  guestNote: {
+    textAlign: 'center',
+    fontSize: 10,
+    letterSpacing: 0.5,
   },
   footerText: {
     textAlign: 'center',

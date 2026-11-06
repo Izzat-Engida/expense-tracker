@@ -109,14 +109,14 @@ export default function UnlockPasswordScreen() {
             ]}
           >
             <AppText style={styles.avatarLetter} color={colors.selectionText}>
-              {targetAccount.name.slice(0, 1).toUpperCase()}
+              {(targetAccount.name || targetAccount.email || 'U').slice(0, 1).toUpperCase()}
             </AppText>
           </View>
           <AppText variant="serifTitle" style={styles.nameText}>
-            {targetAccount.name}
+            {targetAccount.name || 'Profile'}
           </AppText>
           <AppText variant="caption" color={colors.textSecondary}>
-            {targetAccount.email}
+            {targetAccount.isLocal ? 'Local Profile · Offline' : targetAccount.email}
           </AppText>
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <PillBadge variant="outline" label="Isolated Ledger" />

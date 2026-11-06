@@ -33,6 +33,17 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
 
   refreshStatus: async () => {
     const activeAccount = useAuthStore.getState().activeAccount;
+    if (activeAccount?.isLocal) {
+      set({
+        isDeviceOnline: true,
+        pendingCount: 0,
+        lastSyncedAt: null,
+        syncStatus: 'idle',
+        statusMessage: 'Local profile (on-device only)',
+      });
+      return;
+    }
+
     const online = await isOnline();
     const count = await getPendingOutboxCount(activeAccount?.id);
 
@@ -55,6 +66,15 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
       set({
         syncStatus: 'error',
         statusMessage: 'No active account selected',
+      });
+      return null;
+    }
+
+    // Guest accounts operate strictly in local SQLite and never sync to cloud.
+    if (activeAccount.isLocal) {
+      set({
+        syncStatus: 'idle',
+        statusMessage: 'Local profile (cloud sync disabled)',
       });
       return null;
     }
@@ -90,10 +110,11 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
   },
 
   autoSyncIfConnected: async () => {
+    const activeAccount = useAuthStore.getState().activeAccount;
+    if (!activeAccount || activeAccount.isLocal) return;
+
     const online = await isOnline();
     if (!online) return;
-    const activeAccount = useAuthStore.getState().activeAccount;
-    if (!activeAccount) return;
 
     const count = await getPendingOutboxCount(activeAccount.id);
     if (count > 0 || !activeAccount.lastSyncedAt) {

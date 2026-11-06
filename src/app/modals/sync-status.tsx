@@ -75,13 +75,13 @@ export default function SyncStatusModal() {
             <View>
               <AppText variant="bodyBold">{activeAccount?.name || 'Local Account'}</AppText>
               <AppText variant="caption" color={colors.textSecondary}>
-                {activeAccount?.email || 'No email linked'}
+                {activeAccount?.isLocal ? 'Local SQLite · Offline' : (activeAccount?.email || 'No email linked')}
               </AppText>
             </View>
           </View>
           <PillBadge
-            variant={isDeviceOnline ? 'income' : 'expense'}
-            label={isDeviceOnline ? '● Online' : '○ Offline'}
+            variant={activeAccount?.isLocal ? 'outline' : isDeviceOnline ? 'income' : 'expense'}
+            label={activeAccount?.isLocal ? 'Local' : isDeviceOnline ? '● Online' : '○ Offline'}
           />
         </View>
       </BentoCard>
@@ -95,63 +95,67 @@ export default function SyncStatusModal() {
               Saved Locally ✓
             </AppText>
             <AppText variant="caption" color={colors.textMuted}>
-              Zero external databases. Works 100% offline.
+              {activeAccount?.isLocal
+                ? 'Guest profile. Kept strictly on this device.'
+                : 'Zero external databases needed offline. Syncs when connected.'}
             </AppText>
           </View>
           <HankoStamp size="sm" />
         </View>
       </BentoCard>
 
-      <BentoCard variant="light" style={styles.queueCard}>
-        <View style={styles.rowBetween}>
-          <AppText variant="caption" color={colors.textSecondary}>Outbox queue (pending sync)</AppText>
-          <View
-            style={[
-              styles.badgeCount,
-              {
-                backgroundColor:
-                  pendingCount > 0 ? colors.hankoRed : isDark ? colors.cardElevated : colors.cardDark,
-              },
-            ]}
-          >
-            <AppText variant="caption" color="#FFFFFF">
-              {pendingCount}
+      {!activeAccount?.isLocal && (
+        <>
+          <BentoCard variant="light" style={styles.queueCard}>
+            <View style={styles.rowBetween}>
+              <AppText variant="caption" color={colors.textSecondary}>Outbox queue (pending sync)</AppText>
+              <View
+                style={[
+                  styles.badgeCount,
+                  {
+                    backgroundColor:
+                      pendingCount > 0 ? colors.hankoRed : isDark ? colors.cardElevated : colors.cardDark,
+                  },
+                ]}
+              >
+                <AppText variant="caption" color="#FFFFFF">
+                  {pendingCount}
+                </AppText>
+              </View>
+            </View>
+            <AppText variant="bodyBold" style={styles.queueMainText}>
+              {pendingCount === 0 ? 'All changes synced' : `${pendingCount} item${pendingCount > 1 ? 's' : ''}`}
             </AppText>
-          </View>
-        </View>
-        <AppText variant="bodyBold" style={styles.queueMainText}>
-          {pendingCount === 0 ? 'All changes synced' : `${pendingCount} item${pendingCount > 1 ? 's' : ''}`}
-        </AppText>
-        <AppText variant="caption" color={colors.textMuted}>
-          {!isDeviceOnline
-            ? 'Waiting for internet connection'
-            : pendingCount === 0
-            ? 'Local database matches cloud snapshot'
-            : 'Pending upload to Firestore'}
-        </AppText>
-      </BentoCard>
+            <AppText variant="caption" color={colors.textMuted}>
+              {!isDeviceOnline
+                ? 'Waiting for internet connection'
+                : pendingCount === 0
+                ? 'Local database matches cloud snapshot'
+                : 'Pending upload to Firestore'}
+            </AppText>
+          </BentoCard>
 
-   
-      <BentoCard variant="light" style={styles.lastSyncCard}>
-        <AppText variant="caption" color={colors.textSecondary}>
-          Firebase Cloud (Firestore):
-        </AppText>
-        <View style={styles.syncMetaRow}>
-          <AppText variant="bodyBold" color={colors.textPrimary}>☁</AppText>
-          <AppText variant="bodyBold" color={colors.textPrimary}>
-            {formatLastSync(lastSyncedAt)}
-          </AppText>
-        </View>
-        <AppText variant="caption" color={colors.textMuted}>
-          {statusMessage}
-        </AppText>
-      </BentoCard>
-
+          <BentoCard variant="light" style={styles.lastSyncCard}>
+            <AppText variant="caption" color={colors.textSecondary}>
+              Firebase Cloud (Firestore):
+            </AppText>
+            <View style={styles.syncMetaRow}>
+              <AppText variant="bodyBold" color={colors.textPrimary}>☁</AppText>
+              <AppText variant="bodyBold" color={colors.textPrimary}>
+                {formatLastSync(lastSyncedAt)}
+              </AppText>
+            </View>
+            <AppText variant="caption" color={colors.textMuted}>
+              {statusMessage}
+            </AppText>
+          </BentoCard>
+        </>
+      )}
 
       <TouchableOpacity
         activeOpacity={0.85}
         disabled={isSyncing}
-        onPress={handleSyncPress}
+        onPress={activeAccount?.isLocal ? () => router.back() : handleSyncPress}
         style={[
           styles.syncButton,
           {
@@ -168,7 +172,11 @@ export default function SyncStatusModal() {
           </View>
         ) : (
           <AppText variant="bodyBold" color="#FFFFFF">
-            {isDeviceOnline ? 'Sync Now with Cloud' : 'Retry Connection'}
+            {activeAccount?.isLocal
+              ? 'Close'
+              : isDeviceOnline
+              ? 'Sync Now with Cloud'
+              : 'Retry Connection'}
           </AppText>
         )}
       </TouchableOpacity>

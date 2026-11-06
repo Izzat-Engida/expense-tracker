@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import * as LocalAuthentication from 'expo-local-authentication';
+import * as Crypto from 'expo-crypto';
 import type { GoogleAccount, AuthTokens, GoogleUserProfile } from '@/types/auth';
 import {
   loadRegisteredAccounts,
@@ -32,9 +33,11 @@ interface AuthActions {
     profile: GoogleUserProfile,
     tokens: AuthTokens
   ) => Promise<GoogleAccount>;
+  startLocalAccountOnboarding: () => Promise<GoogleAccount>;
   completePasswordSetup: (
     password: string,
-    biometricEnabled: boolean
+    biometricEnabled: boolean,
+    displayName?: string
   ) => Promise<void>;
   unlockWithPassword: (accountId: string, password: string) => Promise<boolean>;
   unlockWithBiometrics: (accountId: string) => Promise<boolean>;
@@ -103,17 +106,63 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     return newAcc;
   },
 
-  completePasswordSetup: async (password: string, biometricEnabled: boolean) => {
+  startLocalAccountOnboarding: async () => {
+    const newAcc: GoogleAccount = {
+      id: `local_${Crypto.randomUUID()}`,
+      email: '',
+      name: '',
+      hasPassword: false,
+      biometricEnabled: false,
+      isLocal: true,
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+      lastSyncedAt: null,
+    };
+
+    // No tokens and no Firebase call — guest profiles are local SQLite only.
+    set({ pendingAccount: newAcc });
+    return newAcc;
+  },
+
+  completePasswordSetup: async (password: string, biometricEnabled: boolean, displayName?: string) => {
     const { pendingAccount, accounts } = get();
     if (!pendingAccount) {
       throw new Error('No pending account found');
     }
 
+    const name = pendingAccount.isLocal
+      ? (displayName?.trim() || pendingAccount.name || 'Guest')
+      : (pendingAccount.name || pendingAccount.email.split('@')[0] || 'User');
 
-    await saveAccountPassword(pendingAccount.id, password);
+    let accountId = pendingAccount.id;
+    if (pendingAccount.isLocal) {
+      const baseSlug = (displayName?.trim() || 'guest')
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]/g, '_')
+        .slice(0, 24) || 'guest';
+
+      // Check if another account in accounts has the same name or matching id
+      const hasConflict = accounts.some(
+        (a) =>
+          a.id !== pendingAccount.id &&
+          (a.name.trim().toLowerCase() === name.toLowerCase() ||
+            a.id === `local_${baseSlug}` ||
+            a.id.startsWith(`local_${baseSlug}_`))
+      );
+
+      if (hasConflict) {
+        accountId = `local_${baseSlug}_${Crypto.randomUUID().slice(0, 8)}`;
+      } else {
+        accountId = `local_${baseSlug}`;
+      }
+    }
+
+    await saveAccountPassword(accountId, password);
 
     const readyAccount: GoogleAccount = {
       ...pendingAccount,
+      id: accountId,
+      name,
       hasPassword: true,
       biometricEnabled,
       lastActiveAt: new Date().toISOString(),
@@ -134,11 +183,14 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     setCurrentDatabaseAccount(readyAccount.id);
     await useLedgerStore.getState().loadAll();
 
-    // On new login/device, immediately download cloud data if available
-    try {
-      await useSyncStore.getState().syncNow();
-    } catch (e) {
-      console.warn('Initial login sync notice:', e);
+    // On new login/device, immediately download cloud data if available.
+    // Guest profiles are local-only and must never touch Firebase.
+    if (!readyAccount.isLocal) {
+      try {
+        await useSyncStore.getState().syncNow();
+      } catch (e) {
+        console.warn('Initial login sync notice:', e);
+      }
     }
 
     set({
@@ -285,11 +337,15 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   deleteAccount: async (accountId: string) => {
-    // 1. Permanently delete cloud data from Firebase
-    try {
-      await deleteAccountFromFirebase(accountId);
-    } catch (e) {
-      console.warn('Could not delete Firebase cloud data:', e);
+    const account = get().accounts.find((a) => a.id === accountId);
+
+    // 1. Permanently delete cloud data from Firebase (skip for local guest profiles)
+    if (!account?.isLocal) {
+      try {
+        await deleteAccountFromFirebase(accountId);
+      } catch (e) {
+        console.warn('Could not delete Firebase cloud data:', e);
+      }
     }
 
     // 2. Permanently delete local SQLite database file

@@ -28,9 +28,11 @@ export default function HomeScreen() {
   const { syncStatus, isDeviceOnline, pendingCount, autoSyncIfConnected, refreshStatus } = useSyncStore();
 
   useEffect(() => {
-    refreshStatus();
-    autoSyncIfConnected();
-  }, [refreshStatus, autoSyncIfConnected]);
+    if (!activeAccount?.isLocal) {
+      refreshStatus();
+      autoSyncIfConnected();
+    }
+  }, [activeAccount?.isLocal, refreshStatus, autoSyncIfConnected]);
 
   const summary = useMemo(
     () => getHomeSummary(expenses, incomes, budgets),
@@ -108,47 +110,67 @@ export default function HomeScreen() {
             </AppText>
           </View>
         </View>
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => router.push('/modals/sync-status')}
-          style={styles.syncStatusBtn}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+        {activeAccount?.isLocal ? (
+          <View style={styles.syncStatusBtn}>
             <AppText
               variant="caption"
-              color={
-                syncStatus === 'syncing'
-                  ? colors.categoryFun
-                  : !isDeviceOnline
-                  ? colors.hankoRed
-                  : pendingCount > 0
-                  ? colors.categoryFood
-                  : colors.bambooGreen
-              }
+              color={colors.textPrimary}
+              style={{ fontWeight: '600' }}
+              numberOfLines={1}
             >
-              ●
+              {activeAccount.name || 'Guest'}
             </AppText>
-            <AppText variant="caption" color={colors.textSecondary}>
-              {syncStatus === 'syncing'
-                ? 'Syncing…'
-                : !isDeviceOnline
-                ? 'Offline'
-                : pendingCount > 0
-                ? `${pendingCount} queued`
-                : 'Cloud synced'}
-            </AppText>
-          </View>
-          {activeAccount && (
             <AppText
               variant="caption"
               color={colors.textMuted}
               style={{ fontSize: 9, letterSpacing: 0.5 }}
-              numberOfLines={1}
             >
-              {activeAccount.name}
+              Local Profile
             </AppText>
-          )}
-        </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => router.push('/modals/sync-status')}
+            style={styles.syncStatusBtn}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <AppText
+                variant="caption"
+                color={
+                  syncStatus === 'syncing'
+                    ? colors.categoryFun
+                    : !isDeviceOnline
+                    ? colors.hankoRed
+                    : pendingCount > 0
+                    ? colors.categoryFood
+                    : colors.bambooGreen
+                }
+              >
+                ●
+              </AppText>
+              <AppText variant="caption" color={colors.textSecondary}>
+                {syncStatus === 'syncing'
+                  ? 'Syncing…'
+                  : !isDeviceOnline
+                  ? 'Offline'
+                  : pendingCount > 0
+                  ? `${pendingCount} queued`
+                  : 'Cloud synced'}
+              </AppText>
+            </View>
+            {activeAccount && (
+              <AppText
+                variant="caption"
+                color={colors.textMuted}
+                style={{ fontSize: 9, letterSpacing: 0.5 }}
+                numberOfLines={1}
+              >
+                {activeAccount.name}
+              </AppText>
+            )}
+          </TouchableOpacity>
+        )}
       </BentoCard>
 
       <View style={styles.bentoRow}>

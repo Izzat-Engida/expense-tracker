@@ -47,13 +47,16 @@ export default function SelectAccountScreen() {
   };
 
   const confirmRemoveAccount = (account: GoogleAccount) => {
+    const isLocal = account.isLocal;
     Alert.alert(
-      'Account Options',
-      `Manage "${account.name}" (${account.email}):`,
+      'Profile Options',
+      isLocal
+        ? `Manage profile "${account.name}":`
+        : `Manage "${account.name}" (${account.email}):`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Unlink from Device',
+          text: 'Remove from Device',
           style: 'default',
           onPress: async () => {
             await removeAccount(account.id);
@@ -63,12 +66,14 @@ export default function SelectAccountScreen() {
           },
         },
         {
-          text: 'Delete Account & Data',
+          text: 'Delete Profile & Data',
           style: 'destructive',
           onPress: async () => {
             Alert.alert(
               'Confirm Permanent Deletion',
-              `Are you sure you want to permanently delete "${account.name}"? All local and cloud data will be destroyed.`,
+              isLocal
+                ? `Are you sure you want to permanently delete profile "${account.name}"? All local ledger data on this device will be deleted.`
+                : `Are you sure you want to permanently delete "${account.name}"? All local and cloud data will be destroyed.`,
               [
                 { text: 'Cancel', style: 'cancel' },
                 {
@@ -122,11 +127,16 @@ export default function SelectAccountScreen() {
                   {acc.name}
                 </AppText>
                 <AppText variant="caption" color={colors.textSecondary} numberOfLines={1}>
-                  {acc.email}
+                  {acc.isLocal ? 'Local Profile · Offline' : acc.email}
                 </AppText>
-                {acc.biometricEnabled && (
-                  <PillBadge label="Biometrics" variant="outline" style={styles.biometricBadge} />
-                )}
+                <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
+                  {acc.isLocal && (
+                    <PillBadge label="Local" variant="outline" style={styles.biometricBadge} />
+                  )}
+                  {acc.biometricEnabled && (
+                    <PillBadge label="Biometrics" variant="outline" style={styles.biometricBadge} />
+                  )}
+                </View>
               </View>
 
               <TouchableOpacity

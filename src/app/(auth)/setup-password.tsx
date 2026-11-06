@@ -30,6 +30,7 @@ export default function SetupPasswordScreen() {
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(biometricHardwareAvailable);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,6 +55,10 @@ export default function SetupPasswordScreen() {
   }
 
   const handleSave = async () => {
+    if (pendingAccount.isLocal && !displayName.trim()) {
+      Alert.alert('Required', 'Please enter a profile name.');
+      return;
+    }
     if (!password.trim()) {
       Alert.alert('Required', 'Please enter a password or PIN.');
       return;
@@ -69,7 +74,11 @@ export default function SetupPasswordScreen() {
 
     setIsSubmitting(true);
     try {
-      await completePasswordSetup(password, biometricEnabled);
+      await completePasswordSetup(
+        password,
+        biometricEnabled,
+        pendingAccount.isLocal ? displayName.trim() : undefined
+      );
       router.replace('/(tabs)');
     } catch (err: any) {
       Alert.alert('Error', err?.message || 'Could not save password.');
@@ -88,7 +97,7 @@ export default function SetupPasswordScreen() {
           <View>
             <AppText variant="serifTitle">Security Setup</AppText>
             <AppText variant="caption" color={colors.textSecondary}>
-              Account Password & Backup
+              {pendingAccount.isLocal ? 'Profile & Passcode' : 'Account Password & Backup'}
             </AppText>
           </View>
           <HankoStamp size="sm" />
@@ -103,23 +112,62 @@ export default function SetupPasswordScreen() {
               ]}
             >
               <AppText variant="bodyBold" color={colors.selectionText}>
-                {pendingAccount.name.slice(0, 1).toUpperCase()}
+                {pendingAccount.isLocal
+                  ? (displayName.trim().slice(0, 1) || 'G').toUpperCase()
+                  : (pendingAccount.name?.slice(0, 1) || pendingAccount.email?.slice(0, 1) || 'U').toUpperCase()}
               </AppText>
             </View>
             <View style={{ flex: 1 }}>
-              <AppText variant="bodyBold">{pendingAccount.name}</AppText>
+              <AppText variant="bodyBold">
+                {pendingAccount.isLocal
+                  ? (displayName.trim() || 'New Guest Profile')
+                  : pendingAccount.name}
+              </AppText>
               <AppText variant="caption" color={colors.textSecondary}>
-                {pendingAccount.email}
+                {pendingAccount.isLocal
+                  ? 'Local SQLite only · No cloud account'
+                  : pendingAccount.email}
               </AppText>
             </View>
-            <PillBadge variant="outline" label="New Profile" />
+            <PillBadge
+              variant="outline"
+              label={pendingAccount.isLocal ? 'Guest Mode' : 'Cloud Sync'}
+            />
           </View>
           <View style={[styles.cardDivider, { backgroundColor: colors.border }]} />
           <AppText variant="caption" color={colors.textSecondary}>
-            Set a password or PIN. If biometrics fail or you restart your phone, this
-            password unlocks your separate data.
+            {pendingAccount.isLocal
+              ? 'Enter a profile name and password or PIN. All your data stays strictly on this device.'
+              : 'Set a password or PIN. If biometrics fail or you restart your phone, this password unlocks your separate data.'}
           </AppText>
         </BentoCard>
+
+        {pendingAccount.isLocal && (
+          <BentoCard variant="light" style={styles.formCard}>
+            <AppText variant="caption" color={colors.textSecondary}>
+              Profile Name / Username
+            </AppText>
+            <View
+              style={[
+                styles.inputWrap,
+                { backgroundColor: colors.background, borderColor: colors.border },
+              ]}
+            >
+              <TextInput
+                value={displayName}
+                onChangeText={setDisplayName}
+                placeholder="e.g. Satoshi, Personal, Daily"
+                placeholderTextColor={colors.textMuted}
+                style={[styles.input, { color: colors.textPrimary }]}
+                autoCapitalize="words"
+                maxLength={30}
+              />
+            </View>
+            <AppText variant="caption" color={colors.textMuted} style={{ marginTop: 2 }}>
+              If an account with this name already exists, a unique ID is added to keep your SQLite database separate.
+            </AppText>
+          </BentoCard>
+        )}
 
         <BentoCard variant="light" style={styles.formCard}>
           <AppText variant="caption" color={colors.textSecondary}>
@@ -201,7 +249,11 @@ export default function SetupPasswordScreen() {
           ]}
         >
           <AppText variant="bodyBold" color={colors.selectionText}>
-            {isSubmitting ? 'Saving Security Setup…' : 'Enter Yohaku'}
+            {isSubmitting
+              ? 'Saving Security Setup…'
+              : pendingAccount.isLocal
+              ? 'Create Local Profile'
+              : 'Enter Yohaku'}
           </AppText>
         </TouchableOpacity>
       </Main>
