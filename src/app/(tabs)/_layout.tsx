@@ -9,6 +9,7 @@ import {
 import { Tabs, router } from 'expo-router';
 import { Colors, Fonts, useThemeColors } from '@/constants/theme';
 import { HankoStamp } from '@/components/ui/HankoStamp'; 
+import { triggerHaptic } from '@/utils/haptics'; 
 
 type TabKey = 'index' | 'overview' | 'wishlist' | 'settings';
 
@@ -65,6 +66,7 @@ function CustomTabBar({
                     : null;
 
                   if (!active && !event?.defaultPrevented) {
+                    triggerHaptic.selection();
                     if (currentRoute) {
                       navigateToTab(currentRoute.key);
                     } else {

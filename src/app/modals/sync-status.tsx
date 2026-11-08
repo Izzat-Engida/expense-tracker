@@ -7,6 +7,7 @@ import {
   AppText,
   HankoStamp,
   PillBadge,
+  JapaneseIcon,
 } from '@/components/ui';
 import {  useThemeColors } from '@/constants/theme';
 import { useAuthStore } from '@/stores/authStore';
@@ -75,7 +76,7 @@ export default function SyncStatusModal() {
             <View>
               <AppText variant="bodyBold">{activeAccount?.name || 'Local Account'}</AppText>
               <AppText variant="caption" color={colors.textSecondary}>
-                {activeAccount?.isLocal ? 'Local SQLite · Offline' : (activeAccount?.email || 'No email linked')}
+                {activeAccount?.isLocal ? 'Device only · Offline' : (activeAccount?.email || 'No email linked')}
               </AppText>
             </View>
           </View>
@@ -90,14 +91,14 @@ export default function SyncStatusModal() {
       <BentoCard variant="light" style={styles.statusCard}>
         <View style={styles.rowBetween}>
           <View>
-            <AppText variant="caption" color={colors.textSecondary}>Local SQLite Status:</AppText>
+            <AppText variant="caption" color={colors.textSecondary}>Device Storage Status:</AppText>
             <AppText variant="serifTitle" style={[styles.savedTitle, { color: colors.bambooGreen }]}>
-              Saved Locally ✓
+              Saved on Device ✓
             </AppText>
             <AppText variant="caption" color={colors.textMuted}>
               {activeAccount?.isLocal
                 ? 'Guest profile. Kept strictly on this device.'
-                : 'Zero external databases needed offline. Syncs when connected.'}
+                : 'Available anytime offline. Syncs when connected.'}
             </AppText>
           </View>
           <HankoStamp size="sm" />
@@ -130,17 +131,17 @@ export default function SyncStatusModal() {
               {!isDeviceOnline
                 ? 'Waiting for internet connection'
                 : pendingCount === 0
-                ? 'Local database matches cloud snapshot'
-                : 'Pending upload to Firestore'}
+                ? 'All local changes are synced'
+                : 'Pending sync to cloud'}
             </AppText>
           </BentoCard>
 
           <BentoCard variant="light" style={styles.lastSyncCard}>
             <AppText variant="caption" color={colors.textSecondary}>
-              Firebase Cloud (Firestore):
+              Cloud Backup Status:
             </AppText>
             <View style={styles.syncMetaRow}>
-              <AppText variant="bodyBold" color={colors.textPrimary}>☁</AppText>
+              <JapaneseIcon name="kumo" size={18} color={colors.textPrimary} />
               <AppText variant="bodyBold" color={colors.textPrimary}>
                 {formatLastSync(lastSyncedAt)}
               </AppText>

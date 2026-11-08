@@ -3,6 +3,8 @@ import * as SecureStore from 'expo-secure-store';
 
 const KEY_CURRENCY = 'yohaku.currency';
 const KEY_THEME = 'yohaku.theme';
+const KEY_HAPTICS = 'yohaku.haptics';
+const KEY_DAILY_LIMIT = 'yohaku.dailyLimit';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 
@@ -12,9 +14,13 @@ export type CurrencyCode = (typeof CURRENCIES)[number];
 interface SettingsState {
   currency: CurrencyCode;
   themeMode: ThemeMode;
+  hapticsEnabled: boolean;
+  dailyLimit: number;
   isLoaded: boolean;
   setCurrency: (currency: CurrencyCode) => Promise<void>;
   setThemeMode: (themeMode: ThemeMode) => Promise<void>;
+  setHapticsEnabled: (enabled: boolean) => Promise<void>;
+  setDailyLimit: (amount: number) => Promise<void>;
   formatAmount: (amount: number) => string;
   loadSettings: () => Promise<void>;
 }
@@ -22,6 +28,8 @@ interface SettingsState {
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   currency: 'ETB',
   themeMode: 'dark',
+  hapticsEnabled: true,
+  dailyLimit: 0,
   isLoaded: false,
 
   setCurrency: async (currency: CurrencyCode) => {
@@ -42,6 +50,24 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     }
   },
 
+  setHapticsEnabled: async (enabled: boolean) => {
+    set({ hapticsEnabled: enabled });
+    try {
+      await SecureStore.setItemAsync(KEY_HAPTICS, enabled ? '1' : '0');
+    } catch (e) {
+      console.warn('Failed to persist haptics setting', e);
+    }
+  },
+
+  setDailyLimit: async (amount: number) => {
+    set({ dailyLimit: amount });
+    try {
+      await SecureStore.setItemAsync(KEY_DAILY_LIMIT, String(amount));
+    } catch (e) {
+      console.warn('Failed to persist daily limit setting', e);
+    }
+  },
+
   formatAmount: (amount: number) => {
     const { currency } = get();
     const isNegative = amount < 0;
@@ -58,6 +84,14 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       const storedTheme = await SecureStore.getItemAsync(KEY_THEME);
       if (storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system') {
         set({ themeMode: storedTheme });
+      }
+      const storedHaptics = await SecureStore.getItemAsync(KEY_HAPTICS);
+      if (storedHaptics !== null) {
+        set({ hapticsEnabled: storedHaptics !== '0' });
+      }
+      const storedLimit = await SecureStore.getItemAsync(KEY_DAILY_LIMIT);
+      if (storedLimit !== null) {
+        set({ dailyLimit: parseFloat(storedLimit) || 0 });
       }
     } catch (e) {
       console.warn('Failed to load settings', e);

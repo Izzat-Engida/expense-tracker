@@ -33,6 +33,10 @@ function GatedStack() {
         name="modals/sync-status"
         options={{ presentation: 'modal', headerShown: false }}
       />
+      <Stack.Screen
+        name="modals/ledger-history"
+        options={{ presentation: 'modal', headerShown: false }}
+      />
     </Stack>
   );
 }

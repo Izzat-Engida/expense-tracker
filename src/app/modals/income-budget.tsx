@@ -211,18 +211,22 @@ export default function IncomeBudgetModal() {
       >
         <TouchableOpacity
           activeOpacity={0.6}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 4 }}
           onPress={() => setMonthKey((month) => addMonths(month, -1))}
+          style={styles.monthArrowBtn}
         >
-          <AppText variant="caption" color={colors.textPrimary}>‹</AppText>
+          <AppText variant="bodyBold" color={colors.textPrimary}>‹</AppText>
         </TouchableOpacity>
         <AppText variant="caption" style={[styles.monthText, { color: colors.textPrimary }]}>
           {formatMonthLabel(monthKey)}
         </AppText>
         <TouchableOpacity
           activeOpacity={0.6}
+          hitSlop={{ top: 12, bottom: 12, left: 4, right: 12 }}
           onPress={() => setMonthKey((month) => addMonths(month, 1))}
+          style={styles.monthArrowBtn}
         >
-          <AppText variant="caption" color={colors.textPrimary}>›</AppText>
+          <AppText variant="bodyBold" color={colors.textPrimary}>›</AppText>
         </TouchableOpacity>
       </View>
 
@@ -440,11 +444,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'center',
-    gap: 14,
+    gap: 4,
     borderWidth: 1.5,
     borderRadius: 999,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  monthArrowBtn: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 18,
   },
   monthText: {
     fontFamily: Fonts.sansBold,

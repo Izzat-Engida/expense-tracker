@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { ElementRef } from 'react';
 import {
   View,
   ScrollView,
   ViewStyle,
+  StyleProp,
   StyleSheet,
   Image,
 } from 'react-native';
@@ -16,13 +17,14 @@ const UKIYOE_BG_DARK = require('../../../assets/images/ukiyoe-linework-light.png
 interface ScreenProps {
   children: React.ReactNode;
   scrollable?: boolean;
-  style?: ViewStyle;
-  contentContainerStyle?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
+  contentContainerStyle?: StyleProp<ViewStyle>;
   edges?: Edge[];
   showArt?: boolean;
   artOpacity?: number;
   keyboardShouldPersistTaps?: 'always' | 'never' | 'handled';
   keyboardDismissMode?: 'none' | 'on-drag' | 'interactive';
+  scrollViewRef?: React.Ref<ElementRef<typeof ScrollView>>;
 }
 
 const Main = ({
@@ -35,6 +37,7 @@ const Main = ({
   artOpacity,
   keyboardShouldPersistTaps = 'handled',
   keyboardDismissMode = 'on-drag',
+  scrollViewRef,
 }: ScreenProps) => {
   const { colors, isDark } = useThemeColors();
   const defaultOpacity = isDark ? 0.08 : 0.14;
@@ -57,6 +60,7 @@ const Main = ({
       )}
       {scrollable ? (
         <ScrollView
+          ref={scrollViewRef}
           style={styles.flex}
           contentContainerStyle={[styles.container, contentContainerStyle]}
           showsVerticalScrollIndicator={false}

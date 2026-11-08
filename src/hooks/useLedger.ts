@@ -28,6 +28,7 @@ export function useLedger() {
     createExpense: store.createExpense,
     updateExpense: store.updateExpense,
     deleteExpense: store.deleteExpense,
+    applyRecurringExpenses: store.applyRecurringExpenses,
 
     createIncome: store.createIncome,
     updateIncome: store.updateIncome,

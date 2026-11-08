@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Colors, Fonts, useThemeColors } from '@/constants/theme';
+import { triggerHaptic } from '@/utils/haptics';
 
 type HankoSize = 'sm' | 'md' | 'fab';
 
@@ -45,7 +46,10 @@ export function HankoStamp({ size = 'md', onPress }: HankoStampProps) {
   if (onPress) {
     return (
       <TouchableOpacity
-        onPress={onPress}
+        onPress={() => {
+          triggerHaptic.medium();
+          onPress();
+        }}
         activeOpacity={0.75}
         style={containerStyle}
       >

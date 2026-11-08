@@ -17,6 +17,9 @@ export interface Expense {
   updated_at: string;
 
   deleted_at: string | null;
+
+  is_recurring: 0 | 1;
+  recurrence_interval: 'monthly' | null;
 }
 
 export interface Income {
@@ -80,7 +83,10 @@ export interface SyncOutboxRow {
 }
 
 
-export type CreateExpenseInput = Omit<Expense, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>;
+export type CreateExpenseInput = Omit<Expense, 'id' | 'created_at' | 'updated_at' | 'deleted_at' | 'is_recurring' | 'recurrence_interval'> & {
+  is_recurring?: 0 | 1;
+  recurrence_interval?: 'monthly' | null;
+};
 export type UpdateExpenseInput = Partial<Omit<Expense, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>>;
 
 export type CreateIncomeInput = Omit<Income, 'id' | 'updated_at'>;

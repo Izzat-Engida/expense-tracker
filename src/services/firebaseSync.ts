@@ -47,7 +47,7 @@ export async function syncAccountWithFirebase(accountId: string): Promise<SyncRe
     return {
       success: false,
       reason: 'offline',
-      message: 'No internet connection detected. Data is saved locally in SQLite.',
+      message: 'No internet connection detected. Changes are saved safely on your device.',
     };
   }
 
@@ -222,15 +222,16 @@ export async function syncAccountWithFirebase(accountId: string): Promise<SyncRe
 
     return {
       success: true,
-      message: 'Cloud sync complete (synced with Firebase Firestore).',
+      message: 'Cloud sync complete. All changes up to date.',
       syncedAt,
       outboxDrained: drained,
     };
   } catch (err: any) {
+    console.warn('[sync] Cloud sync error:', err);
     return {
       success: false,
       reason: 'error',
-      message: err?.message || 'Failed to sync with Firebase Firestore.',
+      message: 'Unable to sync with cloud. Please try again later.',
     };
   }
 }

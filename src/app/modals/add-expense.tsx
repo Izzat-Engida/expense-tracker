@@ -1,10 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, ElementRef } from 'react';
 import {
   View,
   StyleSheet,
   TouchableOpacity,
   TextInput,
+  Switch,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
@@ -13,11 +17,13 @@ import {
   AppText,
   HankoStamp,
   PillBadge,
+  JapaneseIcon,
 } from '@/components/ui';
 import { Colors, Fonts, useThemeColors } from '@/constants/theme';
 import { useLedger } from '@/hooks/useLedger';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { localDateKey } from '@/lib/ledger';
+import { triggerHaptic } from '@/utils/haptics';
 import type { ExpenseCategory } from '@/db/types';
 
 type TransactionMode = 'expense' | 'income' | 'saving';
@@ -96,7 +102,21 @@ export default function AddExpenseModal() {
     params.wishlistId ?? null
   );
   const [note, setNote] = useState(existingExpense?.note ?? '');
+  // When editing, allow overriding the auto-generated title
+  const [titleOverride, setTitleOverride] = useState(
+    existingExpense?.title ?? '',
+  );
+  const [isRecurring, setIsRecurring] = useState(
+    existingExpense ? existingExpense.is_recurring === 1 : false,
+  );
   const [isSaving, setIsSaving] = useState(false);
+  const scrollRef = useRef<ElementRef<typeof ScrollView>>(null);
+
+  const handleInputFocus = (offset = 320) => {
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({ y: offset, animated: true });
+    }, 150);
+  };
 
   const isExpense = mode === 'expense';
   const isIncome = mode === 'income';
@@ -117,6 +137,7 @@ export default function AddExpenseModal() {
   }, [existingExpense?.date]);
 
   const handleKeyPress = (key: string) => {
+    triggerHaptic.light();
     if (key === '⌫') {
       setAmount((prev) => (prev.length > 1 ? prev.slice(0, -1) : '0'));
       return;
@@ -156,12 +177,15 @@ export default function AddExpenseModal() {
       const title = note.trim() || (catObj ? catObj.label : 'Expense');
 
       if (isEditing && existingExpense) {
+        const finalTitle = titleOverride.trim() || note.trim() || (catObj ? catObj.label : 'Expense');
         await updateExpense(existingExpense.id, {
-          title,
+          title: finalTitle,
           amount: numAmount,
           category: selectedCategory,
           note: note.trim() || null,
           date: existingExpense.date,
+          is_recurring: isRecurring ? 1 : 0,
+          recurrence_interval: isRecurring ? 'monthly' : null,
         });
       } else if (isExpense) {
         await createExpense({
@@ -170,6 +194,8 @@ export default function AddExpenseModal() {
           category: selectedCategory,
           note: note.trim() || null,
           date: dateStr,
+          is_recurring: isRecurring ? 1 : 0,
+          recurrence_interval: isRecurring ? 'monthly' : null,
         });
       } else if (isIncome) {
         await createIncome({
@@ -191,6 +217,7 @@ export default function AddExpenseModal() {
     } catch (e) {
       console.warn('Error saving entry:', e);
     } finally {
+      triggerHaptic.success();
       setIsSaving(false);
       router.back();
     }
@@ -242,7 +269,17 @@ export default function AddExpenseModal() {
     : colors.savingText;
 
   return (
-    <Main>
+    <KeyboardAvoidingView
+      style={styles.keyboardContainer}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 24 : 0}
+    >
+      <Main
+        scrollViewRef={scrollRef}
+        contentContainerStyle={[styles.mainScroll, { paddingBottom: 260 }]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
       {/* Header */}
       <View style={styles.headerRow}>
         <AppText variant="serifTitle">
@@ -424,7 +461,7 @@ export default function AddExpenseModal() {
                   <PillBadge
                     key={item.id}
                     variant={isSelected ? 'income' : 'outline'}
-                    label={`🎯 ${item.title}`}
+                    label={item.title}
                     onPress={() => {
                       setSelectedWishlistId(item.id);
                       setSelectedSavingGoal(item.title);
@@ -437,25 +474,61 @@ export default function AddExpenseModal() {
         </View>
       </BentoCard>
 
+      {/* Recurring Monthly Switch */}
+      {isExpense && (
+        <BentoCard variant="light" style={styles.recurringCard}>
+          <View style={styles.switchRow}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, paddingRight: 8 }}>
+              <JapaneseIcon name="tomoe" size={22} color={colors.textPrimary} />
+              <View style={{ flex: 1 }}>
+                <AppText variant="bodyBold">Recurring monthly</AppText>
+                <AppText variant="caption" color={colors.textSecondary}>
+                  毎月 · Auto-log this expense every month
+                </AppText>
+              </View>
+            </View>
+            <Switch
+              value={isRecurring}
+              onValueChange={setIsRecurring}
+              trackColor={{ false: colors.switchTrackOff, true: colors.bambooGreen }}
+              thumbColor={colors.switchThumb}
+              ios_backgroundColor={colors.switchTrackOff}
+            />
+          </View>
+        </BentoCard>
+      )}
+
       {/* Note & Date Split Row */}
       <View style={styles.splitRow}>
         <BentoCard variant="light" style={styles.noteCard}>
           <AppText variant="caption" color={colors.textSecondary}>
-            {isExpense ? 'Add a note' : isIncome ? 'Source note' : 'Saving note'}
+            {isEditing ? 'Title' : isExpense ? 'Add a note' : isIncome ? 'Source note' : 'Saving note'}
           </AppText>
-          <TextInput
-            value={note}
-            onChangeText={setNote}
-            placeholder={
-              isExpense
-                ? 'Optional'
-                : isIncome
-                ? 'e.g. Oct Salary'
-                : 'e.g. Deposit for trip'
-            }
-            placeholderTextColor={colors.textMuted}
-            style={[styles.noteInput, { color: colors.textPrimary }]}
-          />
+          {isEditing ? (
+            <TextInput
+              value={titleOverride}
+              onChangeText={setTitleOverride}
+              onFocus={() => handleInputFocus(240)}
+              placeholder="Expense title"
+              placeholderTextColor={colors.textMuted}
+              style={[styles.noteInput, { color: colors.textPrimary }]}
+            />
+          ) : (
+            <TextInput
+              value={note}
+              onChangeText={setNote}
+              onFocus={() => handleInputFocus(280)}
+              placeholder={
+                isExpense
+                  ? 'Optional'
+                  : isIncome
+                  ? 'e.g. Oct Salary'
+                  : 'e.g. Deposit for trip'
+              }
+              placeholderTextColor={colors.textMuted}
+              style={[styles.noteInput, { color: colors.textPrimary }]}
+            />
+          )}
         </BentoCard>
 
         <BentoCard variant="dark" style={styles.dateCard}>
@@ -471,6 +544,21 @@ export default function AddExpenseModal() {
           </AppText>
         </BentoCard>
       </View>
+
+      {/* Edit-mode note field (shown below the title+date row) */}
+      {isEditing && (
+        <BentoCard variant="light" style={[styles.noteCard, { paddingVertical: 12 }]}>
+          <AppText variant="caption" color={colors.textSecondary}>Note</AppText>
+          <TextInput
+            value={note}
+            onChangeText={setNote}
+            onFocus={() => handleInputFocus(340)}
+            placeholder="Add a note (optional)"
+            placeholderTextColor={colors.textMuted}
+            style={[styles.noteInput, { color: colors.textPrimary }]}
+          />
+        </BentoCard>
+      )}
 
       {/* Digital Keypad */}
       <BentoCard variant="light" style={styles.keypadCard}>
@@ -531,10 +619,17 @@ export default function AddExpenseModal() {
         </TouchableOpacity>
       )}
     </Main>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  keyboardContainer: {
+    flex: 1,
+  },
+  mainScroll: {
+    gap: 14,
+  },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -689,5 +784,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
+  },
+  recurringCard: {
+    paddingVertical: 12,
+  },
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
 });

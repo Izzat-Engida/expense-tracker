@@ -1,4 +1,4 @@
-import type { Budget, Expense, ExpenseCategory, Income } from '@/db/types';
+import type { Budget, Expense, ExpenseCategory, Income, Saving } from '@/db/types';
 
 export type CategoryColorKey =
   | 'categoryFood'
@@ -317,4 +317,142 @@ export function getOverviewSummary(expenses: Expense[], monthKey: string): Overv
     days,
     peakDay: peakIndex >= 0 ? peakIndex + 1 : null,
   };
+}
+
+
+/* ─── Year Summary ─── */
+
+export interface MonthBudgetHealth {
+  monthKey: string;
+  label: string;
+  income: number;
+  spent: number;
+  budgetLimit: number;
+  saved: number;
+  net: number;
+  overBudget: boolean;
+}
+
+export interface YearSummary {
+  year: number;
+  totalIncome: number;
+  totalSpent: number;
+  totalSaved: number;
+  totalBudget: number;
+  net: number;
+  months: MonthBudgetHealth[];
+}
+
+export function getYearSummary(
+  expenses: Expense[],
+  incomes: Income[],
+  budgets: Budget[],
+  savings: Saving[],
+  year: number,
+): YearSummary {
+  const months: MonthBudgetHealth[] = [];
+  let totalIncome = 0;
+  let totalSpent = 0;
+  let totalSaved = 0;
+  let totalBudgetLimit = 0;
+
+  for (let m = 1; m <= 12; m++) {
+    const mk = `${year}-${String(m).padStart(2, '0')}`;
+    const mIncome = monthlyIncome(incomes, mk);
+    const mSpent = totalAmount(expensesForMonth(expenses, mk));
+    const mBudget = monthlyBudget(budgets, mk);
+    const mSaved = savings
+      .filter((s) => s.date.startsWith(mk))
+      .reduce((sum, s) => sum + s.amount, 0);
+
+    totalIncome += mIncome;
+    totalSpent += mSpent;
+    totalSaved += mSaved;
+    totalBudgetLimit += mBudget;
+
+    months.push({
+      monthKey: mk,
+      label: (MONTH_NAMES[m - 1] ?? '').slice(0, 3),
+      income: mIncome,
+      spent: mSpent,
+      budgetLimit: mBudget,
+      saved: mSaved,
+      net: mIncome - mSpent,
+      overBudget: mBudget > 0 && mSpent > mBudget,
+    });
+  }
+
+  return {
+    year,
+    totalIncome,
+    totalSpent,
+    totalSaved,
+    totalBudget: totalBudgetLimit,
+    net: totalIncome - totalSpent,
+    months,
+  };
+}
+
+
+/* ─── Spending Streak ─── */
+
+export interface StreakResult {
+  streak: number;           // consecutive "clean" days (under limit or zero-spend)
+  todayAmount: number;      // spending today
+  isCleanToday: boolean;    // is today under the limit?
+  longestStreak: number;    // personal best across all history
+}
+
+export function computeSpendingStreak(
+  expenses: Expense[],
+  dailyLimit: number, // 0 means "no spending at all" counts as clean
+  now = new Date(),
+): StreakResult {
+  // Build a map of dateKey -> total spent
+  const spendByDay = new Map<string, number>();
+  for (const exp of expenses) {
+    spendByDay.set(exp.date, (spendByDay.get(exp.date) ?? 0) + exp.amount);
+  }
+
+  const limit = dailyLimit > 0 ? dailyLimit : 0;
+  const isClean = (amount: number) => limit > 0 ? amount < limit : amount === 0;
+
+  const todayKey = localDateKey(now);
+  const todayAmount = spendByDay.get(todayKey) ?? 0;
+  const isCleanToday = isClean(todayAmount);
+
+  // Walk backwards from today to find current streak
+  let streak = 0;
+  const checkDate = new Date(now);
+  while (true) {
+    const key = localDateKey(checkDate);
+    const amount = spendByDay.get(key) ?? 0;
+    if (isClean(amount)) {
+      streak++;
+      checkDate.setDate(checkDate.getDate() - 1);
+    } else {
+      break;
+    }
+    // Safety limit: don't go back more than 365 days
+    if (streak > 365) break;
+  }
+
+  // Find longest streak in history
+  // Get sorted unique date keys from expenses + today
+  const allKeys = Array.from(spendByDay.keys()).sort();
+  let longest = 0;
+  let current = 0;
+  for (const key of allKeys) {
+    const amount = spendByDay.get(key) ?? 0;
+    if (isClean(amount)) {
+      current++;
+      if (current > longest) longest = current;
+    } else {
+      current = 0;
+    }
+  }
+  // Also consider current streak
+  if (streak > longest) longest = streak;
+
+  return { streak, todayAmount, isCleanToday, longestStreak: longest };
 }

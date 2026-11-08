@@ -125,7 +125,7 @@ export default function SetupPasswordScreen() {
               </AppText>
               <AppText variant="caption" color={colors.textSecondary}>
                 {pendingAccount.isLocal
-                  ? 'Local SQLite only · No cloud account'
+                  ? 'Device only · Private offline ledger'
                   : pendingAccount.email}
               </AppText>
             </View>
@@ -164,7 +164,7 @@ export default function SetupPasswordScreen() {
               />
             </View>
             <AppText variant="caption" color={colors.textMuted} style={{ marginTop: 2 }}>
-              If an account with this name already exists, a unique ID is added to keep your SQLite database separate.
+              If a profile with this name already exists, a unique ID is added to keep your ledger separate.
             </AppText>
           </BentoCard>
         )}

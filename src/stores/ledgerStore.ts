@@ -53,6 +53,7 @@ interface LedgerActions {
   createExpense: (input: CreateExpenseInput) => Promise<Expense>;
   updateExpense: (id: string, patch: UpdateExpenseInput) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
+  applyRecurringExpenses: () => Promise<void>;
 
 
   createIncome: (input: CreateIncomeInput) => Promise<Income>;
@@ -135,6 +136,8 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
     const expense: Expense = {
       id: uuid(),
       ...input,
+      is_recurring: input.is_recurring ?? 0,
+      recurrence_interval: input.recurrence_interval ?? null,
       created_at: now(),
       updated_at: now(),
       deleted_at: null,
@@ -143,8 +146,8 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
     await db.withExclusiveTransactionAsync(async (txn) => {
       await txn.runAsync(
         `INSERT INTO expenses
-           (id, title, amount, category, note, date, created_at, updated_at, deleted_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
+           (id, title, amount, category, note, date, created_at, updated_at, deleted_at, is_recurring, recurrence_interval)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)`,
         [
           expense.id,
           expense.title,
@@ -154,6 +157,8 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
           expense.date,
           expense.created_at,
           expense.updated_at,
+          expense.is_recurring,
+          expense.recurrence_interval ?? null,
         ],
       );
       await enqueueOutbox(txn, 'expenses', expense.id, 'INSERT', expense);
@@ -174,7 +179,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
       await txn.runAsync(
         `UPDATE expenses
          SET title = ?, amount = ?, category = ?, note = ?,
-             date = ?, updated_at = ?
+             date = ?, updated_at = ?, is_recurring = ?, recurrence_interval = ?
          WHERE id = ?`,
         [
           updated.title,
@@ -183,6 +188,8 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
           updated.note ?? null,
           updated.date,
           updated.updated_at,
+          updated.is_recurring,
+          updated.recurrence_interval ?? null,
           id,
         ],
       );
@@ -506,6 +513,46 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
       saved_amount: newSaved,
       is_purchased: newSaved >= item.target_amount ? 1 : item.is_purchased,
     });
+  },
+
+
+  applyRecurringExpenses: async () => {
+    const monthKey = currentMonthKey();
+    const firstOfMonth = `${monthKey}-01`;
+    const allExpenses = get().expenses;
+
+    const recurringTemplates = allExpenses.filter((e) => e.is_recurring === 1);
+
+    for (const template of recurringTemplates) {
+      // Check if an expense with same title+category+is_recurring already exists for current month
+      const alreadyExists = allExpenses.some(
+        (e) =>
+          e.is_recurring === 1 &&
+          e.title === template.title &&
+          e.category === template.category &&
+          e.date.slice(0, 7) === monthKey &&
+          e.id !== template.id,
+      );
+
+      // Also check if the template itself belongs to this month
+      const templateIsThisMonth = template.date.slice(0, 7) === monthKey;
+
+      if (!alreadyExists && !templateIsThisMonth) {
+        try {
+          await get().createExpense({
+            title: template.title,
+            amount: template.amount,
+            category: template.category,
+            note: template.note,
+            date: firstOfMonth,
+            is_recurring: 1,
+            recurrence_interval: 'monthly',
+          });
+        } catch (e) {
+          console.warn('[ledger] Failed to apply recurring expense:', e);
+        }
+      }
+    }
   },
 
 

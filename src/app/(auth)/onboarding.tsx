@@ -78,7 +78,7 @@ export default function OnboardingScreen() {
       await startAccountOnboarding(res.profile, res.tokens);
       router.push('/(auth)/setup-password');
     } catch (err: any) {
-      Alert.alert('Email Auth Error', err?.message || 'Failed to authenticate with Firebase.');
+      Alert.alert('Sign In Error', err?.message || 'Unable to sign in. Please verify your credentials.');
     } finally {
       setIsProcessing(false);
     }
@@ -273,7 +273,7 @@ export default function OnboardingScreen() {
               color={colors.textMuted}
               style={styles.privacySub}
             >
-              Guest mode is offline-first. Email accounts sync securely with Firebase.
+              Guest mode is device-only. Signed-in accounts sync securely across devices.
             </AppText>
           </BentoCard>
         </View>

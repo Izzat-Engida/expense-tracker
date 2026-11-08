@@ -7,6 +7,7 @@ import {
   AppText,
   PillBadge,
   ProgressBar,
+  JapaneseIcon,
 } from '@/components/ui';
 import DaySection from '@/components/ui/DaySection'
 import { Fonts, useThemeColors } from '@/constants/theme';
@@ -18,14 +19,22 @@ import {
   formatMonthKanji,
   formatMonthLabel,
   getHomeSummary,
+  computeSpendingStreak,
 } from '@/lib/ledger';
 
 export default function HomeScreen() {
   const { colors } = useThemeColors();
   const currency = useSettingsStore((s) => s.currency);
-  const { expenses, incomes, budgets, savings, deleteSaving, isInitialized, error } = useLedger();
+  const dailyLimit = useSettingsStore((s) => s.dailyLimit);
+  const { expenses, incomes, budgets, savings, deleteSaving, applyRecurringExpenses, isInitialized, error } = useLedger();
   const activeAccount = useAuthStore((s) => s.activeAccount);
   const { syncStatus, isDeviceOnline, pendingCount, autoSyncIfConnected, refreshStatus } = useSyncStore();
+
+  useEffect(() => {
+    if (isInitialized) {
+      applyRecurringExpenses();
+    }
+  }, [isInitialized, applyRecurringExpenses]);
 
   useEffect(() => {
     if (!activeAccount?.isLocal) {
@@ -52,6 +61,11 @@ export default function HomeScreen() {
   );
   const recentSavings = useMemo(() => savings.slice(0, 3), [savings]);
 
+  const streakResult = useMemo(
+    () => computeSpendingStreak(expenses, dailyLimit),
+    [expenses, dailyLimit],
+  );
+
   const handleDeleteSaving = (id: string, title: string) => {
     Alert.alert('Delete saving', `Remove "${title}" from your savings history?`, [
       { text: 'Cancel', style: 'cancel' },
@@ -75,7 +89,7 @@ export default function HomeScreen() {
         <BentoCard variant="light" style={styles.statusCard}>
           <AppText variant="bodyBold">Loading ledger…</AppText>
           <AppText variant="caption" color={colors.textSecondary}>
-            Reading your local database.
+            Preparing your ledger…
           </AppText>
         </BentoCard>
       </Main>
@@ -228,6 +242,15 @@ export default function HomeScreen() {
         <BentoCard variant="light" style={styles.ledgerCard}>
           <DaySection group={summary.today} badgeVariant="dark" />
           <DaySection group={summary.yesterday} badgeVariant="outline" showDivider />
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => router.push('/modals/ledger-history')}
+            style={[styles.allTransactionsBtn, { borderColor: colors.border, backgroundColor: colors.cardElevated }]}
+          >
+            <AppText variant="bodyBold" style={{ fontSize: 12 }}>
+              View All Transactions ({expenses.length})
+            </AppText>
+          </TouchableOpacity>
         </BentoCard>
       ) : (
         <TouchableOpacity
@@ -307,6 +330,57 @@ export default function HomeScreen() {
           )}
         </BentoCard>
       )}
+
+      <BentoCard variant="light" style={styles.streakCard}>
+        <View style={styles.streakHeaderRow}>
+          <AppText variant="caption" color={colors.textSecondary}>
+            連続 · Spending Streak
+          </AppText>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => router.push('/(tabs)/settings' as any)}
+          >
+            <AppText variant="caption" color={colors.textMuted} style={{ fontSize: 11 }}>
+              {dailyLimit > 0 ? `Limit: ${Math.round(dailyLimit).toLocaleString()} ${currency}` : 'Set a limit ›'}
+            </AppText>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.streakCountRow}>
+          <AppText variant="serifTitle" style={styles.streakNumber}>
+            {streakResult.streak}
+          </AppText>
+          <View style={{ flex: 1 }}>
+            <AppText variant="bodyBold">
+              {streakResult.streak === 1 ? 'day' : 'days'} clean
+            </AppText>
+            <AppText variant="caption" color={colors.textMuted}>
+              {streakResult.isCleanToday
+                ? dailyLimit > 0
+                  ? `Today: ${Math.round(streakResult.todayAmount).toLocaleString()} / ${Math.round(dailyLimit).toLocaleString()} ${currency}`
+                  : 'No spending today'
+                : `Today: ${Math.round(streakResult.todayAmount).toLocaleString()} ${currency} ${dailyLimit > 0 ? '(over limit)' : '(spending day)'}`}
+            </AppText>
+          </View>
+          <View style={[
+            styles.streakBadge,
+            { backgroundColor: streakResult.isCleanToday ? colors.bambooGreen : colors.cardElevated,
+              borderColor: streakResult.isCleanToday ? colors.bambooGreen : colors.border }
+          ]}>
+            <JapaneseIcon
+              name={streakResult.streak >= 30 ? 'kiku' : streakResult.streak >= 7 ? 'sakura' : streakResult.isCleanToday ? 'enso' : 'take'}
+              size={24}
+              color={streakResult.isCleanToday ? '#FFFFFF' : colors.textPrimary}
+            />
+          </View>
+        </View>
+
+        {streakResult.longestStreak > 0 && (
+          <AppText variant="caption" color={colors.textMuted}>
+            Personal best: {streakResult.longestStreak} {streakResult.longestStreak === 1 ? 'day' : 'days'}
+          </AppText>
+        )}
+      </BentoCard>
     </Main>
   );
 }
@@ -386,6 +460,14 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     gap: 8,
   },
+  allTransactionsBtn: {
+    borderWidth: 1.5,
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 6,
+  },
  
   emptyCard: {
     paddingVertical: 24,
@@ -439,5 +521,31 @@ const styles = StyleSheet.create({
   statusCard: {
     paddingVertical: 24,
     gap: 6,
+  },
+  streakCard: {
+    paddingVertical: 16,
+    gap: 10,
+  },
+  streakHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  streakCountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  streakNumber: {
+    fontSize: 40,
+    lineHeight: 44,
+  },
+  streakBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

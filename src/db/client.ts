@@ -38,7 +38,12 @@ export async function getDb(forAccountId?: string | null): Promise<SQLiteDatabas
   await db.execAsync('PRAGMA foreign_keys = ON;');
 
   for (const sql of ALL_MIGRATIONS) {
-    await db.execAsync(sql);
+    try {
+      await db.execAsync(sql);
+    } catch (e) {
+      // Migration statements like ALTER TABLE fail silently if already applied
+      console.warn('[db] Migration skipped (already applied?):', e);
+    }
   }
 
   dbInstances.set(dbName, db);
@@ -50,7 +55,11 @@ export async function migrateDb(db: SQLiteDatabase): Promise<void> {
   await db.execAsync('PRAGMA journal_mode = WAL;');
   await db.execAsync('PRAGMA foreign_keys = ON;');
   for (const sql of ALL_MIGRATIONS) {
-    await db.execAsync(sql);
+    try {
+      await db.execAsync(sql);
+    } catch (e) {
+      console.warn('[db] Migration skipped (already applied?):', e);
+    }
   }
 }
 

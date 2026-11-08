@@ -7,6 +7,7 @@ import {
   BentoCard,
   AppText,
   HankoStamp,
+  PillBadge,
 } from '@/components/ui';
 import { DonutChart, TrendLineChart, VerticalBarChart } from '@/components/charts';
 import { useLedger } from '@/hooks/useLedger';
@@ -20,12 +21,13 @@ import {
   getMonthlyTrend,
   getOverviewSummary,
   getWeekdaySpending,
+  getYearSummary,
   monthlyIncome,
 } from '@/lib/ledger';
 
 export default function OverviewScreen() {
   const { colors, isDark } = useThemeColors();
-  const { expenses, incomes, isInitialized, error } = useLedger();
+  const { expenses, incomes, savings, budgets, isInitialized, error } = useLedger();
   const currency = useSettingsStore((s) => s.currency);
   const [selectedMonth, setSelectedMonth] = useState(currentMonthKey);
 
@@ -64,6 +66,13 @@ export default function OverviewScreen() {
     [summary.categoryRows, colors],
   );
 
+  const selectedYear = Number(selectedMonth.split('-')[0]);
+
+  const yearSummary = useMemo(
+    () => getYearSummary(expenses, incomes, budgets, savings, selectedYear),
+    [expenses, incomes, budgets, savings, selectedYear],
+  );
+
   const hasData = summary.totalSpent > 0;
   const net = monthIncome - summary.totalSpent;
   const axisLabels = [1, 7, 14, 21, summary.days];
@@ -74,7 +83,7 @@ export default function OverviewScreen() {
         <BentoCard variant="light" style={styles.statusCard}>
           <AppText variant="bodyBold">Loading overview…</AppText>
           <AppText variant="caption" color={colors.textSecondary}>
-            Reading your local database.
+            Preparing your ledger…
           </AppText>
         </BentoCard>
       </Main>
@@ -107,9 +116,11 @@ export default function OverviewScreen() {
         >
           <TouchableOpacity
             activeOpacity={0.6}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 4 }}
             onPress={() => setSelectedMonth((month) => addMonths(month, -1))}
+            style={styles.monthArrowBtn}
           >
-            <AppText variant="caption" color={colors.textPrimary}>
+            <AppText variant="bodyBold" color={colors.textPrimary}>
               ‹
             </AppText>
           </TouchableOpacity>
@@ -121,9 +132,11 @@ export default function OverviewScreen() {
           </AppText>
           <TouchableOpacity
             activeOpacity={0.6}
+            hitSlop={{ top: 12, bottom: 12, left: 4, right: 12 }}
             onPress={() => setSelectedMonth((month) => addMonths(month, 1))}
+            style={styles.monthArrowBtn}
           >
-            <AppText variant="caption" color={colors.textPrimary}>
+            <AppText variant="bodyBold" color={colors.textPrimary}>
               ›
             </AppText>
           </TouchableOpacity>
@@ -332,6 +345,183 @@ export default function OverviewScreen() {
               </AppText>
             </View>
           </BentoCard>
+
+          {/* ─── Year Summary ─── */}
+          <BentoCard variant="dark" style={styles.yearSummaryCard}>
+            <View style={styles.rowBetween}>
+              <AppText variant="caption" color={colors.textMuted}>
+                年間 · {selectedYear} Year Summary
+              </AppText>
+              <HankoStamp size="sm" />
+            </View>
+
+            <View style={styles.yearStatsGrid}>
+              <View style={styles.yearStatItem}>
+                <AppText variant="caption" color={colors.textMuted}>Income</AppText>
+                <AppText variant="bodyBold" color={colors.bambooGreen}>
+                  {Math.round(yearSummary.totalIncome).toLocaleString()}
+                </AppText>
+              </View>
+              <View style={styles.yearStatItem}>
+                <AppText variant="caption" color={colors.textMuted}>Spent</AppText>
+                <AppText variant="bodyBold" color={colors.hankoRed}>
+                  {Math.round(yearSummary.totalSpent).toLocaleString()}
+                </AppText>
+              </View>
+              <View style={styles.yearStatItem}>
+                <AppText variant="caption" color={colors.textMuted}>Saved</AppText>
+                <AppText variant="bodyBold" color={colors.categoryTransport}>
+                  {Math.round(yearSummary.totalSaved).toLocaleString()}
+                </AppText>
+              </View>
+              <View style={styles.yearStatItem}>
+                <AppText variant="caption" color={colors.textMuted}>Net</AppText>
+                <AppText
+                  variant="bodyBold"
+                  color={yearSummary.net >= 0 ? colors.positiveText : colors.negativeText}
+                >
+                  {yearSummary.net >= 0 ? '+' : '-'}
+                  {Math.round(Math.abs(yearSummary.net)).toLocaleString()}
+                </AppText>
+              </View>
+            </View>
+
+            <AppText variant="caption" color={colors.textMuted} style={styles.yearCurrencyNote}>
+              All values in {currency}
+            </AppText>
+          </BentoCard>
+
+          <BentoCard variant="light" style={styles.chartCard}>
+            <AppText variant="caption" color={colors.textSecondary}>
+              Monthly budget health
+            </AppText>
+            <View style={styles.monthHealthGrid}>
+              {yearSummary.months.map((m) => {
+                const hasActivity = m.spent > 0 || m.income > 0;
+                const currentMonthIndex = Number(selectedMonth.split('-')[1]);
+                const monthIndex = Number(m.monthKey.split('-')[1]);
+                const isSelectedMonth = monthIndex === currentMonthIndex;
+
+                return (
+                  <TouchableOpacity
+                    key={m.monthKey}
+                    activeOpacity={0.7}
+                    onPress={() => setSelectedMonth(m.monthKey)}
+                    style={[
+                      styles.monthHealthItem,
+                      {
+                        backgroundColor: isSelectedMonth
+                          ? (isDark ? colors.cardElevated : colors.cardDark)
+                          : (isDark ? 'rgba(255,255,255,0.05)' : colors.cardElevated),
+                        borderColor: m.overBudget
+                          ? colors.hankoRed
+                          : hasActivity
+                          ? colors.bambooGreen
+                          : colors.divider,
+                      },
+                    ]}
+                  >
+                    <AppText
+                      variant="caption"
+                      color={isSelectedMonth ? colors.textInverse : colors.textPrimary}
+                      style={styles.monthHealthLabel}
+                    >
+                      {m.label}
+                    </AppText>
+                    {hasActivity ? (
+                      <>
+                        <AppText
+                          variant="caption"
+                          color={
+                            m.overBudget
+                              ? colors.hankoRed
+                              : isSelectedMonth
+                              ? colors.textInverse
+                              : colors.textSecondary
+                          }
+                          style={styles.monthHealthAmount}
+                        >
+                          {formatCompactAmount(m.spent)}
+                        </AppText>
+                        {m.overBudget && (
+                          <AppText variant="caption" color={colors.hankoRed} style={styles.monthHealthOver}>
+                            OVER
+                          </AppText>
+                        )}
+                      </>
+                    ) : (
+                      <AppText
+                        variant="caption"
+                        color={isSelectedMonth ? colors.textInverse : colors.textMuted}
+                        style={styles.monthHealthAmount}
+                      >
+                        —
+                      </AppText>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </BentoCard>
+
+          {/* ─── Kakeibo Monthly Reflection ─── */}
+          <BentoCard variant="light" style={styles.chartCard}>
+            <View style={styles.rowBetween}>
+              <View>
+                <AppText variant="caption" color={colors.textSecondary}>
+                  家計簿 · Kakeibo Reflection
+                </AppText>
+                <AppText variant="bodyBold">
+                  {formatMonthLabel(selectedMonth)}
+                </AppText>
+              </View>
+              <PillBadge
+                variant={net >= 0 ? 'income' : 'expense'}
+                label={net >= 0 ? 'Room for Clarity (余白あり)' : 'Overdrawn (超過)'}
+              />
+            </View>
+
+            <View style={[styles.kakeiboBox, { backgroundColor: colors.cardElevated, borderColor: colors.divider }]}>
+              <View style={styles.kakeiboQuestion}>
+                <AppText variant="caption" color={colors.textSecondary} style={{ fontFamily: Fonts.sansBold }}>
+                  1. How much came in?
+                </AppText>
+                <AppText variant="caption" color={colors.bambooGreen} style={{ fontFamily: Fonts.mono }}>
+                  +{Math.round(monthIncome).toLocaleString()} {currency}
+                </AppText>
+              </View>
+
+              <View style={styles.kakeiboQuestion}>
+                <AppText variant="caption" color={colors.textSecondary} style={{ fontFamily: Fonts.sansBold }}>
+                  2. How much was spent?
+                </AppText>
+                <AppText variant="caption" color={colors.hankoRed} style={{ fontFamily: Fonts.mono }}>
+                  -{Math.round(summary.totalSpent).toLocaleString()} {currency}
+                </AppText>
+              </View>
+
+              <View style={styles.kakeiboQuestion}>
+                <AppText variant="caption" color={colors.textSecondary} style={{ fontFamily: Fonts.sansBold }}>
+                  3. Net remaining margin:
+                </AppText>
+                <AppText
+                  variant="caption"
+                  color={net >= 0 ? colors.positiveText : colors.negativeText}
+                  style={{ fontFamily: Fonts.mono }}
+                >
+                  {net >= 0 ? '+' : ''}{Math.round(net).toLocaleString()} {currency}
+                </AppText>
+              </View>
+
+              <View style={[styles.kakeiboDivider, { backgroundColor: colors.divider }]} />
+
+              <AppText variant="caption" color={colors.textSecondary} style={{ fontStyle: 'italic', lineHeight: 16 }}>
+                {net >= 0
+                  ? '「心に余裕を持ち、無駄なく暮らす」— Living with intention leaves room for peace and saving.'
+                  : '「足るを知る」— Review wants vs needs next month to restore balance to your ledger.'}
+              </AppText>
+            </View>
+          </BentoCard>
         </>
       ) : (
         <TouchableOpacity
@@ -363,11 +553,18 @@ const styles = StyleSheet.create({
   monthSelectorPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 4,
     borderWidth: 1.5,
     borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  monthArrowBtn: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 18,
   },
   monthPillText: {
     fontFamily: Fonts.sansBold,
@@ -450,5 +647,70 @@ const styles = StyleSheet.create({
   statusCard: {
     paddingVertical: 24,
     gap: 6,
+  },
+  yearSummaryCard: {
+    paddingVertical: 18,
+    gap: 14,
+  },
+  yearStatsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  yearStatItem: {
+    flex: 1,
+    minWidth: '40%',
+    gap: 2,
+  },
+  yearCurrencyNote: {
+    fontSize: 10,
+    textAlign: 'right',
+  },
+  monthHealthGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  monthHealthItem: {
+    width: '22%',
+    flexGrow: 1,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+    gap: 2,
+  },
+  monthHealthLabel: {
+    fontSize: 11,
+    fontFamily: Fonts.sansBold,
+    letterSpacing: 0.5,
+  },
+  monthHealthAmount: {
+    fontSize: 11,
+    fontFamily: Fonts.mono,
+  },
+  monthHealthOver: {
+    fontSize: 8,
+    fontFamily: Fonts.sansBold,
+    letterSpacing: 1,
+  },
+  kakeiboBox: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    gap: 8,
+    marginTop: 4,
+  },
+  kakeiboQuestion: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  kakeiboDivider: {
+    height: 1,
+    width: '100%',
+    marginVertical: 2,
+    opacity: 0.6,
   },
 });

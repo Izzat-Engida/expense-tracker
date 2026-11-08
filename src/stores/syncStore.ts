@@ -53,10 +53,10 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
       lastSyncedAt: activeAccount?.lastSyncedAt || null,
       syncStatus: !online ? 'offline' : get().syncStatus === 'syncing' ? 'syncing' : 'idle',
       statusMessage: !online
-        ? 'Offline (changes saved in local SQLite)'
+        ? 'Offline (saved safely on device)'
         : count > 0
         ? `${count} change${count > 1 ? 's' : ''} queued`
-        : 'Up to date with Cloud (Firestore)',
+        : 'Up to date with cloud',
     });
   },
 
@@ -79,7 +79,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
       return null;
     }
 
-    set({ syncStatus: 'syncing', statusMessage: 'Syncing with Firestore…' });
+    set({ syncStatus: 'syncing', statusMessage: 'Syncing with cloud…' });
 
     try {
       const result = await syncAccountWithFirebase(activeAccount.id);
