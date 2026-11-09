@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Crypto from 'expo-crypto';
+import * as FileSystem from 'expo-file-system/legacy';
 import type { GoogleAccount, AuthTokens, GoogleUserProfile } from '@/types/auth';
 import {
   loadRegisteredAccounts,
@@ -15,6 +16,11 @@ import {
 } from '@/services/auth';
 import { setCurrentDatabaseAccount, deleteAccountDatabase } from '@/db/client';
 import { deleteAccountFromFirebase } from '@/services/firebaseSync';
+import {
+  updateFirebaseUsername,
+  updateFirebaseEmail,
+  updateFirebasePassword,
+} from '@/services/firebaseAuth';
 import { useLedgerStore } from '@/stores/ledgerStore';
 import { useSyncStore } from '@/stores/syncStore';
 
@@ -34,6 +40,11 @@ interface AuthActions {
     tokens: AuthTokens
   ) => Promise<GoogleAccount>;
   startLocalAccountOnboarding: () => Promise<GoogleAccount>;
+  signInExistingAccount: (
+    profile: GoogleUserProfile,
+    tokens: AuthTokens,
+    password?: string
+  ) => Promise<GoogleAccount>;
   completePasswordSetup: (
     password: string,
     biometricEnabled: boolean,
@@ -44,6 +55,18 @@ interface AuthActions {
   selectAccountToUnlock: (accountId: string) => GoogleAccount | null;
   updateBiometricSetting: (accountId: string, enabled: boolean) => Promise<void>;
   changePassword: (accountId: string, newPassword: string) => Promise<void>;
+  updateProfileName: (accountId: string, newName: string) => Promise<void>;
+  updateProfileAvatar: (accountId: string, avatarUrl: string | null) => Promise<void>;
+  updateProfileEmail: (
+    accountId: string,
+    currentPassword: string,
+    newEmail: string
+  ) => Promise<{ emailUpdatedImmediately: boolean }>;
+  updateAccountPassword: (
+    accountId: string,
+    currentPassword: string,
+    newPassword: string
+  ) => Promise<void>;
   updateAccountSyncTime: (accountId: string, syncedAt: string) => Promise<void>;
   removeAccount: (accountId: string) => Promise<void>;
   deleteAccount: (accountId: string) => Promise<void>;
@@ -122,6 +145,65 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     // No tokens and no Firebase call — guest profiles are local SQLite only.
     set({ pendingAccount: newAcc });
     return newAcc;
+  },
+
+  signInExistingAccount: async (profile, tokens, password) => {
+    const { accounts, biometricHardwareAvailable } = get();
+    const accountId = profile.id;
+    const name = profile.name || profile.email.split('@')[0] || 'User';
+
+    await saveAccountTokens(accountId, tokens);
+
+    if (password) {
+      await saveAccountPassword(accountId, password);
+    }
+
+    const readyAccount: GoogleAccount = {
+      id: accountId,
+      email: profile.email,
+      name,
+      avatarUrl: profile.picture,
+      hasPassword: Boolean(password),
+      biometricEnabled: biometricHardwareAvailable,
+      isLocal: false,
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+      lastSyncedAt: null,
+    };
+
+    const existingIdx = accounts.findIndex((a) => a.id === readyAccount.id);
+    let updatedAccounts: GoogleAccount[];
+    if (existingIdx >= 0) {
+      updatedAccounts = [...accounts];
+      updatedAccounts[existingIdx] = {
+        ...accounts[existingIdx],
+        ...readyAccount,
+      };
+    } else {
+      updatedAccounts = [readyAccount, ...accounts];
+    }
+
+    await saveRegisteredAccounts(updatedAccounts);
+    await setActiveAccountId(readyAccount.id);
+
+    setCurrentDatabaseAccount(readyAccount.id);
+    await useLedgerStore.getState().loadAll();
+
+    // On new login/device, immediately download cloud data if available.
+    try {
+      await useSyncStore.getState().syncNow();
+    } catch (e) {
+      console.warn('Initial login sync notice:', e);
+    }
+
+    set({
+      accounts: updatedAccounts,
+      activeAccount: readyAccount,
+      pendingAccount: null,
+      isAuthenticated: true,
+    });
+
+    return readyAccount;
   },
 
   completePasswordSetup: async (password: string, biometricEnabled: boolean, displayName?: string) => {
@@ -291,6 +373,136 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
   changePassword: async (accountId: string, newPassword: string) => {
     await saveAccountPassword(accountId, newPassword);
+  },
+
+  updateProfileName: async (accountId: string, newName: string) => {
+    const trimmed = newName.trim();
+    if (!trimmed) throw new Error('Username cannot be empty.');
+
+    const target = get().accounts.find((a) => a.id === accountId);
+    if (!target) throw new Error('Account not found.');
+
+    if (!target.isLocal) {
+      await updateFirebaseUsername(trimmed);
+    }
+
+    const updatedAccounts = get().accounts.map((a) =>
+      a.id === accountId ? { ...a, name: trimmed } : a
+    );
+    await saveRegisteredAccounts(updatedAccounts);
+
+    set((s) => ({
+      accounts: updatedAccounts,
+      activeAccount:
+        s.activeAccount?.id === accountId
+          ? { ...s.activeAccount, name: trimmed }
+          : s.activeAccount,
+    }));
+  },
+
+  updateProfileAvatar: async (accountId: string, avatarUrl: string | null) => {
+    const target = get().accounts.find((a) => a.id === accountId);
+    if (!target) throw new Error('Account not found.');
+
+    let finalUrl = avatarUrl;
+    if (avatarUrl && avatarUrl.startsWith('file:')) {
+      try {
+        const ext = avatarUrl.split('.').pop() || 'jpg';
+        const filename = `avatar_${accountId}_${Date.now()}.${ext}`;
+        const targetPath = `${FileSystem.documentDirectory}${filename}`;
+        await FileSystem.copyAsync({ from: avatarUrl, to: targetPath });
+        finalUrl = targetPath;
+      } catch (e) {
+        console.warn('Could not persist avatar to documents, using source URI:', e);
+      }
+    }
+
+    const updatedAccounts = get().accounts.map((a) =>
+      a.id === accountId ? { ...a, avatarUrl: finalUrl ?? undefined } : a
+    );
+    await saveRegisteredAccounts(updatedAccounts);
+
+    set((s) => ({
+      accounts: updatedAccounts,
+      activeAccount:
+        s.activeAccount?.id === accountId
+          ? { ...s.activeAccount, avatarUrl: finalUrl ?? undefined }
+          : s.activeAccount,
+    }));
+  },
+
+  updateProfileEmail: async (accountId: string, currentPassword: string, newEmail: string) => {
+    const trimmed = newEmail.trim();
+    if (!trimmed) throw new Error('Email cannot be empty.');
+
+    const target = get().accounts.find((a) => a.id === accountId);
+    if (!target) throw new Error('Account not found.');
+
+    if (target.isLocal) {
+      const updatedAccounts = get().accounts.map((a) =>
+        a.id === accountId ? { ...a, email: trimmed } : a
+      );
+      await saveRegisteredAccounts(updatedAccounts);
+      set((s) => ({
+        accounts: updatedAccounts,
+        activeAccount:
+          s.activeAccount?.id === accountId
+            ? { ...s.activeAccount, email: trimmed }
+            : s.activeAccount,
+      }));
+      return { emailUpdatedImmediately: true };
+    }
+
+    const res = await updateFirebaseEmail(currentPassword, trimmed);
+
+    if (res.emailUpdatedImmediately) {
+      const updatedAccounts = get().accounts.map((a) =>
+        a.id === accountId ? { ...a, email: trimmed } : a
+      );
+      await saveRegisteredAccounts(updatedAccounts);
+      set((s) => ({
+        accounts: updatedAccounts,
+        activeAccount:
+          s.activeAccount?.id === accountId
+            ? { ...s.activeAccount, email: trimmed }
+            : s.activeAccount,
+      }));
+    }
+
+    return res;
+  },
+
+  updateAccountPassword: async (accountId: string, currentPassword: string, newPassword: string) => {
+    if (!newPassword || newPassword.length < 4) {
+      throw new Error('New password/PIN must be at least 4 characters.');
+    }
+
+    const target = get().accounts.find((a) => a.id === accountId);
+    if (!target) throw new Error('Account not found.');
+
+    const isValid = await verifyAccountPassword(accountId, currentPassword);
+    if (!isValid) {
+      throw new Error('Current password or PIN is incorrect.');
+    }
+
+    if (!target.isLocal) {
+      await updateFirebasePassword(currentPassword, newPassword);
+    }
+
+    await saveAccountPassword(accountId, newPassword);
+
+    const updatedAccounts = get().accounts.map((a) =>
+      a.id === accountId ? { ...a, hasPassword: true } : a
+    );
+    await saveRegisteredAccounts(updatedAccounts);
+
+    set((s) => ({
+      accounts: updatedAccounts,
+      activeAccount:
+        s.activeAccount?.id === accountId
+          ? { ...s.activeAccount, hasPassword: true }
+          : s.activeAccount,
+    }));
   },
 
   updateAccountSyncTime: async (accountId: string, syncedAt: string) => {

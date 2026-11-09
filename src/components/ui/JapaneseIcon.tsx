@@ -17,7 +17,10 @@ export type JapaneseIconName =
   | 'sweep'      // 掃 - Vessel / Clean Reset
   | 'exit'       // 出門 - Gate / Sign Out
   | 'search'     // 調べ - Minimalist Lens
-  | 'exchange';  // 交 - Switch / Cycle
+  | 'exchange'   // 交 - Switch / Cycle
+  | 'arrowLeft'  // 左矢 - Back / Return
+  | 'chevronLeft'// 戻り - Minimal chevron back
+  | 'chevronRight';// 進み - Minimal chevron forward
 
 interface JapaneseIconProps {
   name: JapaneseIconName;
@@ -245,6 +248,28 @@ export function JapaneseIcon({
         <Svg width={size} height={size} viewBox="0 0 24 24" {...common}>
           <Path d="M4 8 H17 L14 5" />
           <Path d="M20 16 H7 L10 19" />
+        </Svg>
+      );
+
+    case 'arrowLeft':
+      return (
+        <Svg width={size} height={size} viewBox="0 0 24 24" {...common}>
+          <Path d="M19 12 H5" />
+          <Path d="M11 18 L5 12 L11 6" />
+        </Svg>
+      );
+
+    case 'chevronLeft':
+      return (
+        <Svg width={size} height={size} viewBox="0 0 24 24" {...common}>
+          <Path d="M15 19 L8 12 L15 5" />
+        </Svg>
+      );
+
+    case 'chevronRight':
+      return (
+        <Svg width={size} height={size} viewBox="0 0 24 24" {...common}>
+          <Path d="M9 5 L16 12 L9 19" />
         </Svg>
       );
 

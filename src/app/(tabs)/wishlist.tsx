@@ -426,10 +426,8 @@ export default function WishlistScreen() {
           <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.modalHeader}>
               <View>
-                <AppText variant="serifTitle">New Wishlist Goal</AppText>
-                <AppText variant="caption" color={colors.textSecondary}>
-                  新しい目標 · Add thing to buy
-                </AppText>
+                <AppText variant="serifTitle">Wishlist Goal</AppText>
+             
               </View>
               <TouchableOpacity
                 onPress={() => setModalVisible(false)}
@@ -444,12 +442,12 @@ export default function WishlistScreen() {
         
             <View style={styles.formGroup}>
               <AppText variant="caption" color={colors.textSecondary}>
-                Item name / What to buy
+                What to buy
               </AppText>
               <TextInput
                 value={newTitle}
                 onChangeText={setNewTitle}
-                placeholder="e.g. Sony WH-1000XM5, Trip to Kyoto"
+                placeholder="Trip to Kyoto"
                 placeholderTextColor={colors.textMuted}
                 style={[styles.formInput, { backgroundColor: isDark ? colors.cardDark : colors.cardElevated, borderColor: colors.border, color: colors.textPrimary }]}
               />
@@ -465,7 +463,7 @@ export default function WishlistScreen() {
                   value={newTarget}
                   onChangeText={setNewTarget}
                   keyboardType="numeric"
-                  placeholder="e.g. 18000"
+                  placeholder="1000"
                   placeholderTextColor={colors.textMuted}
                   style={[styles.formInput, { backgroundColor: isDark ? colors.cardDark : colors.cardElevated, borderColor: colors.border, color: colors.textPrimary }]}
                 />
@@ -529,7 +527,7 @@ export default function WishlistScreen() {
          
             <View style={styles.formGroup}>
               <AppText variant="caption" color={colors.textSecondary}>
-                Note / Description (Optional)
+                Description (Optional)
               </AppText>
               <TextInput
                 value={newNote}

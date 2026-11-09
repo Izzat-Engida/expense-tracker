@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,6 +7,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -15,11 +16,14 @@ import {
   HankoStamp,
   ProgressBar,
   AppText,
+  JapaneseIcon,
 } from '@/components/ui';
 import { Fonts, useThemeColors } from '@/constants/theme';
 import { useAuthStore } from '@/stores/authStore';
-import { loginWithEmail } from '@/services/firebaseAuth';
-// import { promptGoogleAuth } from '@/services/auth';
+import { signUpWithEmail, getAuthErrorMessage } from '@/services/firebaseAuth';
+import { sendEmailVerificationCode, verifyEmailCode } from '@/services/emailVerification';
+import { triggerHaptic } from '@/utils/haptics';
+
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -28,9 +32,23 @@ export default function OnboardingScreen() {
   const startLocalAccountOnboarding = useAuthStore((s) => s.startLocalAccountOnboarding);
 
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [authMode, setAuthMode] = useState<'options' | 'emailInput' | 'verifyCode'>('options');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [resendTimer, setResendTimer] = useState(0);
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | undefined;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((t) => (t > 0 ? t - 1 : 0));
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [resendTimer]);
 
   const handleGuestMode = async () => {
     setIsProcessing(true);
@@ -44,41 +62,81 @@ export default function OnboardingScreen() {
     }
   };
 
-  /*
-  const handleGoogleLogin = async () => {
+  const handleRequestVerificationCode = async () => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      Alert.alert('Required', 'Please enter your email address.');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address.');
+      return;
+    }
+    if (!password || password.length < 6) {
+      Alert.alert('Password Length', 'Password must be at least 6 characters.');
+      return;
+    }
+
+    triggerHaptic.selection();
     setIsProcessing(true);
     try {
-      const res = await promptGoogleAuth();
-      if (!res) return;
-      await startAccountOnboarding(res.profile, res.tokens);
-      router.push('/(auth)/setup-password');
+      await sendEmailVerificationCode(trimmedEmail);
+      triggerHaptic.success();
+      setVerificationCode('');
+      setAuthMode('verifyCode');
+      setResendTimer(30);
     } catch (err: any) {
-      if (err?.message === 'MISSING_CLIENT_ID') {
-        Alert.alert(
-          'Google Sign-In',
-          'Add EXPO_PUBLIC_GOOGLE_CLIENT_ID (or platform-specific client IDs) to your environment to enable Google sign-in.',
-        );
-      } else {
-        Alert.alert('Google Sign-In', err?.message || 'Could not sign in with Google.');
-      }
+      Alert.alert('Verification Notice', err?.message || 'Could not dispatch verification code.');
     } finally {
       setIsProcessing(false);
     }
   };
-  */
 
-  const handleEmailAuth = async () => {
-    if (!email.trim() || !password.trim()) {
-      Alert.alert('Required', 'Please enter email and password.');
+  const handleResendCode = async () => {
+    if (resendTimer > 0 || isProcessing) return;
+    await handleRequestVerificationCode();
+  };
+
+  const handleVerifyAndSignUp = async () => {
+    const trimmedCode = verificationCode.trim();
+    if (!trimmedCode || trimmedCode.length !== 6) {
+      Alert.alert('Verification Code', 'Please enter the 6-digit verification code.');
       return;
     }
+
+    triggerHaptic.medium();
     setIsProcessing(true);
     try {
-      const res = await loginWithEmail(email.trim(), password.trim());
+      const verifyResult = verifyEmailCode(email, trimmedCode);
+      if (!verifyResult.valid) {
+        Alert.alert('Verification Failed', verifyResult.message);
+        setIsProcessing(false);
+        return;
+      }
+
+      // Code is valid! Proceed to create the Firebase account
+      const res = await signUpWithEmail(email.trim(), password.trim());
       await startAccountOnboarding(res.profile, res.tokens);
+      triggerHaptic.success();
       router.push('/(auth)/setup-password');
     } catch (err: any) {
-      Alert.alert('Sign In Error', err?.message || 'Unable to sign in. Please verify your credentials.');
+      if (err?.code === 'auth/email-already-in-use') {
+        Alert.alert(
+          'Account Already Exists',
+          'An account with this email already exists. Would you like to sign in instead?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Sign In',
+              style: 'default',
+              onPress: () => router.push('/(auth)/login'),
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Sign Up Error', getAuthErrorMessage(err));
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -163,10 +221,86 @@ export default function OnboardingScreen() {
               color={colors.textSecondary}
               style={styles.getStartedLabel}
             >
-              G E T   S T A R T E D
+              {authMode === 'verifyCode'
+                ? 'V E R I F Y   E M A I L'
+                : authMode === 'emailInput'
+                ? 'C R E A T E   A C C O U N T'
+                : 'G E T   S T A R T E D'}
             </AppText>
 
-            {showEmailForm ? (
+            {authMode === 'verifyCode' ? (
+              <View style={styles.emailForm}>
+                <View style={styles.verifyHeaderWrap}>
+                  <AppText variant="caption" color={colors.textSecondary} style={styles.verifyDesc}>
+                    We sent a 6-digit verification code to:
+                  </AppText>
+                  <AppText variant="bodyBold" style={{ textAlign: 'center' }}>
+                    {email}
+                  </AppText>
+                </View>
+
+                <TextInput
+                  placeholder="• • • • • •"
+                  placeholderTextColor={colors.textMuted}
+                  value={verificationCode}
+                  onChangeText={setVerificationCode}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  returnKeyType="done"
+                  onSubmitEditing={handleVerifyAndSignUp}
+                  style={[
+                    styles.codeInput,
+                    {
+                      color: colors.textPrimary,
+                      borderColor: colors.border,
+                      backgroundColor: colors.background,
+                    },
+                  ]}
+                />
+
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  disabled={isProcessing}
+                  style={[
+                    styles.primaryButton,
+                    { backgroundColor: colors.textPrimary },
+                  ]}
+                  onPress={handleVerifyAndSignUp}
+                >
+                  {isProcessing ? (
+                    <ActivityIndicator size="small" color={colors.background} />
+                  ) : (
+                    <AppText variant="bodyBold" color={colors.background}>
+                      Verify & Create Account
+                    </AppText>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleResendCode}
+                  disabled={resendTimer > 0 || isProcessing}
+                  style={styles.switchButton}
+                >
+                  <AppText
+                    variant="caption"
+                    color={resendTimer > 0 ? colors.textMuted : colors.textPrimary}
+                    style={{ fontFamily: resendTimer === 0 ? Fonts.sansBold : Fonts.sans }}
+                  >
+                    {resendTimer > 0 ? `Resend code in ${resendTimer}s` : 'Resend verification code'}
+                  </AppText>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => setAuthMode('emailInput')}
+                  disabled={isProcessing}
+                  style={styles.switchButton}
+                >
+                  <AppText variant="caption" color={colors.textSecondary}>
+                    ← Edit email or password
+                  </AppText>
+                </TouchableOpacity>
+              </View>
+            ) : authMode === 'emailInput' ? (
               <View style={styles.emailForm}>
                 <TextInput
                   placeholder="Email address"
@@ -175,6 +309,7 @@ export default function OnboardingScreen() {
                   onChangeText={setEmail}
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  autoCorrect={false}
                   style={[
                     styles.input,
                     { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.background },
@@ -186,6 +321,7 @@ export default function OnboardingScreen() {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry
+                  autoCapitalize="none"
                   style={[
                     styles.input,
                     { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.background },
@@ -198,14 +334,34 @@ export default function OnboardingScreen() {
                     styles.primaryButton,
                     { backgroundColor: colors.textPrimary },
                   ]}
-                  onPress={handleEmailAuth}
+                  onPress={handleRequestVerificationCode}
                 >
-                  <AppText variant="bodyBold" color={colors.background}>
-                    {isProcessing ? 'Connecting…' : 'Sign In or Register'}
+                  {isProcessing ? (
+                    <ActivityIndicator size="small" color={colors.background} />
+                  ) : (
+                    <AppText variant="bodyBold" color={colors.background}>
+                      Send Verification Code
+                    </AppText>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => {
+                    triggerHaptic.selection();
+                    router.push('/(auth)/login');
+                  }}
+                  style={styles.switchButton}
+                >
+                  <AppText variant="caption" color={colors.textPrimary}>
+                    Already have an account?{' '}
+                    <AppText variant="bodyBold" color={colors.textPrimary} style={{ textDecorationLine: 'underline' }}>
+                      Sign In
+                    </AppText>
                   </AppText>
                 </TouchableOpacity>
+
                 <TouchableOpacity
-                  onPress={() => setShowEmailForm(false)}
+                  onPress={() => setAuthMode('options')}
                   style={styles.switchButton}
                 >
                   <AppText variant="caption" color={colors.textSecondary}>
@@ -215,22 +371,6 @@ export default function OnboardingScreen() {
               </View>
             ) : (
               <View style={{ gap: 10 }}>
-                {/* Google OAuth - commented out
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  disabled={isProcessing}
-                  style={[
-                    styles.primaryButton,
-                    { backgroundColor: colors.textPrimary },
-                  ]}
-                  onPress={handleGoogleLogin}
-                >
-                  <AppText variant="bodyBold" color={colors.background}>
-                    {isProcessing ? 'Connecting…' : 'Continue with Google'}
-                  </AppText>
-                </TouchableOpacity>
-                */}
-
                 <TouchableOpacity
                   activeOpacity={0.8}
                   disabled={isProcessing}
@@ -259,11 +399,46 @@ export default function OnboardingScreen() {
                     styles.secondaryButton,
                     { borderColor: colors.border, backgroundColor: colors.cardElevated },
                   ]}
-                  onPress={() => setShowEmailForm(true)}
+                  onPress={() => setAuthMode('emailInput')}
                 >
                   <AppText variant="bodyBold" color={colors.textPrimary}>
-                    Sign in with Email
+                    Create Account with Email
                   </AppText>
+                </TouchableOpacity>
+
+                {/* Divider between Sign Up / Guest and Sign In */}
+                <View style={styles.dividerRow}>
+                  <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+                  <AppText variant="caption" color={colors.textMuted} style={styles.dividerLabel}>
+                    HAVE AN EXISTING ACCOUNT?
+                  </AppText>
+                  <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+                </View>
+
+                {/* Direct navigation to Login screen */}
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  disabled={isProcessing}
+                  style={[
+                    styles.signInNavButton,
+                    { borderColor: colors.border, backgroundColor: colors.cardElevated },
+                  ]}
+                  onPress={() => {
+                    triggerHaptic.selection();
+                    router.push('/(auth)/login');
+                  }}
+                >
+                  <View style={styles.signInNavContent}>
+                    <View style={{ flex: 1 }}>
+                      <AppText variant="bodyBold" color={colors.textPrimary}>
+                        Sign In to Existing Account
+                      </AppText>
+                      <AppText variant="caption" color={colors.textSecondary} style={{ marginTop: 2 }}>
+                        Sync and restore your ledger on this device
+                      </AppText>
+                    </View>
+                    <JapaneseIcon name="chevronRight" size={16} color={colors.textSecondary} strokeWidth={2.2} />
+                  </View>
                 </TouchableOpacity>
               </View>
             )}
@@ -421,6 +596,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginVertical: 4,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerLabel: {
+    fontSize: 9,
+    letterSpacing: 1.2,
+    fontWeight: '600',
+  },
+  signInNavButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  signInNavContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
   emailForm: {
     gap: 10,
   },
@@ -430,6 +632,24 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     fontSize: 14,
+  },
+  verifyHeaderWrap: {
+    gap: 4,
+    marginBottom: 6,
+  },
+  verifyDesc: {
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  codeInput: {
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    fontSize: 22,
+    letterSpacing: 8,
+    textAlign: 'center',
+    fontFamily: Fonts.mono,
   },
   switchButton: {
     alignItems: 'center',

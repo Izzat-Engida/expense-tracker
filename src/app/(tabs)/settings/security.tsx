@@ -30,7 +30,7 @@ export default function SecuritySettings() {
           activeOpacity={0.7}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <AppText style={[styles.backChevron, { color: colors.textPrimary }]}>‹</AppText>
+          <JapaneseIcon name="chevronLeft" size={16} color={colors.textPrimary} strokeWidth={2.2} />
         </TouchableOpacity>
         <View style={styles.headerTitleWrap}>
           <AppText variant="serifTitle" style={styles.headerTitle}>Security</AppText>
@@ -60,6 +60,28 @@ export default function SecuritySettings() {
         <AppText variant="caption" color={colors.textMuted}>
           When enabled, you&apos;ll be asked to verify your identity each time you open the app.
         </AppText>
+      </BentoCard>
+
+      <BentoCard variant="light" style={styles.card}>
+        <AppText variant="caption" color={colors.textSecondary}>AUTHENTICATION</AppText>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => {
+            triggerHaptic.selection();
+            router.push('/(tabs)/settings/account' as Href);
+          }}
+          style={[styles.securityActionRow, { borderColor: colors.border }]}
+        >
+          <View style={{ flex: 1 }}>
+            <AppText variant="bodyBold">
+              {activeAccount?.isLocal ? 'Device Passcode / PIN' : 'Account Password'}
+            </AppText>
+            <AppText variant="caption" color={colors.textSecondary}>
+              Manage and update your login credentials
+            </AppText>
+          </View>
+          <JapaneseIcon name="chevronRight" size={16} color={colors.textSecondary} strokeWidth={2.2} />
+        </TouchableOpacity>
       </BentoCard>
 
       <BentoCard variant="light" style={styles.card}>
@@ -121,6 +143,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 2,
+  },
+  securityActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+    gap: 12,
   },
   infoRow: {
     flexDirection: 'row',

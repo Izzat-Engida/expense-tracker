@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
-import { Main, BentoCard, AppText, PillBadge, JapaneseIcon } from '@/components/ui';
+import { Main, BentoCard, AppText, PillBadge, JapaneseIcon, UserAvatar } from '@/components/ui';
 import type { JapaneseIconName } from '@/components/ui';
 import { Fonts, useThemeColors } from '@/constants/theme';
 import { useAuthStore } from '@/stores/authStore';
@@ -83,19 +83,14 @@ export default function SettingsScreen() {
           Settings
         </AppText>
 
-        {/* Profile card */}
+       
         <BentoCard variant="light" art="wagara" style={styles.profileCard}>
           <View style={styles.profileRow}>
-            <View
-              style={[
-                styles.avatarCircle,
-                { backgroundColor: colors.selectionBg, borderColor: colors.border },
-              ]}
-            >
-              <AppText variant="bodyBold" color={colors.selectionText}>
-                {activeAccount?.name?.slice(0, 1).toUpperCase() || 'Y'}
-              </AppText>
-            </View>
+            <UserAvatar
+              avatarUrl={activeAccount?.avatarUrl}
+              name={activeAccount?.name}
+              size={44}
+            />
             <View style={{ flex: 1 }}>
               <AppText variant="bodyBold">{activeAccount?.name || 'Local Ledger'}</AppText>
               <AppText variant="caption" color={colors.textSecondary}>
@@ -131,12 +126,10 @@ export default function SettingsScreen() {
         <BentoCard variant="light" art="wagara" style={styles.limitCard}>
           <View style={styles.limitHeaderRow}>
             <View style={{ flex: 1 }}>
-              <AppText variant="caption" color={colors.textSecondary}>DAILY SPENDING LIMIT</AppText>
-              <AppText variant="bodyBold" style={{ fontSize: 15, marginTop: 2 }}>Daily Target / Cap</AppText>
+              <AppText variant="bodyBold">DAILY SPENDING LIMIT</AppText>
+
             </View>
-            <View style={[styles.limitBadge, { backgroundColor: colors.cardElevated, borderColor: colors.border }]}>
-              <JapaneseIcon name="enso" size={20} color={colors.bambooGreen} />
-            </View>
+          
           </View>
 
           <View style={[styles.limitInputRow, { borderColor: colors.border, backgroundColor: colors.cardElevated }]}>
@@ -148,7 +141,7 @@ export default function SettingsScreen() {
                 setDailyLimit(isNaN(val) || val <= 0 ? 0 : val);
               }}
               keyboardType="numeric"
-              placeholder={`e.g. 500 (${currency})`}
+              placeholder={` 500 `}
               placeholderTextColor={colors.textMuted}
               style={[styles.limitInput, { color: colors.textPrimary }]}
               returnKeyType="done"
@@ -156,11 +149,7 @@ export default function SettingsScreen() {
             <AppText variant="caption" color={colors.textMuted} style={styles.currencySuffix}>{currency}</AppText>
           </View>
 
-          <AppText variant="caption" color={colors.textMuted} style={styles.limitNote}>
-            {dailyLimit > 0
-              ? `Spending under ${Math.round(dailyLimit).toLocaleString()} ${currency}/day keeps your streak active on Home.`
-              : 'Set to 0 to track zero-spend days instead.'}
-          </AppText>
+         
         </BentoCard>
 
         {/* Menu sections */}

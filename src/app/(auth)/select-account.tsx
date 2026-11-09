@@ -13,6 +13,7 @@ import {
   AppText,
   HankoStamp,
   PillBadge,
+  UserAvatar,
 } from '@/components/ui';
 import { Fonts, useThemeColors } from '@/constants/theme';
 import { useAuthStore } from '@/stores/authStore';
@@ -116,11 +117,11 @@ export default function SelectAccountScreen() {
               activeOpacity={0.7}
               onPress={() => handleSelectAccount(acc)}
             >
-              <View style={[styles.avatarBox, { backgroundColor: colors.border }]}>
-                <AppText style={styles.avatarText}>
-                  {acc.name ? acc.name.charAt(0).toUpperCase() : 'U'}
-                </AppText>
-              </View>
+              <UserAvatar
+                avatarUrl={acc.avatarUrl}
+                name={acc.name}
+                size={44}
+              />
 
               <View style={styles.accountMeta}>
                 <AppText variant="bodyBold" numberOfLines={1}>

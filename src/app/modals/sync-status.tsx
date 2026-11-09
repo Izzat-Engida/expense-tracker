@@ -8,6 +8,7 @@ import {
   HankoStamp,
   PillBadge,
   JapaneseIcon,
+  UserAvatar,
 } from '@/components/ui';
 import {  useThemeColors } from '@/constants/theme';
 import { useAuthStore } from '@/stores/authStore';
@@ -63,16 +64,11 @@ export default function SyncStatusModal() {
       <BentoCard variant="light" style={styles.accountCard}>
         <View style={styles.rowBetween}>
           <View style={styles.accountInfoRow}>
-            <View
-              style={[
-                styles.avatarMini,
-                { backgroundColor: colors.selectionBg, borderColor: colors.border },
-              ]}
-            >
-              <AppText variant="caption" color={colors.selectionText}>
-                {activeAccount?.name?.slice(0, 1).toUpperCase() || 'Y'}
-              </AppText>
-            </View>
+            <UserAvatar
+              avatarUrl={activeAccount?.avatarUrl}
+              name={activeAccount?.name}
+              size={34}
+            />
             <View>
               <AppText variant="bodyBold">{activeAccount?.name || 'Local Account'}</AppText>
               <AppText variant="caption" color={colors.textSecondary}>

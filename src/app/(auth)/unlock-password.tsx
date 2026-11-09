@@ -15,9 +15,13 @@ import {
   AppText,
   HankoStamp,
   PillBadge,
+  JapaneseIcon,
+  UserAvatar,
 } from '@/components/ui';
 import { Fonts, useThemeColors } from '@/constants/theme';
 import { useAuthStore } from '@/stores/authStore';
+import { triggerHaptic } from '@/utils/haptics';
+import { sendPasswordReset, getAuthErrorMessage } from '@/services/firebaseAuth';
 
 export default function UnlockPasswordScreen() {
   const router = useRouter();
@@ -36,6 +40,7 @@ export default function UnlockPasswordScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isUnlocking, setIsUnlocking] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   if (!targetAccount) {
     return (
@@ -83,6 +88,46 @@ export default function UnlockPasswordScreen() {
     }
   };
 
+  const handleBack = () => {
+    triggerHaptic.selection();
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(auth)/select-account');
+    }
+  };
+
+  const handleForgotPassword = () => {
+    if (!targetAccount?.email) return;
+    triggerHaptic.selection();
+
+    Alert.alert(
+      'Reset Password',
+      `Dispatch a password reset link to ${targetAccount.email}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Send Reset Link',
+          onPress: async () => {
+            setIsResetting(true);
+            try {
+              await sendPasswordReset(targetAccount.email);
+              triggerHaptic.success();
+              Alert.alert(
+                'Reset Email Dispatched',
+                `A password reset link has been dispatched to ${targetAccount.email}. Please follow the link instructions in your email, then return here to unlock.`
+              );
+            } catch (err: any) {
+              Alert.alert('Reset Failed', getAuthErrorMessage(err));
+            } finally {
+              setIsResetting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -91,27 +136,36 @@ export default function UnlockPasswordScreen() {
       <Main contentContainerStyle={styles.container}>
         <View style={styles.headerRow}>
           <TouchableOpacity
-            onPress={() => router.replace('/(auth)/select-account')}
-            style={styles.backBtn}
+            activeOpacity={0.7}
+            onPress={handleBack}
+            style={[
+              styles.backBtn,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
+            ]}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <AppText variant="caption" color={colors.textSecondary}>
-              ‹ Switch Account
+            <JapaneseIcon
+              name="chevronLeft"
+              size={16}
+              color={colors.textPrimary}
+              strokeWidth={2.2}
+            />
+            <AppText variant="caption" color={colors.textPrimary} style={styles.backBtnText}>
+              Switch Account
             </AppText>
           </TouchableOpacity>
           <HankoStamp size="sm" />
         </View>
 
         <BentoCard variant="light" style={styles.profileCard}>
-          <View
-            style={[
-              styles.avatarLarge,
-              { backgroundColor: colors.selectionBg, borderColor: colors.border },
-            ]}
-          >
-            <AppText style={styles.avatarLetter} color={colors.selectionText}>
-              {(targetAccount.name || targetAccount.email || 'U').slice(0, 1).toUpperCase()}
-            </AppText>
-          </View>
+          <UserAvatar
+            avatarUrl={targetAccount.avatarUrl}
+            name={targetAccount.name || targetAccount.email}
+            size={68}
+          />
           <AppText variant="serifTitle" style={styles.nameText}>
             {targetAccount.name || 'Profile'}
           </AppText>
@@ -149,6 +203,19 @@ export default function UnlockPasswordScreen() {
               </AppText>
             </TouchableOpacity>
           </View>
+
+          {!targetAccount.isLocal && Boolean(targetAccount.email) && (
+            <TouchableOpacity
+              onPress={handleForgotPassword}
+              disabled={isResetting}
+              style={styles.forgotBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <AppText variant="caption" color={colors.textSecondary}>
+                {isResetting ? 'Sending reset…' : 'Forgot password?'}
+              </AppText>
+            </TouchableOpacity>
+          )}
         </BentoCard>
 
         <View style={styles.actionsWrap}>
@@ -202,10 +269,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 2,
   },
   backBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  backBtnText: {
+    fontFamily: Fonts.sansBold,
+    fontSize: 12,
+    letterSpacing: 0.3,
   },
   profileCard: {
     alignItems: 'center',
@@ -251,6 +334,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontFamily: Fonts.mono,
+  },
+  forgotBtn: {
+    alignSelf: 'flex-end',
+    marginTop: 6,
+    paddingVertical: 4,
   },
   actionsWrap: {
     gap: 10,

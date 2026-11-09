@@ -16,9 +16,11 @@ import {
   AppText,
   HankoStamp,
   PillBadge,
+  JapaneseIcon,
 } from '@/components/ui';
 import { Fonts, useThemeColors } from '@/constants/theme';
 import { useAuthStore } from '@/stores/authStore';
+import { triggerHaptic } from '@/utils/haptics';
 
 export default function SetupPasswordScreen() {
   const router = useRouter();
@@ -36,7 +38,7 @@ export default function SetupPasswordScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!pendingAccount) {
-    // If user arrived here without pending account, return to onboarding
+
     return (
       <Main>
         <BentoCard variant="light" style={styles.errorCard}>
@@ -91,8 +93,42 @@ export default function SetupPasswordScreen() {
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS==='ios'? 64:0}
     >
-      <Main contentContainerStyle={styles.container}>
+      <Main contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled"  >
+        <View style={styles.topNavRow}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => {
+              triggerHaptic.selection();
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/(auth)/onboarding');
+              }
+            }}
+            style={[
+              styles.backBtn,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
+            ]}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <JapaneseIcon
+              name="chevronLeft"
+              size={16}
+              color={colors.textPrimary}
+              strokeWidth={2.2}
+            />
+            <AppText variant="caption" color={colors.textPrimary} style={styles.backBtnText}>
+              Back
+            </AppText>
+          </TouchableOpacity>
+          <HankoStamp size="sm" />
+        </View>
+
         <View style={styles.headerRow}>
           <View>
             <AppText variant="serifTitle">Security Setup</AppText>
@@ -100,7 +136,6 @@ export default function SetupPasswordScreen() {
               {pendingAccount.isLocal ? 'Profile & Passcode' : 'Account Password & Backup'}
             </AppText>
           </View>
-          <HankoStamp size="sm" />
         </View>
 
         <BentoCard variant="light" style={styles.accountCard}>
@@ -145,7 +180,7 @@ export default function SetupPasswordScreen() {
         {pendingAccount.isLocal && (
           <BentoCard variant="light" style={styles.formCard}>
             <AppText variant="caption" color={colors.textSecondary}>
-              Profile Name / Username
+              Username
             </AppText>
             <View
               style={[
@@ -156,16 +191,14 @@ export default function SetupPasswordScreen() {
               <TextInput
                 value={displayName}
                 onChangeText={setDisplayName}
-                placeholder="e.g. Satoshi, Personal, Daily"
+                placeholder="Kakarot"
                 placeholderTextColor={colors.textMuted}
                 style={[styles.input, { color: colors.textPrimary }]}
                 autoCapitalize="words"
                 maxLength={30}
               />
             </View>
-            <AppText variant="caption" color={colors.textMuted} style={{ marginTop: 2 }}>
-              If a profile with this name already exists, a unique ID is added to keep your ledger separate.
-            </AppText>
+          
           </BentoCard>
         )}
 
@@ -264,7 +297,33 @@ export default function SetupPasswordScreen() {
 const styles = StyleSheet.create({
   container: {
     gap: 14,
-    paddingBottom: 24,
+    paddingBottom: 180,
+  },
+  topNavRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 2,
+    marginBottom: 2,
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  backBtnText: {
+    fontFamily: Fonts.sansBold,
+    fontSize: 12,
+    letterSpacing: 0.3,
   },
   headerRow: {
     flexDirection: 'row',

@@ -125,9 +125,7 @@ export default function AppearanceSettings() {
             );
           })}
         </View>
-        <AppText variant="caption" color={colors.textMuted}>
-          Amounts across the app are shown in this currency.
-        </AppText>
+       
       </BentoCard>
 
       {/* Haptics */}
@@ -136,9 +134,7 @@ export default function AppearanceSettings() {
         <View style={styles.switchRow}>
           <View style={{ flex: 1, paddingRight: 8 }}>
             <AppText variant="bodyBold">Haptic Feedback</AppText>
-            <AppText variant="caption" color={colors.textSecondary}>
-              Subtle vibrations for taps, confirmations and selections
-            </AppText>
+            
           </View>
           <Switch
             value={hapticsEnabled}
@@ -148,11 +144,7 @@ export default function AppearanceSettings() {
             ios_backgroundColor={colors.switchTrackOff}
           />
         </View>
-        {!hapticsEnabled && (
-          <AppText variant="caption" color={colors.textMuted} style={styles.hintText}>
-            Haptics are off — the app will be silent.
-          </AppText>
-        )}
+        
       </BentoCard>
     </Main>
   );
