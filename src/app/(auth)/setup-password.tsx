@@ -6,8 +6,6 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -90,12 +88,7 @@ export default function SetupPasswordScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS==='ios'? 64:0}
-    >
-      <Main contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled"  >
+    <Main contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled"  >
         <View style={styles.topNavRow}>
           <TouchableOpacity
             activeOpacity={0.7}
@@ -290,14 +283,13 @@ export default function SetupPasswordScreen() {
           </AppText>
         </TouchableOpacity>
       </Main>
-    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     gap: 14,
-    paddingBottom: 180,
+    paddingBottom: 40,
   },
   topNavRow: {
     flexDirection: 'row',

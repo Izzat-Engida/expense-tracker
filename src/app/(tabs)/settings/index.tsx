@@ -4,8 +4,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
@@ -68,16 +66,11 @@ export default function SettingsScreen() {
   );
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 70 : 0}
+    <Main
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
     >
-      <Main
-        contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-      >
         <AppText variant="serifTitle">設定</AppText>
         <AppText variant="caption" color={colors.textMuted} style={{ marginTop: -6 }}>
           Settings
@@ -189,7 +182,6 @@ export default function SettingsScreen() {
           </AppText>
         </View>
       </Main>
-    </KeyboardAvoidingView>
   );
 }
 

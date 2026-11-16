@@ -146,7 +146,7 @@ export default function OverviewScreen() {
       <BentoCard variant="dark" style={styles.totalCard}>
         <View style={styles.rowBetween}>
           <AppText variant="caption" color={colors.textMuted}>
-            支出 / Total spent
+            Total spent
           </AppText>
           <HankoStamp size="sm" />
         </View>
@@ -350,7 +350,7 @@ export default function OverviewScreen() {
           <BentoCard variant="dark" style={styles.yearSummaryCard}>
             <View style={styles.rowBetween}>
               <AppText variant="caption" color={colors.textMuted}>
-                年間 · {selectedYear} Year Summary
+                {selectedYear} summary
               </AppText>
               <HankoStamp size="sm" />
             </View>
@@ -469,7 +469,7 @@ export default function OverviewScreen() {
             <View style={styles.rowBetween}>
               <View>
                 <AppText variant="caption" color={colors.textSecondary}>
-                  家計簿 · Kakeibo Reflection
+                  Monthly reflection
                 </AppText>
                 <AppText variant="bodyBold">
                   {formatMonthLabel(selectedMonth)}

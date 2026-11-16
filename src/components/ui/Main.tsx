@@ -9,7 +9,9 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, Edge } from 'react-native-safe-area-context';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { Colors, useThemeColors } from '@/constants/theme';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 const UKIYOE_BG_LIGHT = require('../../../assets/images/ukiyoe-crane-wave.jpg');
 const UKIYOE_BG_DARK = require('../../../assets/images/ukiyoe-linework-light.png');
@@ -25,6 +27,9 @@ interface ScreenProps {
   keyboardShouldPersistTaps?: 'always' | 'never' | 'handled';
   keyboardDismissMode?: 'none' | 'on-drag' | 'interactive';
   scrollViewRef?: React.Ref<ElementRef<typeof ScrollView>>;
+  automaticallyAdjustKeyboardInsets?: boolean;
+  bottomOffset?: number;
+  extraKeyboardSpace?: number;
 }
 
 const Main = ({
@@ -33,11 +38,14 @@ const Main = ({
   style,
   contentContainerStyle,
   edges = ['top', 'bottom'],
-  showArt = true,
+  showArt = false,
   artOpacity,
   keyboardShouldPersistTaps = 'handled',
   keyboardDismissMode = 'on-drag',
   scrollViewRef,
+  automaticallyAdjustKeyboardInsets = true,
+  bottomOffset = 24,
+  extraKeyboardSpace = 0,
 }: ScreenProps) => {
   const { colors, isDark } = useThemeColors();
   const defaultOpacity = isDark ? 0.08 : 0.14;
@@ -59,19 +67,32 @@ const Main = ({
         />
       )}
       {scrollable ? (
-        <ScrollView
-          ref={scrollViewRef}
+        <KeyboardAwareScrollView
+          ref={scrollViewRef as React.Ref<ElementRef<typeof KeyboardAwareScrollView>>}
           style={styles.flex}
           contentContainerStyle={[styles.container, contentContainerStyle]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps={keyboardShouldPersistTaps}
           keyboardDismissMode={keyboardDismissMode}
+          automaticallyAdjustKeyboardInsets={automaticallyAdjustKeyboardInsets}
+          bottomOffset={bottomOffset}
+          extraKeyboardSpace={extraKeyboardSpace}
         >
-          {children}
-        </ScrollView>
+          <Animated.View
+            entering={FadeInDown.duration(280)}
+            style={styles.animatedContent}
+          >
+            {children}
+          </Animated.View>
+        </KeyboardAwareScrollView>
       ) : (
         <View style={[styles.flex, styles.container, contentContainerStyle]}>
-          {children}
+          <Animated.View
+            entering={FadeInDown.duration(280)}
+            style={styles.animatedContent}
+          >
+            {children}
+          </Animated.View>
         </View>
       )}
     </SafeAreaView>
@@ -96,9 +117,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   container: {
-    paddingHorizontal: 18,
-    paddingTop: 12,
-    paddingBottom: 24,
-    gap: 14,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 28,
+    gap: 16,
+  },
+  animatedContent: {
+    gap: 16,
   },
 });

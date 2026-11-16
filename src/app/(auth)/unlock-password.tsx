@@ -5,8 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
@@ -129,11 +127,7 @@ export default function UnlockPasswordScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <Main contentContainerStyle={styles.container}>
+    <Main contentContainerStyle={styles.container}>
         <View style={styles.headerRow}>
           <TouchableOpacity
             activeOpacity={0.7}
@@ -256,7 +250,6 @@ export default function UnlockPasswordScreen() {
           )}
         </View>
       </Main>
-    </KeyboardAvoidingView>
   );
 }
 

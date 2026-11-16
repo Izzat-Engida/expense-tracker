@@ -1,8 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -188,11 +186,11 @@ export default function IncomeBudgetModal() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.keyboardContainer}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <Main
+      contentContainerStyle={styles.contentContainer}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
     >
-      <Main contentContainerStyle={styles.contentContainer}>
         <View style={styles.headerRow}>
         <AppText variant="serifTitle">Income & Budget</AppText>
         <TouchableOpacity
@@ -416,8 +414,7 @@ export default function IncomeBudgetModal() {
         </TouchableOpacity>
       </BentoCard>
     </Main>
-  </KeyboardAvoidingView>
-);
+  );
 }
 
 const styles = StyleSheet.create({

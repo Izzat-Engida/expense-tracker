@@ -7,8 +7,6 @@ import {
   Modal,
   TextInput,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -29,6 +27,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useSyncStore } from '@/stores/syncStore';
 import { triggerHaptic } from '@/utils/haptics';
 import { getAuthErrorMessage, sendPasswordReset } from '@/services/firebaseAuth';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 type EditModalType = 'none' | 'name' | 'email' | 'password';
 
@@ -540,7 +539,7 @@ export default function AccountSettings() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
+            <ScrollView bounces={false} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {/* Preview Circle */}
               <View style={styles.avatarPreviewWrap}>
                 <UserAvatar
@@ -665,7 +664,6 @@ export default function AccountSettings() {
         onRequestClose={closeModal}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalOverlay}
         >
           <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -693,7 +691,7 @@ export default function AccountSettings() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
+            <ScrollView bounces={false} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {/* Form: Username */}
               {modalType === 'name' && (
                 <View style={styles.modalForm}>

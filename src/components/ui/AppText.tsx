@@ -78,7 +78,8 @@ export function AppText({
 const styles = StyleSheet.create({
   serifTitle: {
     fontFamily: Fonts.serif,
-    fontSize: 26,
+    fontSize: 27,
+    letterSpacing: -0.3,
   },
   digital: {
     fontFamily: Fonts.digital,
@@ -87,7 +88,8 @@ const styles = StyleSheet.create({
   },
   body: {
     fontFamily: Fonts.sans,
-    fontSize: 14,
+    fontSize: 15,
+    lineHeight: 21,
   },
   bodyBold: {
     fontFamily: Fonts.sansBold,
@@ -96,6 +98,7 @@ const styles = StyleSheet.create({
   caption: {
     fontFamily: Fonts.sans,
     fontSize: 12,
-    letterSpacing: 0.4,
+    lineHeight: 17,
+    letterSpacing: 0.2,
   },
 });

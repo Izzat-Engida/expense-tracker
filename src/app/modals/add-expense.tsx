@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, ElementRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -6,9 +6,6 @@ import {
   TextInput,
   Switch,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
@@ -110,13 +107,6 @@ export default function AddExpenseModal() {
     existingExpense ? existingExpense.is_recurring === 1 : false,
   );
   const [isSaving, setIsSaving] = useState(false);
-  const scrollRef = useRef<ElementRef<typeof ScrollView>>(null);
-
-  const handleInputFocus = (offset = 320) => {
-    setTimeout(() => {
-      scrollRef.current?.scrollTo({ y: offset, animated: true });
-    }, 150);
-  };
 
   const isExpense = mode === 'expense';
   const isIncome = mode === 'income';
@@ -269,17 +259,11 @@ export default function AddExpenseModal() {
     : colors.savingText;
 
   return (
-    <KeyboardAvoidingView
-      style={styles.keyboardContainer}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 24 : 0}
+    <Main
+      contentContainerStyle={[styles.mainScroll, { paddingBottom: 36 }]}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
     >
-      <Main
-        scrollViewRef={scrollRef}
-        contentContainerStyle={[styles.mainScroll, { paddingBottom: 260 }]}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-      >
       {/* Header */}
       <View style={styles.headerRow}>
         <AppText variant="serifTitle">
@@ -508,7 +492,6 @@ export default function AddExpenseModal() {
             <TextInput
               value={titleOverride}
               onChangeText={setTitleOverride}
-              onFocus={() => handleInputFocus(240)}
               placeholder="Expense title"
               placeholderTextColor={colors.textMuted}
               style={[styles.noteInput, { color: colors.textPrimary }]}
@@ -517,7 +500,6 @@ export default function AddExpenseModal() {
             <TextInput
               value={note}
               onChangeText={setNote}
-              onFocus={() => handleInputFocus(280)}
               placeholder={
                 isExpense
                   ? 'Optional'
@@ -552,7 +534,6 @@ export default function AddExpenseModal() {
           <TextInput
             value={note}
             onChangeText={setNote}
-            onFocus={() => handleInputFocus(340)}
             placeholder="Add a note (optional)"
             placeholderTextColor={colors.textMuted}
             style={[styles.noteInput, { color: colors.textPrimary }]}
@@ -619,7 +600,6 @@ export default function AddExpenseModal() {
         </TouchableOpacity>
       )}
     </Main>
-    </KeyboardAvoidingView>
   );
 }
 

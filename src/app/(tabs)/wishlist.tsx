@@ -6,7 +6,9 @@ import {
   TextInput,
   Modal,
   Alert,
+  ScrollView,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import {
   Main,
   BentoCard,
@@ -180,7 +182,7 @@ export default function WishlistScreen() {
         <View>
           <AppText variant="serifTitle">Wishlist</AppText>
           <AppText variant="caption" color={Colors.textSecondary}>
-            欲しいもの · Target acquisitions
+            Save toward the things you want
           </AppText>
         </View>
 
@@ -201,7 +203,7 @@ export default function WishlistScreen() {
         <BentoCard variant="dark" style={styles.targetCard}>
           <View style={styles.cardHeaderSmall}>
             <AppText variant="caption" color={colors.textMuted}>
-              目標 · TARGET
+              Target
             </AppText>
             <HankoStamp size="sm" />
           </View>
@@ -221,7 +223,7 @@ export default function WishlistScreen() {
       
         <BentoCard variant="light" style={styles.progressCard}>
           <AppText variant="caption" color={colors.textSecondary}>
-            進捗 · PROGRESS
+            Progress
           </AppText>
           <View style={styles.progressNumberRow}>
             <AppText variant="serifTitle" style={styles.progressPercentText}>
@@ -422,12 +424,16 @@ export default function WishlistScreen() {
         transparent={true}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}>
+        <KeyboardAvoidingView
+          style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}
+          behavior="padding"
+          automaticOffset
+          keyboardVerticalOffset={24}
+        >
           <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.modalHeader}>
               <View>
                 <AppText variant="serifTitle">Wishlist Goal</AppText>
-             
               </View>
               <TouchableOpacity
                 onPress={() => setModalVisible(false)}
@@ -439,106 +445,110 @@ export default function WishlistScreen() {
               </TouchableOpacity>
             </View>
 
-        
-            <View style={styles.formGroup}>
-              <AppText variant="caption" color={colors.textSecondary}>
-                What to buy
-              </AppText>
-              <TextInput
-                value={newTitle}
-                onChangeText={setNewTitle}
-                placeholder="Trip to Kyoto"
-                placeholderTextColor={colors.textMuted}
-                style={[styles.formInput, { backgroundColor: isDark ? colors.cardDark : colors.cardElevated, borderColor: colors.border, color: colors.textPrimary }]}
-              />
-            </View>
-
-           
-            <View style={styles.splitRow}>
-              <View style={[styles.formGroup, styles.flex1]}>
+            <ScrollView
+              style={styles.modalScroll}
+              bounces={false}
+              showsVerticalScrollIndicator
+              persistentScrollbar
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              contentContainerStyle={styles.modalScrollBody}
+            >
+              <View style={styles.formGroup}>
                 <AppText variant="caption" color={colors.textSecondary}>
-                  Target cost ({currency})
+                  What to buy
                 </AppText>
                 <TextInput
-                  value={newTarget}
-                  onChangeText={setNewTarget}
-                  keyboardType="numeric"
-                  placeholder="1000"
+                  value={newTitle}
+                  onChangeText={setNewTitle}
+                  placeholder="Trip to Kyoto"
                   placeholderTextColor={colors.textMuted}
                   style={[styles.formInput, { backgroundColor: isDark ? colors.cardDark : colors.cardElevated, borderColor: colors.border, color: colors.textPrimary }]}
                 />
               </View>
 
-              <View style={[styles.formGroup, styles.flex1]}>
+              <View style={styles.splitRow}>
+                <View style={[styles.formGroup, styles.flex1]}>
+                  <AppText variant="caption" color={colors.textSecondary}>
+                    Target cost ({currency})
+                  </AppText>
+                  <TextInput
+                    value={newTarget}
+                    onChangeText={setNewTarget}
+                    keyboardType="numeric"
+                    placeholder="1000"
+                    placeholderTextColor={colors.textMuted}
+                    style={[styles.formInput, { backgroundColor: isDark ? colors.cardDark : colors.cardElevated, borderColor: colors.border, color: colors.textPrimary }]}
+                  />
+                </View>
+
+                <View style={[styles.formGroup, styles.flex1]}>
+                  <AppText variant="caption" color={colors.textSecondary}>
+                    Already saved ({currency})
+                  </AppText>
+                  <TextInput
+                    value={newSaved}
+                    onChangeText={setNewSaved}
+                    keyboardType="numeric"
+                    placeholder="0"
+                    placeholderTextColor={colors.textMuted}
+                    style={[styles.formInput, { backgroundColor: isDark ? colors.cardDark : colors.cardElevated, borderColor: colors.border, color: colors.textPrimary }]}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.formGroup}>
                 <AppText variant="caption" color={colors.textSecondary}>
-                  Already saved ({currency})
+                  Category
+                </AppText>
+                <View style={styles.pillsRow}>
+                  {CATEGORIES.map((cat) => {
+                    const isSelected = newCategory === cat;
+                    return (
+                      <PillBadge
+                        key={cat}
+                        variant={isSelected ? 'dark' : 'outline'}
+                        label={cat}
+                        onPress={() => setNewCategory(cat)}
+                      />
+                    );
+                  })}
+                </View>
+              </View>
+
+              <View style={styles.formGroup}>
+                <AppText variant="caption" color={colors.textSecondary}>
+                  Priority
+                </AppText>
+                <View style={styles.pillsRow}>
+                  {PRIORITIES.map((pri) => {
+                    const isSelected = newPriority === pri;
+                    return (
+                      <PillBadge
+                        key={pri}
+                        variant={isSelected ? 'dark' : 'outline'}
+                        label={pri.toUpperCase()}
+                        onPress={() => setNewPriority(pri)}
+                      />
+                    );
+                  })}
+                </View>
+              </View>
+
+              <View style={styles.formGroup}>
+                <AppText variant="caption" color={colors.textSecondary}>
+                  Description (Optional)
                 </AppText>
                 <TextInput
-                  value={newSaved}
-                  onChangeText={setNewSaved}
-                  keyboardType="numeric"
-                  placeholder="0"
+                  value={newNote}
+                  onChangeText={setNewNote}
+                  placeholder="Why do you want this item?"
                   placeholderTextColor={colors.textMuted}
                   style={[styles.formInput, { backgroundColor: isDark ? colors.cardDark : colors.cardElevated, borderColor: colors.border, color: colors.textPrimary }]}
                 />
               </View>
-            </View>
+            </ScrollView>
 
-            
-            <View style={styles.formGroup}>
-              <AppText variant="caption" color={colors.textSecondary}>
-                Category
-              </AppText>
-              <View style={styles.pillsRow}>
-                {CATEGORIES.map((cat) => {
-                  const isSelected = newCategory === cat;
-                  return (
-                    <PillBadge
-                      key={cat}
-                      variant={isSelected ? 'dark' : 'outline'}
-                      label={cat}
-                      onPress={() => setNewCategory(cat)}
-                    />
-                  );
-                })}
-              </View>
-            </View>
-
-            
-            <View style={styles.formGroup}>
-              <AppText variant="caption" color={colors.textSecondary}>
-                Priority
-              </AppText>
-              <View style={styles.pillsRow}>
-                {PRIORITIES.map((pri) => {
-                  const isSelected = newPriority === pri;
-                  return (
-                    <PillBadge
-                      key={pri}
-                      variant={isSelected ? 'dark' : 'outline'}
-                      label={pri.toUpperCase()}
-                      onPress={() => setNewPriority(pri)}
-                    />
-                  );
-                })}
-              </View>
-            </View>
-
-         
-            <View style={styles.formGroup}>
-              <AppText variant="caption" color={colors.textSecondary}>
-                Description (Optional)
-              </AppText>
-              <TextInput
-                value={newNote}
-                onChangeText={setNewNote}
-                placeholder="Why do you want this item?"
-                placeholderTextColor={colors.textMuted}
-                style={[styles.formInput, { backgroundColor: isDark ? colors.cardDark : colors.cardElevated, borderColor: colors.border, color: colors.textPrimary }]}
-              />
-            </View>
-
-            
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={handleCreateItem}
@@ -550,7 +560,7 @@ export default function WishlistScreen() {
               </AppText>
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
     
@@ -560,7 +570,12 @@ export default function WishlistScreen() {
         transparent={true}
         onRequestClose={() => setDepositModalVisible(false)}
       >
-        <View style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}>
+        <KeyboardAvoidingView
+          style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}
+          behavior="padding"
+          automaticOffset
+          keyboardVerticalOffset={24}
+        >
           <View style={[styles.depositModalContent, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.modalHeader}>
               <View>
@@ -625,7 +640,7 @@ export default function WishlistScreen() {
               </AppText>
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </Main>
   );
@@ -831,11 +846,20 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     padding: 20,
     gap: 14,
+    maxHeight: '90%',
+    flexShrink: 1,
     shadowColor: Colors.shadow,
     shadowOffset: { width: 2, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 5,
+  },
+  modalScrollBody: {
+    gap: 14,
+    paddingVertical: 4,
+  },
+  modalScroll: {
+    flexShrink: 1,
   },
   depositModalContent: {
     backgroundColor: Colors.card,

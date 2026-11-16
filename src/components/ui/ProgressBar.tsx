@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Colors, useThemeColors } from '@/constants/theme';
+import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
 interface ProgressBarProps {
   progress: number;
@@ -17,6 +18,9 @@ export function ProgressBar({
   const clampedProgress = Math.min(1, Math.max(0, isNaN(progress) ? 0 : progress));
   const percent = Math.round(clampedProgress * 100);
   const fill = fillColor ?? (isDark ? colors.bambooGreen : colors.cardDark);
+  const animatedFillStyle = useAnimatedStyle(() => ({
+    width: withTiming(`${percent}%`, { duration: 550 }),
+  }), [percent]);
 
   return (
     <View
@@ -30,13 +34,15 @@ export function ProgressBar({
         },
       ]}
     >
-      <View
-        style={{
-          width: `${percent}%`,
-          height: '100%',
-          backgroundColor: fill,
-          borderRadius: height / 2,
-        }}
+      <Animated.View
+        style={[
+          animatedFillStyle,
+          {
+            height: '100%',
+            backgroundColor: fill,
+            borderRadius: height / 2,
+          },
+        ]}
       />
     </View>
   );

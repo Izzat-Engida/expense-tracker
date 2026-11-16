@@ -10,6 +10,7 @@ import { Tabs, router } from 'expo-router';
 import { Colors, Fonts, useThemeColors } from '@/constants/theme';
 import { HankoStamp } from '@/components/ui/HankoStamp'; 
 import { triggerHaptic } from '@/utils/haptics'; 
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 type TabKey = 'index' | 'overview' | 'wishlist' | 'settings';
 
@@ -81,13 +82,25 @@ function CustomTabBar({
                     styles.tabActive,
                     {
                       backgroundColor: colors.cardElevated,
-                      borderColor: isDark ? colors.textMuted : colors.border,
+                      borderColor: 'transparent',
                       shadowColor: colors.shadow,
-                      shadowOpacity: isDark ? 0 : 1,
+                      shadowOpacity: 0,
                     },
                   ],
                 ]}
               >
+                {active && (
+                  <Animated.View
+                    key={`${tab.name}-active`}
+                    entering={FadeIn.duration(180)}
+                    pointerEvents="none"
+                    style={[
+                      StyleSheet.absoluteFill,
+                      styles.tabActiveSurface,
+                      { backgroundColor: colors.cardElevated },
+                    ]}
+                  />
+                )}
                 <Text
                   style={[
                     styles.tabLabel,
@@ -134,11 +147,11 @@ export default function TabsLayout() {
 const styles = StyleSheet.create({
   barContainer: {
     backgroundColor: Colors.background,
-    borderTopWidth: 1.5,
+    borderTopWidth: 1,
     borderTopColor: Colors.border,
     paddingBottom: Platform.OS === 'ios' ? 24 : 8,
-    paddingTop: 10,
-    paddingHorizontal: 14,
+    paddingTop: 8,
+    paddingHorizontal: 16,
   },
   bar: {
     flexDirection: 'row',
@@ -147,15 +160,15 @@ const styles = StyleSheet.create({
   },
   tabs: {
     flexDirection: 'row',
-    gap: 3,
+    gap: 2,
     flex: 1,
     marginRight: 8,
   },
   tab: {
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 8,
-    borderWidth: 1.5,
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 0,
     borderColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
@@ -164,10 +177,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.card,
     borderColor: Colors.border,
     shadowColor: Colors.shadow,
-    shadowOffset: { width: 2, height: 3 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 2,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  tabActiveSurface: {
+    borderRadius: 10,
   },
   tabLabel: {
     fontFamily: Fonts.sans,

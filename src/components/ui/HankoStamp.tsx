@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Colors, Fonts, useThemeColors } from '@/constants/theme';
 import { triggerHaptic } from '@/utils/haptics';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 type HankoSize = 'sm' | 'md' | 'fab';
 
@@ -27,6 +28,13 @@ export function HankoStamp({ size = 'md', onPress }: HankoStampProps) {
   const dimension = SIZE_MAP[size];
   const fontSize = FONT_MAP[size];
   const isFab = size === 'fab';
+  const pressed = useSharedValue(0);
+  const animatedPressStyle = useAnimatedStyle(() => ({
+    transform: [
+      ...(isFab ? [{ rotate: '-3deg' }] : []),
+      { scale: withSpring(pressed.value ? 0.94 : 1, { damping: 16, stiffness: 260 }) },
+    ],
+  }), [isFab]);
 
   const containerStyle = [
     styles.stamp,
@@ -37,7 +45,6 @@ export function HankoStamp({ size = 'md', onPress }: HankoStampProps) {
       backgroundColor: colors.hankoRed,
       borderColor: colors.border,
       shadowColor: colors.shadow,
-      transform: isFab ? [{ rotate: '-3deg' }] : [],
     },
   ];
 
@@ -45,16 +52,20 @@ export function HankoStamp({ size = 'md', onPress }: HankoStampProps) {
 
   if (onPress) {
     return (
-      <TouchableOpacity
+      <Animated.View style={animatedPressStyle}>
+        <TouchableOpacity
         onPress={() => {
           triggerHaptic.medium();
           onPress();
         }}
         activeOpacity={0.75}
         style={containerStyle}
-      >
-        <Text style={textStyle}>記</Text>
-      </TouchableOpacity>
+          onPressIn={() => { pressed.value = 1; }}
+          onPressOut={() => { pressed.value = 0; }}
+        >
+          <Text style={textStyle}>記</Text>
+        </TouchableOpacity>
+      </Animated.View>
     );
   }
 
@@ -70,13 +81,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.hankoRed,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: Colors.border,
     shadowColor: Colors.shadow,
-    shadowOffset: { width: 2, height: 3 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 5,
+    elevation: 2,
   },
   character: {
     fontFamily: Fonts.serif,

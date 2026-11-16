@@ -10,15 +10,24 @@ import {
   PlusJakartaSans_700Bold,
 } from '@expo-google-fonts/plus-jakarta-sans';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SQLiteProvider } from 'expo-sqlite';
 import { migrateDb } from '@/db/client';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { useThemeColors } from '@/constants/theme';
 
 SplashScreen.preventAutoHideAsync();
 
 function GatedStack() {
+  const { colors } = useThemeColors();
+
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: colors.background },
+      }}
+    >
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="(auth)" />
       <Stack.Screen
@@ -52,6 +61,7 @@ export default function RootLayout() {
   const loadSettings = useSettingsStore((s) => s.loadSettings);
   const isSettingsLoaded = useSettingsStore((s) => s.isLoaded);
   const themeMode = useSettingsStore((s) => s.themeMode);
+  const { colors } = useThemeColors();
 
   useEffect(() => {
     loadSettings();
@@ -73,10 +83,12 @@ export default function RootLayout() {
   if ((!loaded && !error) || !isSettingsLoaded) return null;
 
   return (
-    <SafeAreaProvider>
-      <SQLiteProvider databaseName="yohaku.db" onInit={migrateDb}>
-        <GatedStack />
-      </SQLiteProvider>
+    <SafeAreaProvider style={{ backgroundColor: colors.background }}>
+      <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
+        <SQLiteProvider databaseName="yohaku.db" onInit={migrateDb}>
+          <GatedStack />
+        </SQLiteProvider>
+      </KeyboardProvider>
     </SafeAreaProvider>
   );
 }

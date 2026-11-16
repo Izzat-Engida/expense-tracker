@@ -45,7 +45,7 @@ export function BentoCard({
   children,
   variant = 'light',
   style,
-  art = 'wagara',
+  art = 'none',
   artOpacity,
 }: BentoCardProps) {
   const { colors, isDark: systemIsDark } = useThemeColors();
@@ -115,15 +115,15 @@ export default BentoCard;
 
 const styles = StyleSheet.create({
   cardBase: {
-    borderRadius: 22,
-    borderWidth: 1.5,
+    borderRadius: 18,
+    borderWidth: 1,
     borderColor: Colors.border,
     padding: 18,
     shadowColor: Colors.shadow,
-    shadowOffset: { width: 2, height: 3 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 1,
     position: 'relative',
   },
   artClipper: {

@@ -5,8 +5,6 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -14,7 +12,6 @@ import {
   Main,
   BentoCard,
   HankoStamp,
-  ProgressBar,
   AppText,
   JapaneseIcon,
 } from '@/components/ui';
@@ -23,6 +20,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { signUpWithEmail, getAuthErrorMessage } from '@/services/firebaseAuth';
 import { sendEmailVerificationCode, verifyEmailCode } from '@/services/emailVerification';
 import { triggerHaptic } from '@/utils/haptics';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 
 export default function OnboardingScreen() {
@@ -35,6 +33,7 @@ export default function OnboardingScreen() {
   const [authMode, setAuthMode] = useState<'options' | 'emailInput' | 'verifyCode'>('options');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
   const [resendTimer, setResendTimer] = useState(0);
 
@@ -142,322 +141,384 @@ export default function OnboardingScreen() {
     }
   };
 
+  const isFormMode = authMode !== 'options';
+
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={styles.keyboardContainer}
+    <Main
+      showArt
+      artOpacity={0.11}
+      contentContainerStyle={[
+        styles.scrollContent,
+        isFormMode && { justifyContent: 'flex-start' },
+      ]}
     >
-      <Main contentContainerStyle={styles.scrollContent}>
         <View style={styles.mainContent}>
-          <View style={styles.topRow}>
-            <BentoCard variant="light" style={styles.brandCard}>
-              <AppText style={styles.kanjiLogo}>余白</AppText>
-              <AppText
-                variant="caption"
-                color={colors.textSecondary}
-                style={styles.romajiSub}
-              >
-                Y O H A K U
-              </AppText>
-              <View style={[styles.brandUnderline, { backgroundColor: colors.border }]} />
-            </BentoCard>
-
-            <View style={styles.rightCol}>
-              <BentoCard variant="light" style={styles.stampCard}>
-                <HankoStamp size="md" />
-                <AppText variant="caption" style={styles.stampLabel}>
-                  STAMP IN
-                </AppText>
-              </BentoCard>
-              <BentoCard variant="dark" art="none" style={styles.clarityDarkCard}>
-                <AppText
-                  variant="caption"
-                  color={colors.textInverse}
-                  style={styles.clarityQuote}
-                >
-                  A little room {'\n'}for clarity.
-                </AppText>
-              </BentoCard>
-            </View>
-          </View>
-
-          <BentoCard variant="light" style={styles.featureCard}>
-            <View
-              style={[
-                styles.sailboatBox,
-                { backgroundColor: colors.background, borderColor: colors.border },
-              ]}
-            >
-              <View style={[styles.sailTriangle, { borderBottomColor: colors.textPrimary }]} />
-              <View style={[styles.boatHull, { borderColor: colors.textPrimary }]} />
-            </View>
-            <View style={styles.featureTextCol}>
-              <AppText variant="bodyBold">Track with clarity</AppText>
-              <AppText
-                variant="caption"
-                color={colors.textSecondary}
-                style={styles.featureDesc}
-              >
-                Guest mode stays on this device. Email accounts can sync.
-              </AppText>
-            </View>
-          </BentoCard>
-
-          <BentoCard variant="light" style={styles.driveStripCard}>
-            <View style={styles.rowBetween}>
-              <AppText variant="caption" style={styles.driveStripTitle}>
-                LOCAL FIRST
-              </AppText>
-              <AppText variant="caption" color={colors.textSecondary}>
-                Guest stays local · Email can sync
-              </AppText>
-            </View>
-            <ProgressBar progress={1.0} height={10} />
-          </BentoCard>
-
-          <BentoCard variant="light" style={styles.authCard}>
-            <AppText
-              variant="caption"
-              color={colors.textSecondary}
-              style={styles.getStartedLabel}
-            >
-              {authMode === 'verifyCode'
-                ? 'V E R I F Y   E M A I L'
-                : authMode === 'emailInput'
-                ? 'C R E A T E   A C C O U N T'
-                : 'G E T   S T A R T E D'}
-            </AppText>
-
-            {authMode === 'verifyCode' ? (
-              <View style={styles.emailForm}>
-                <View style={styles.verifyHeaderWrap}>
-                  <AppText variant="caption" color={colors.textSecondary} style={styles.verifyDesc}>
-                    We sent a 6-digit verification code to:
-                  </AppText>
-                  <AppText variant="bodyBold" style={{ textAlign: 'center' }}>
-                    {email}
-                  </AppText>
-                </View>
-
-                <TextInput
-                  placeholder="• • • • • •"
-                  placeholderTextColor={colors.textMuted}
-                  value={verificationCode}
-                  onChangeText={setVerificationCode}
-                  keyboardType="number-pad"
-                  maxLength={6}
-                  returnKeyType="done"
-                  onSubmitEditing={handleVerifyAndSignUp}
+          <Animated.View
+            key={authMode}
+            entering={FadeIn.duration(260)}
+            style={styles.animatedContent}
+          >
+          {isFormMode ? (
+            <>
+              {/* Header Row */}
+              <View style={styles.headerRow}>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    triggerHaptic.selection();
+                    if (authMode === 'verifyCode') {
+                      setAuthMode('emailInput');
+                    } else {
+                      setAuthMode('options');
+                    }
+                  }}
                   style={[
-                    styles.codeInput,
+                    styles.backBtn,
                     {
-                      color: colors.textPrimary,
+                      backgroundColor: colors.card,
                       borderColor: colors.border,
-                      backgroundColor: colors.background,
                     },
                   ]}
-                />
-
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  disabled={isProcessing}
-                  style={[
-                    styles.primaryButton,
-                    { backgroundColor: colors.textPrimary },
-                  ]}
-                  onPress={handleVerifyAndSignUp}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  {isProcessing ? (
-                    <ActivityIndicator size="small" color={colors.background} />
-                  ) : (
-                    <AppText variant="bodyBold" color={colors.background}>
-                      Verify & Create Account
-                    </AppText>
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={handleResendCode}
-                  disabled={resendTimer > 0 || isProcessing}
-                  style={styles.switchButton}
-                >
-                  <AppText
-                    variant="caption"
-                    color={resendTimer > 0 ? colors.textMuted : colors.textPrimary}
-                    style={{ fontFamily: resendTimer === 0 ? Fonts.sansBold : Fonts.sans }}
-                  >
-                    {resendTimer > 0 ? `Resend code in ${resendTimer}s` : 'Resend verification code'}
+                  <JapaneseIcon
+                    name="chevronLeft"
+                    size={16}
+                    color={colors.textPrimary}
+                    strokeWidth={2.2}
+                  />
+                  <AppText variant="caption" color={colors.textPrimary} style={styles.backBtnText}>
+                    {authMode === 'verifyCode' ? 'Edit Email' : 'Options'}
                   </AppText>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                  onPress={() => setAuthMode('emailInput')}
-                  disabled={isProcessing}
-                  style={styles.switchButton}
-                >
-                  <AppText variant="caption" color={colors.textSecondary}>
-                    ← Edit email or password
-                  </AppText>
-                </TouchableOpacity>
+                <HankoStamp size="sm" />
               </View>
-            ) : authMode === 'emailInput' ? (
-              <View style={styles.emailForm}>
-                <TextInput
-                  placeholder="Email address"
-                  placeholderTextColor={colors.textMuted}
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  style={[
-                    styles.input,
-                    { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.background },
-                  ]}
-                />
-                <TextInput
-                  placeholder="Password (min 6 chars)"
-                  placeholderTextColor={colors.textMuted}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  autoCapitalize="none"
-                  style={[
-                    styles.input,
-                    { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.background },
-                  ]}
-                />
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  disabled={isProcessing}
-                  style={[
-                    styles.primaryButton,
-                    { backgroundColor: colors.textPrimary },
-                  ]}
-                  onPress={handleRequestVerificationCode}
-                >
-                  {isProcessing ? (
-                    <ActivityIndicator size="small" color={colors.background} />
-                  ) : (
-                    <AppText variant="bodyBold" color={colors.background}>
-                      Send Verification Code
-                    </AppText>
-                  )}
-                </TouchableOpacity>
 
-                <TouchableOpacity
-                  onPress={() => {
-                    triggerHaptic.selection();
-                    router.push('/(auth)/login');
-                  }}
-                  style={styles.switchButton}
-                >
-                  <AppText variant="caption" color={colors.textPrimary}>
-                    Already have an account?{' '}
-                    <AppText variant="bodyBold" color={colors.textPrimary} style={{ textDecorationLine: 'underline' }}>
-                      Sign In
-                    </AppText>
+              {/* Title Bento Card */}
+              <BentoCard variant="light" style={styles.titleCard}>
+                <View style={styles.titleMeta}>
+                  <AppText variant="caption" color={colors.textSecondary} style={styles.kicker}>
+                    {authMode === 'verifyCode' ? '認証 · VERIFY EMAIL' : '新規登録 · CREATE ACCOUNT'}
                   </AppText>
-                </TouchableOpacity>
+                  <AppText variant="serifTitle" style={styles.title}>
+                    {authMode === 'verifyCode' ? 'Verification Code' : 'Sign Up'}
+                  </AppText>
+                </View>
+                <AppText variant="caption" color={colors.textSecondary} style={styles.subtitle}>
+                  {authMode === 'verifyCode'
+                    ? `Enter the 6-digit code sent to ${email}`
+                    : 'Create your account to sync your ledger securely'}
+                </AppText>
+              </BentoCard>
 
-                <TouchableOpacity
-                  onPress={() => setAuthMode('options')}
-                  style={styles.switchButton}
-                >
-                  <AppText variant="caption" color={colors.textSecondary}>
-                    ← Back to options
-                  </AppText>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={{ gap: 10 }}>
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  disabled={isProcessing}
-                  style={[
-                    styles.primaryButton,
-                    { backgroundColor: colors.textPrimary },
-                  ]}
-                  onPress={handleGuestMode}
-                >
-                  <AppText variant="bodyBold" color={colors.background}>
-                    {isProcessing ? 'Setting up…' : 'Guest Mode'}
-                  </AppText>
-                </TouchableOpacity>
+              {authMode === 'verifyCode' ? (
+                <>
+                  {/* Verification Form Card */}
+                  <BentoCard variant="light" style={styles.formCard}>
+                    <View style={styles.fieldGroup}>
+                      <AppText variant="caption" color={colors.textSecondary} style={styles.fieldLabel}>
+                        6-DIGIT VERIFICATION CODE
+                      </AppText>
+                      <TextInput
+                        placeholder="• • • • • •"
+                        placeholderTextColor={colors.textMuted}
+                        value={verificationCode}
+                        onChangeText={setVerificationCode}
+                        keyboardType="number-pad"
+                        maxLength={6}
+                        returnKeyType="done"
+                        onSubmitEditing={handleVerifyAndSignUp}
+                        style={[
+                          styles.codeInput,
+                          {
+                            color: colors.textPrimary,
+                            borderColor: colors.border,
+                            backgroundColor: colors.background,
+                          },
+                        ]}
+                      />
+                    </View>
+
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      disabled={isProcessing}
+                      style={[
+                        styles.primaryButton,
+                        { backgroundColor: colors.textPrimary },
+                      ]}
+                      onPress={handleVerifyAndSignUp}
+                    >
+                      {isProcessing ? (
+                        <View style={styles.buttonLoadingRow}>
+                          <ActivityIndicator size="small" color={colors.background} />
+                          <AppText variant="bodyBold" color={colors.background}>
+                            Verifying…
+                          </AppText>
+                        </View>
+                      ) : (
+                        <AppText variant="bodyBold" color={colors.background}>
+                          Verify & Create Account
+                        </AppText>
+                      )}
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={handleResendCode}
+                      disabled={resendTimer > 0 || isProcessing}
+                      style={styles.resendCodeBtn}
+                    >
+                      <AppText
+                        variant="caption"
+                        color={resendTimer > 0 ? colors.textMuted : colors.textPrimary}
+                        style={{ fontFamily: resendTimer === 0 ? Fonts.sansBold : Fonts.sans, textAlign: 'center' }}
+                      >
+                        {resendTimer > 0 ? `Resend code in ${resendTimer}s` : 'Resend verification code'}
+                      </AppText>
+                    </TouchableOpacity>
+                  </BentoCard>
+
+                  {/* Switch to Edit Email Card */}
+                  <BentoCard variant="light" style={styles.switchCard}>
+                    <View style={styles.switchRow}>
+                      <View style={{ flex: 1 }}>
+                        <AppText variant="bodyBold">Wrong email address?</AppText>
+                        <AppText variant="caption" color={colors.textSecondary}>
+                          Edit your email address or password.
+                        </AppText>
+                      </View>
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => setAuthMode('emailInput')}
+                        disabled={isProcessing}
+                        style={[
+                          styles.secondaryActionBtn,
+                          { borderColor: colors.border, backgroundColor: colors.cardElevated },
+                        ]}
+                      >
+                        <AppText variant="caption" color={colors.textPrimary} style={styles.actionBtnText}>
+                          Edit Email →
+                        </AppText>
+                      </TouchableOpacity>
+                    </View>
+                  </BentoCard>
+                </>
+              ) : (
+                <>
+                  {/* Credentials Card */}
+                  <BentoCard variant="light" style={styles.formCard}>
+                    <View style={styles.fieldGroup}>
+                      <AppText variant="caption" color={colors.textSecondary} style={styles.fieldLabel}>
+                        EMAIL ADDRESS
+                      </AppText>
+                      <TextInput
+                        placeholder="you@example.com"
+                        placeholderTextColor={colors.textMuted}
+                        value={email}
+                        onChangeText={setEmail}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        returnKeyType="next"
+                        style={[
+                          styles.input,
+                          {
+                            color: colors.textPrimary,
+                            borderColor: colors.border,
+                            backgroundColor: colors.background,
+                          },
+                        ]}
+                      />
+                    </View>
+
+                    <View style={styles.fieldGroup}>
+                      <View style={styles.passwordLabelRow}>
+                        <AppText variant="caption" color={colors.textSecondary} style={styles.fieldLabel}>
+                          PASSWORD
+                        </AppText>
+                        <TouchableOpacity
+                          onPress={() => setShowPassword((prev) => !prev)}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                          <AppText variant="caption" color={colors.textSecondary}>
+                            {showPassword ? 'Hide' : 'Show'}
+                          </AppText>
+                        </TouchableOpacity>
+                      </View>
+
+                      <View
+                        style={[
+                          styles.passwordInputWrap,
+                          {
+                            borderColor: colors.border,
+                            backgroundColor: colors.background,
+                          },
+                        ]}
+                      >
+                        <TextInput
+                          placeholder="Min 6 characters"
+                          placeholderTextColor={colors.textMuted}
+                          value={password}
+                          onChangeText={setPassword}
+                          secureTextEntry={!showPassword}
+                          autoCapitalize="none"
+                          returnKeyType="done"
+                          onSubmitEditing={handleRequestVerificationCode}
+                          style={[styles.passwordInput, { color: colors.textPrimary }]}
+                        />
+                      </View>
+                    </View>
+
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      disabled={isProcessing}
+                      style={[
+                        styles.primaryButton,
+                        { backgroundColor: colors.textPrimary },
+                      ]}
+                      onPress={handleRequestVerificationCode}
+                    >
+                      {isProcessing ? (
+                        <View style={styles.buttonLoadingRow}>
+                          <ActivityIndicator size="small" color={colors.background} />
+                          <AppText variant="bodyBold" color={colors.background}>
+                            Sending code…
+                          </AppText>
+                        </View>
+                      ) : (
+                        <AppText variant="bodyBold" color={colors.background}>
+                          Send Verification Code
+                        </AppText>
+                      )}
+                    </TouchableOpacity>
+                  </BentoCard>
+
+                  {/* Switch to Sign In BentoCard */}
+                  <BentoCard variant="light" style={styles.switchCard}>
+                    <View style={styles.switchRow}>
+                      <View style={{ flex: 1 }}>
+                        <AppText variant="bodyBold">Already have an account?</AppText>
+                        <AppText variant="caption" color={colors.textSecondary}>
+                          Sign in to restore your existing ledger.
+                        </AppText>
+                      </View>
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => {
+                          triggerHaptic.selection();
+                          router.push('/(auth)/login');
+                        }}
+                        style={[
+                          styles.secondaryActionBtn,
+                          { borderColor: colors.border, backgroundColor: colors.cardElevated },
+                        ]}
+                      >
+                        <AppText variant="caption" color={colors.textPrimary} style={styles.actionBtnText}>
+                          Sign In →
+                        </AppText>
+                      </TouchableOpacity>
+                    </View>
+                  </BentoCard>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <View style={styles.welcomeHeader}>
+                <View style={styles.brandLockup}>
+                <AppText style={styles.kanjiLogo}>余白</AppText>
                 <AppText
                   variant="caption"
-                  color={colors.textMuted}
-                  style={styles.guestNote}
+                  color={colors.textSecondary}
+                  style={styles.romajiSub}
                 >
-                  Local only · no account needed
+                  Y O H A K U
+                </AppText>
+                </View>
+              </View>
+
+              <View style={styles.welcomeBlock}>
+                <AppText variant="caption" color={colors.textSecondary} style={styles.welcomeKicker}>
+                  A QUIET LEDGER FOR EVERYDAY LIFE
+                </AppText>
+                <AppText variant="serifTitle" style={styles.welcomeTitle}>
+                  Make room for what matters.
+                </AppText>
+                <AppText variant="body" color={colors.textSecondary} style={styles.welcomeSubtitle}>
+                  Track spending, save with intention, and keep your finances close.
+                </AppText>
+              </View>
+
+              <BentoCard variant="light" style={styles.authCard}>
+                <AppText variant="caption" color={colors.textSecondary} style={styles.getStartedLabel}>
+                  START YOUR LEDGER
                 </AppText>
 
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  disabled={isProcessing}
-                  style={[
-                    styles.secondaryButton,
-                    { borderColor: colors.border, backgroundColor: colors.cardElevated },
-                  ]}
-                  onPress={() => setAuthMode('emailInput')}
-                >
-                  <AppText variant="bodyBold" color={colors.textPrimary}>
-                    Create Account with Email
+                <View style={styles.authActions}>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    disabled={isProcessing}
+                    style={[
+                      styles.primaryButton,
+                      { backgroundColor: colors.textPrimary },
+                    ]}
+                    onPress={handleGuestMode}
+                  >
+                    <AppText variant="bodyBold" color={colors.background}>
+                      {isProcessing ? 'Setting up…' : 'Guest Mode'}
+                    </AppText>
+                  </TouchableOpacity>
+                  <AppText
+                    variant="caption"
+                    color={colors.textMuted}
+                    style={styles.guestNote}
+                  >
+                    Local only · no account needed
                   </AppText>
-                </TouchableOpacity>
 
-                {/* Divider between Sign Up / Guest and Sign In */}
-                <View style={styles.dividerRow}>
-                  <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-                  <AppText variant="caption" color={colors.textMuted} style={styles.dividerLabel}>
-                    HAVE AN EXISTING ACCOUNT?
-                  </AppText>
-                  <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    disabled={isProcessing}
+                    style={[
+                      styles.secondaryButton,
+                      { borderColor: colors.border, backgroundColor: colors.cardElevated },
+                    ]}
+                    onPress={() => setAuthMode('emailInput')}
+                  >
+                    <AppText variant="bodyBold" color={colors.textPrimary}>
+                      Create Account with Email
+                    </AppText>
+                  </TouchableOpacity>
+
+                  <View style={styles.signInRow}>
+                    <AppText variant="caption" color={colors.textSecondary}>
+                      Already have an account?
+                    </AppText>
+                    <TouchableOpacity
+                    activeOpacity={0.8}
+                    disabled={isProcessing}
+                    onPress={() => {
+                      triggerHaptic.selection();
+                      router.push('/(auth)/login');
+                    }}
+                    >
+                      <AppText variant="bodyBold" color={colors.textPrimary}>
+                        Sign in →
+                      </AppText>
+                    </TouchableOpacity>
+                  </View>
                 </View>
 
-                {/* Direct navigation to Login screen */}
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  disabled={isProcessing}
-                  style={[
-                    styles.signInNavButton,
-                    { borderColor: colors.border, backgroundColor: colors.cardElevated },
-                  ]}
-                  onPress={() => {
-                    triggerHaptic.selection();
-                    router.push('/(auth)/login');
-                  }}
-                >
-                  <View style={styles.signInNavContent}>
-                    <View style={{ flex: 1 }}>
-                      <AppText variant="bodyBold" color={colors.textPrimary}>
-                        Sign In to Existing Account
-                      </AppText>
-                      <AppText variant="caption" color={colors.textSecondary} style={{ marginTop: 2 }}>
-                        Sync and restore your ledger on this device
-                      </AppText>
-                    </View>
-                    <JapaneseIcon name="chevronRight" size={16} color={colors.textSecondary} strokeWidth={2.2} />
-                  </View>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            <AppText
-              variant="caption"
-              color={colors.textMuted}
-              style={styles.privacySub}
-            >
-              Guest mode is device-only. Signed-in accounts sync securely across devices.
-            </AppText>
-          </BentoCard>
+                <AppText variant="caption" color={colors.textMuted} style={styles.privacySub}>
+                  Guest mode stays on this device. Create an account to sync securely across devices.
+                </AppText>
+              </BentoCard>
+            </>
+          )}
+          </Animated.View>
         </View>
 
-        <AppText variant="caption" color={colors.textSecondary} style={styles.footerText}>
-          Less noise. More intention.
-        </AppText>
       </Main>
-    </KeyboardAvoidingView>
   );
 }
 
@@ -467,12 +528,157 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 18,
+    paddingHorizontal: 0,
+    paddingVertical: 24,
     justifyContent: 'space-between',
   },
   mainContent: {
+    gap: 18,
+  },
+  animatedContent: {
+    gap: 18,
+  },
+  welcomeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  brandLockup: {
+    gap: 2,
+  },
+  welcomeBlock: {
+    alignItems: 'center',
+    paddingTop: 22,
+    paddingHorizontal: 12,
+    gap: 6,
+  },
+  welcomeKicker: {
+    letterSpacing: 1.6,
+    fontSize: 9,
+  },
+  welcomeTitle: {
+    marginTop: 14,
+    textAlign: 'center',
+    fontSize: 28,
+  },
+  welcomeSubtitle: {
+    maxWidth: 310,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginTop: 4,
+  },
+  authActions: {
+    gap: 10,
+    marginTop: 18,
+  },
+  signInRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingTop: 10,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 2,
+    marginBottom: 4,
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  backBtnText: {
+    fontFamily: Fonts.sansBold,
+    fontSize: 12,
+    letterSpacing: 0.3,
+  },
+  titleCard: {
+    padding: 16,
+    gap: 8,
+  },
+  titleMeta: {
+    gap: 2,
+  },
+  kicker: {
+    letterSpacing: 2,
+    fontSize: 10,
+  },
+  title: {
+    fontSize: 24,
+  },
+  subtitle: {
+    lineHeight: 17,
+  },
+  formCard: {
+    padding: 16,
     gap: 14,
+  },
+  fieldGroup: {
+    gap: 6,
+  },
+  fieldLabel: {
+    letterSpacing: 1.2,
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  passwordLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  passwordInputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 48,
+  },
+  passwordInput: {
+    flex: 1,
+    fontSize: 14,
+  },
+  buttonLoadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  resendCodeBtn: {
+    alignItems: 'center',
+    paddingVertical: 6,
+    marginTop: 2,
+  },
+  switchCard: {
+    padding: 14,
+  },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  secondaryActionBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  actionBtnText: {
+    fontFamily: Fonts.sansBold,
+    fontSize: 12,
   },
   topRow: {
     flexDirection: 'row',
@@ -486,11 +692,11 @@ const styles = StyleSheet.create({
   },
   kanjiLogo: {
     fontFamily: Fonts.serif,
-    fontSize: 46,
-    lineHeight: 54,
+    fontSize: 38,
+    lineHeight: 45,
   },
   romajiSub: {
-    marginTop: 6,
+    marginTop: 2,
     letterSpacing: 3,
     fontSize: 11,
   },
@@ -623,23 +829,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 12,
   },
-  emailForm: {
-    gap: 10,
-  },
   input: {
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 1,
     fontSize: 14,
-  },
-  verifyHeaderWrap: {
-    gap: 4,
-    marginBottom: 6,
-  },
-  verifyDesc: {
-    textAlign: 'center',
-    lineHeight: 18,
   },
   codeInput: {
     paddingHorizontal: 12,
@@ -650,10 +845,6 @@ const styles = StyleSheet.create({
     letterSpacing: 8,
     textAlign: 'center',
     fontFamily: Fonts.mono,
-  },
-  switchButton: {
-    alignItems: 'center',
-    paddingVertical: 6,
   },
   privacySub: {
     textAlign: 'center',

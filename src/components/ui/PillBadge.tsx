@@ -31,11 +31,11 @@ export function PillBadge({
       backgroundColor: colors.selectionBg,
       textColor: colors.selectionText,
       borderColor: colors.selectionBorder,
-      borderWidth: 1.5,
+      borderWidth: 1,
     },
     outline: {
       backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : colors.card,
-      borderWidth: 1.5,
+      borderWidth: 1,
       borderColor: colors.border,
       textColor: colors.textPrimary,
     },
@@ -43,7 +43,7 @@ export function PillBadge({
       backgroundColor: colors.incomeBg,
       textColor: colors.incomeText,
       borderColor: colors.incomeBorder,
-      borderWidth: 1.5,
+      borderWidth: 1,
     },
   }[variant];
 

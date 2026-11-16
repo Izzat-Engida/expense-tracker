@@ -67,18 +67,32 @@ export async function sendEmailVerificationCode(email: string): Promise<{ succes
       });
 
       if (!response.ok) {
-        const errJson = await response.json().catch(() => ({}));
+        const errJson = (await response.json().catch(() => ({}))) as { message?: string; name?: string };
         console.warn('Resend email error:', errJson);
-        // Fallback notice if API call fails
-        showDevNotice(trimmedEmail, code);
+        const reason = errJson?.message || `HTTP ${response.status}`;
+        showNotice(
+          trimmedEmail,
+          code,
+          `Resend API error:\n${reason}\n\n[Dev Preview code: ${code}]`
+        );
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Email delivery error:', err);
-      showDevNotice(trimmedEmail, code);
+      const isCors = typeof window !== 'undefined' && (err?.message?.includes('Network') || err?.message?.includes('Failed to fetch'));
+      const extraHint = isCors ? ' (Note: Direct Resend API calls from Web browsers are blocked by CORS. Test on Android/iOS or use a backend).' : '';
+      showNotice(
+        trimmedEmail,
+        code,
+        `Network error: ${err?.message || 'Could not reach Resend'}.${extraHint}\n\n[Dev Preview code: ${code}]`
+      );
     }
   } else {
     // Development / Demonstration fallback when no third-party email API key is configured
-    showDevNotice(trimmedEmail, code);
+    showNotice(
+      trimmedEmail,
+      code,
+      `A 6-digit verification code has been dispatched to ${trimmedEmail}.\n\n[Dev Preview code: ${code}]\n\n(No EXPO_PUBLIC_RESEND_API_KEY found. If you added it to .env.local, restart with: npx expo start -c)`
+    );
   }
 
   return {
@@ -87,13 +101,9 @@ export async function sendEmailVerificationCode(email: string): Promise<{ succes
   };
 }
 
-function showDevNotice(email: string, code: string) {
+function showNotice(email: string, code: string, message: string) {
   console.log(`[Yohaku Verification] Code for ${email}: ${code}`);
-  Alert.alert(
-    'Verification Code Sent',
-    `A 6-digit verification code has been dispatched to ${email}.\n\n[Dev Preview: ${code}]\n\n(Add EXPO_PUBLIC_RESEND_API_KEY in .env to dispatch live emails via Resend)`,
-    [{ text: 'OK' }]
-  );
+  Alert.alert('Verification Notice', message, [{ text: 'OK' }]);
 }
 
 /**

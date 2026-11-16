@@ -190,7 +190,7 @@ export default function HomeScreen() {
       <View style={styles.bentoRow}>
         <BentoCard variant="dark" style={styles.spentCard}>
           <AppText variant="caption" color={colors.textMuted}>
-            支出 · SPENT
+            Spent this month
           </AppText>
           <View style={styles.spentAmountRow}>
             <AppText variant="digital" color={colors.textPrimary}>
@@ -204,8 +204,8 @@ export default function HomeScreen() {
             variant="income"
             label={
               monthIncome > 0
-                ? `収入 ${Math.round(monthIncome).toLocaleString()} ${currency} income`
-                : '収入 No income yet'
+                ? `Income ${Math.round(monthIncome).toLocaleString()} ${currency}`
+                : 'No income yet'
             }
             onPress={() => router.push('/modals/income-budget')}
           />
@@ -334,7 +334,7 @@ export default function HomeScreen() {
       <BentoCard variant="light" style={styles.streakCard}>
         <View style={styles.streakHeaderRow}>
           <AppText variant="caption" color={colors.textSecondary}>
-            連続 · Spending Streak
+            Spending streak
           </AppText>
           <TouchableOpacity
             activeOpacity={0.7}

@@ -5,8 +5,6 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
   Modal,
 } from 'react-native';
@@ -26,6 +24,7 @@ import {
   getAuthErrorMessage,
 } from '@/services/firebaseAuth';
 import { triggerHaptic } from '@/utils/haptics';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -105,10 +104,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={styles.keyboardContainer}
-    >
+    <>
       <Main contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.contentWrap}>
           {/* Header Row */}
@@ -296,7 +292,6 @@ export default function LoginScreen() {
         }}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalOverlay}
         >
           <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -362,7 +357,7 @@ export default function LoginScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
-    </KeyboardAvoidingView>
+    </>
   );
 }
 
@@ -374,7 +369,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 16,
     paddingVertical: 18,
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
   },
   contentWrap: {
     gap: 14,
