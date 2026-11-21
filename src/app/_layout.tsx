@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Appearance } from 'react-native';
+import { Appearance, Alert } from 'react-native';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
@@ -14,7 +14,14 @@ import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SQLiteProvider } from 'expo-sqlite';
 import { migrateDb } from '@/db/client';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { useAlertStore } from '@/stores/alertStore';
 import { useThemeColors } from '@/constants/theme';
+import { YohakuAlertModal } from '@/components/ui';
+
+// Connect native Alert.alert to YohakuAlertModal so all pop-ups share the design system
+Alert.alert = (title: string, message?: string, buttons?: any) => {
+  useAlertStore.getState().showAlert(title, message, buttons);
+};
 
 SplashScreen.preventAutoHideAsync();
 
@@ -87,6 +94,7 @@ export default function RootLayout() {
       <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
         <SQLiteProvider databaseName="yohaku.db" onInit={migrateDb}>
           <GatedStack />
+          <YohakuAlertModal />
         </SQLiteProvider>
       </KeyboardProvider>
     </SafeAreaProvider>

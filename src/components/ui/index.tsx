@@ -6,4 +6,5 @@ export * from './PillBadge';
 export * from './ProgressBar';
 export * from './JapaneseIcon';
 export * from './UserAvatar';
+export * from './YohakuAlertModal';
 export { default as DaySection } from './DaySection';

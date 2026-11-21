@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Alert, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { Main, BentoCard, AppText, JapaneseIcon } from '@/components/ui';
@@ -19,6 +19,7 @@ export default function DataSettings() {
   const activeAccount = useAuthStore((s) => s.activeAccount);
   const { syncNow, isDeviceOnline } = useSyncStore();
   const [isSyncing, setIsSyncing] = useState(false);
+  const [showClearModal, setShowClearModal] = useState(false);
 
   const handleManualSync = async () => {
     setIsSyncing(true);
@@ -114,17 +115,8 @@ export default function DataSettings() {
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => {
-            Alert.alert('Reset Ledger', 'Are you sure you want to clear all data for this account?', [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Clear All',
-                style: 'destructive',
-                onPress: async () => {
-                  triggerHaptic.heavy();
-                  await clearAllData();
-                },
-              },
-            ]);
+            triggerHaptic.heavy();
+            setShowClearModal(true);
           }}
           style={[styles.actionBtn, { borderColor: colors.hankoRed, backgroundColor: colors.cardElevated }]}
         >
@@ -140,6 +132,66 @@ export default function DataSettings() {
           <AppText style={[styles.chevron, { color: colors.hankoRed }]}>›</AppText>
         </TouchableOpacity>
       </BentoCard>
+
+      {/* Clear Ledger Confirmation Modal */}
+      <Modal
+        visible={showClearModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowClearModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.modalHeaderRow}>
+              <View style={{ flex: 1, gap: 4 }}>
+                <AppText variant="serifTitle" style={[styles.modalTitle, { color: colors.hankoRed }]}>
+                  Reset ledger?
+                </AppText>
+                <AppText variant="caption" color={colors.textSecondary}>
+                  Are you sure you want to clear all data for this profile? All transactions, income records, and savings will be permanently erased.
+                </AppText>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowClearModal(false)}
+                style={styles.closeBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <AppText style={{ fontSize: 16, color: colors.textSecondary }}>✕</AppText>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ gap: 8, marginTop: 8 }}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={async () => {
+                  try {
+                    triggerHaptic.heavy();
+                    setShowClearModal(false);
+                    await clearAllData();
+                  } catch (err: any) {
+                    Alert.alert('Error', err?.message || 'Could not reset ledger.');
+                  }
+                }}
+                style={[styles.modalActionBtn, { backgroundColor: colors.hankoRed }]}
+              >
+                <AppText variant="bodyBold" color="#FFFFFF">
+                  Clear all data
+                </AppText>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setShowClearModal(false)}
+                style={[styles.modalActionBtn, { backgroundColor: colors.cardElevated, borderColor: colors.border, borderWidth: 1 }]}
+              >
+                <AppText variant="bodyBold" color={colors.textPrimary}>
+                  Cancel
+                </AppText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Main>
   );
 }
@@ -194,5 +246,52 @@ const styles = StyleSheet.create({
   chevron: {
     fontSize: 20,
     fontWeight: '300',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(20, 24, 22, 0.45)',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  modalCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 18,
+    gap: 14,
+    maxWidth: 360,
+    width: '100%',
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  modalTitle: {
+    fontSize: 20,
+    marginBottom: 2,
+  },
+  closeBtn: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalActionBtn: {
+    paddingVertical: 11,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
 });

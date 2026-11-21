@@ -55,6 +55,10 @@ export default function AccountSettings() {
   const [showPasswords, setShowPasswords] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Confirmation Modals State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
+
   // Avatar Modal State
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
@@ -242,58 +246,14 @@ export default function AccountSettings() {
 
   const handleSignOut = () => {
     if (!activeAccount) return;
-    Alert.alert(
-      'Sign Out',
-      activeAccount.isLocal
-        ? `Close session for "${activeAccount.name}"? Your local ledger will remain saved on this device.`
-        : `Sign out of ${activeAccount.name}? Your local ledger will be preserved on this device.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            await removeAccount(activeAccount.id);
-            if (accounts.length <= 1) {
-              router.replace('/(auth)/onboarding');
-            } else {
-              router.replace('/(auth)/select-account');
-            }
-          },
-        },
-      ]
-    );
+    triggerHaptic.selection();
+    setShowSignOutModal(true);
   };
 
   const handleDeleteAccount = () => {
     if (!activeAccount) return;
-    const isLocal = activeAccount.isLocal;
-    Alert.alert(
-      'Delete Account & Data',
-      isLocal
-        ? `Permanently delete profile "${activeAccount.name}"? All transactions and saved data on this device will be erased. This action cannot be undone.`
-        : `Permanently delete account "${activeAccount.name}"? All transactions and cloud backups will be erased. This action cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete Permanently',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              triggerHaptic.heavy();
-              await deleteAccount(activeAccount.id);
-              if (accounts.length <= 1) {
-                router.replace('/(auth)/onboarding');
-              } else {
-                router.replace('/(auth)/select-account');
-              }
-            } catch (err: any) {
-              Alert.alert('Delete Failed', err?.message || 'Could not delete account.');
-            }
-          },
-        },
-      ]
-    );
+    triggerHaptic.heavy();
+    setShowDeleteModal(true);
   };
 
   const currentPreset = getPresetAvatar(activeAccount?.avatarUrl);
@@ -920,6 +880,146 @@ export default function AccountSettings() {
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
+      </Modal>
+      {/* Delete Account Confirmation Modal */}
+      <Modal
+        visible={showDeleteModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDeleteModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.modalHeaderRow}>
+              <View style={{ flex: 1, gap: 4 }}>
+                <AppText variant="serifTitle" style={[styles.modalTitle, { color: colors.hankoRed }]}>
+                  Delete account & data?
+                </AppText>
+                <AppText variant="caption" color={colors.textSecondary}>
+                  {activeAccount?.isLocal
+                    ? `Permanently delete profile "${activeAccount?.name}"? All transactions and saved records on this device will be erased. This action cannot be undone.`
+                    : `Permanently delete account "${activeAccount?.name}"? All transactions and cloud backups will be permanently destroyed. This action cannot be undone.`}
+                </AppText>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowDeleteModal(false)}
+                style={styles.closeBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <AppText style={{ fontSize: 16, color: colors.textSecondary }}>✕</AppText>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ gap: 8, marginTop: 8 }}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                disabled={isSubmitting}
+                onPress={async () => {
+                  if (!activeAccount) return;
+                  try {
+                    triggerHaptic.heavy();
+                    setIsSubmitting(true);
+                    await deleteAccount(activeAccount.id);
+                    setShowDeleteModal(false);
+                    if (accounts.length <= 1) {
+                      router.replace('/(auth)/onboarding');
+                    } else {
+                      router.replace('/(auth)/select-account');
+                    }
+                  } catch (err: any) {
+                    Alert.alert('Error', err?.message || 'Failed to delete account.');
+                  } finally {
+                    setIsSubmitting(false);
+                  }
+                }}
+                style={[styles.saveBtn, { backgroundColor: colors.hankoRed }]}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <AppText variant="bodyBold" color="#FFFFFF">
+                    Delete permanently
+                  </AppText>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.8}
+                disabled={isSubmitting}
+                onPress={() => setShowDeleteModal(false)}
+                style={[styles.saveBtn, { backgroundColor: colors.cardElevated, borderColor: colors.border, borderWidth: 1 }]}
+              >
+                <AppText variant="bodyBold" color={colors.textPrimary}>
+                  Cancel
+                </AppText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Sign Out Confirmation Modal */}
+      <Modal
+        visible={showSignOutModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSignOutModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.modalHeaderRow}>
+              <View style={{ flex: 1, gap: 4 }}>
+                <AppText variant="serifTitle" style={styles.modalTitle}>
+                  Sign out?
+                </AppText>
+                <AppText variant="caption" color={colors.textSecondary}>
+                  {activeAccount?.isLocal
+                    ? `Close session for "${activeAccount?.name}"? Your local ledger will remain safely preserved on this device.`
+                    : `Sign out of ${activeAccount?.name}? Your local ledger will remain preserved on this device.`}
+                </AppText>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowSignOutModal(false)}
+                style={styles.closeBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <AppText style={{ fontSize: 16, color: colors.textSecondary }}>✕</AppText>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ gap: 8, marginTop: 8 }}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={async () => {
+                  if (!activeAccount) return;
+                  triggerHaptic.selection();
+                  setShowSignOutModal(false);
+                  await removeAccount(activeAccount.id);
+                  if (accounts.length <= 1) {
+                    router.replace('/(auth)/onboarding');
+                  } else {
+                    router.replace('/(auth)/select-account');
+                  }
+                }}
+                style={[styles.saveBtn, { backgroundColor: colors.textPrimary }]}
+              >
+                <AppText variant="bodyBold" color={colors.background}>
+                  Sign out
+                </AppText>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setShowSignOutModal(false)}
+                style={[styles.saveBtn, { backgroundColor: colors.cardElevated, borderColor: colors.border, borderWidth: 1 }]}
+              >
+                <AppText variant="bodyBold" color={colors.textPrimary}>
+                  Cancel
+                </AppText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
     </Main>
   );
