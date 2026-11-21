@@ -49,14 +49,19 @@ export default function SyncStatusModal() {
   };
 
   return (
-    <Main contentContainerStyle={styles.container}>
+    <Main
+      showArt
+      artOpacity={0.11}
+      contentContainerStyle={styles.container}
+    >
       <View style={styles.headerRow}>
         <AppText variant="serifTitle">Cloud Sync</AppText>
         <TouchableOpacity
           onPress={() => router.back()}
-          style={[styles.closeBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+          style={styles.closeBtn}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <AppText variant="body" color={colors.textPrimary}>✕</AppText>
+          <AppText variant="body" color={colors.textSecondary}>✕</AppText>
         </TouchableOpacity>
       </View>
 
@@ -192,10 +197,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -251,14 +254,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   syncButton: {
-    borderRadius: 999,
-    borderWidth: 1.5,
-    paddingVertical: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingVertical: 11,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowOffset: { width: 2, height: 3 },
-    shadowOpacity: 1,
-    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
     marginTop: 8,
   },
 });

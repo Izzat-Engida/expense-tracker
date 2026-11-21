@@ -19,14 +19,18 @@ export default function SecuritySettings() {
   };
 
   return (
-    <Main contentContainerStyle={styles.container}>
+    <Main
+      showArt
+      artOpacity={0.11}
+      contentContainerStyle={styles.container}
+    >
       <View style={styles.headerRow}>
         <TouchableOpacity
           onPress={() => {
             triggerHaptic.selection();
             router.replace('/(tabs)/settings' as Href);
           }}
-          style={[styles.backBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+          style={styles.backBtn}
           activeOpacity={0.7}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
@@ -41,12 +45,12 @@ export default function SecuritySettings() {
       </View>
 
       <BentoCard variant="light" style={styles.card}>
-        <AppText variant="caption" color={colors.textSecondary}>BIOMETRICS</AppText>
+        <AppText variant="caption" color={colors.textSecondary}>Biometrics</AppText>
         <View style={styles.switchRow}>
           <View style={{ flex: 1, paddingRight: 8 }}>
-            <AppText variant="bodyBold">Biometric Unlock</AppText>
+            <AppText variant="bodyBold">Biometric unlock</AppText>
             <AppText variant="caption" color={colors.textSecondary}>
-              Unlock this profile with Fingerprint or Face ID
+              Unlock this profile with fingerprint or Face ID
             </AppText>
           </View>
           <Switch
@@ -63,7 +67,7 @@ export default function SecuritySettings() {
       </BentoCard>
 
       <BentoCard variant="light" style={styles.card}>
-        <AppText variant="caption" color={colors.textSecondary}>AUTHENTICATION</AppText>
+        <AppText variant="caption" color={colors.textSecondary}>Authentication</AppText>
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => {
@@ -74,7 +78,7 @@ export default function SecuritySettings() {
         >
           <View style={{ flex: 1 }}>
             <AppText variant="bodyBold">
-              {activeAccount?.isLocal ? 'Device Passcode / PIN' : 'Account Password'}
+              {activeAccount?.isLocal ? 'Device passcode or PIN' : 'Account password'}
             </AppText>
             <AppText variant="caption" color={colors.textSecondary}>
               Manage and update your login credentials
@@ -85,7 +89,7 @@ export default function SecuritySettings() {
       </BentoCard>
 
       <BentoCard variant="light" style={styles.card}>
-        <AppText variant="caption" color={colors.textSecondary}>INFO</AppText>
+        <AppText variant="caption" color={colors.textSecondary}>Ledger privacy</AppText>
         <View style={styles.infoRow}>
           <JapaneseIcon name="kamonLock" size={18} color={colors.textSecondary} />
           <AppText variant="caption" color={colors.textSecondary} style={{ flex: 1, lineHeight: 18 }}>
@@ -109,10 +113,8 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   backBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    borderWidth: 1.5,
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -2,71 +2,71 @@ import { useColorScheme } from 'react-native';
 import { useSettingsStore } from '@/stores/settingsStore';
 
 export const LightColors = {
-  background: '#E5E7E6',
-  card: '#ECEEED',
-  cardDark: '#262A28',
-  cardElevated: '#F4F6F5',
+  background: '#F5F3EE', // Washi warm natural paper
+  card: '#FFFFFF',       // Clean paper leaf
+  cardDark: '#202522',   // Sumi carbon ink stone
+  cardElevated: '#EDE9E1',
 
-  border: '#262A28',
-  shadow: '#262A28',
-  divider: '#D0D4D2',
+  border: 'rgba(32, 37, 34, 0.08)',
+  shadow: '#202522',
+  divider: 'rgba(32, 37, 34, 0.08)',
 
-  textPrimary: '#262A28',
-  textSecondary: '#68706C',
-  textMuted: '#949C98',
-  textInverse: '#ECEEED',
+  textPrimary: '#202522',
+  textSecondary: '#666F6A',
+  textMuted: '#909A94',
+  textInverse: '#F5F3EE',
 
-  hankoRed: '#B83B2A',
-  expensePillBg: '#EFE5E4',
-  expensePillText: '#A63A2B',
+  hankoRed: '#B83B2A',     // Shu-iro vermilion cinnabar
+  expensePillBg: '#F7EDE9',
+  expensePillText: '#A63524',
 
-  bambooGreen: '#4A6B53',
-  categoryFood: '#C88A32',
-  categoryBills: '#3B4D6B',
-  categoryTransport: '#467A7E',
-  categoryFun: '#6E5A7F',
-  categoryOther: '#7A827E',
+  bambooGreen: '#3E6B52',       // Take-iro bamboo evergreen
+  categoryFood: '#C87A28',      // Yamabuki amber gold
+  categoryBills: '#3B4D6B',     // Aizome indigo
+  categoryTransport: '#3A7579', // Seiji celadon
+  categoryFun: '#6A527A',       // Fuji wisteria
+  categoryOther: '#76807B',     // Rikyu grey
 
  
-  selectionBg: '#262A28',
-  selectionText: '#ECEEED',
-  selectionBorder: '#262A28',
+  selectionBg: '#202522',
+  selectionText: '#F5F3EE',
+  selectionBorder: '#202522',
 
-  incomeBg: '#4A6B53',
+  incomeBg: '#3E6B52',
   incomeText: '#FFFFFF',
-  incomeBorder: '#4A6B53',
+  incomeBorder: '#3E6B52',
 
-  savingBg: '#467A7E',
+  savingBg: '#3A7579',
   savingText: '#FFFFFF',
-  savingBorder: '#467A7E',
+  savingBorder: '#3A7579',
 
-  switchTrackOff: '#D0D4D2',
+  switchTrackOff: '#D4D2CB',
   switchThumb: '#FFFFFF',
 
-  positiveText: '#4A6B53',
+  positiveText: '#3E6B52',
   negativeText: '#B83B2A',
 
-  overlay: 'rgba(38, 42, 40, 0.55)',
+  overlay: 'rgba(32, 37, 34, 0.55)',
 };
 
 
 export const DarkColors = {
-  background: '#141817',
-  card: '#1F2624',
-  cardDark: '#2D3835',
-  cardElevated: '#384643',
+  background: '#131715', // Deep charcoal sumi wash
+  card: '#1B211E',       // Stoneware vessel
+  cardDark: '#252D29',
+  cardElevated: '#2F3A35',
 
-  border: '#52635F',
+  border: 'rgba(240, 244, 242, 0.08)',
   shadow: '#000000',
-  divider: '#34413E',
+  divider: 'rgba(240, 244, 242, 0.08)',
 
-  textPrimary: '#F2F5F4',
-  textSecondary: '#A4B0AB',
-  textMuted: '#8E9B96',
+  textPrimary: '#F2F6F4',
+  textSecondary: '#9EAAA4',
+  textMuted: '#78847E',
   textInverse: '#FFFFFF',
 
   hankoRed: '#D94D38',
-  expensePillBg: '#442624',
+  expensePillBg: '#3E211F',
   expensePillText: '#FF8A80',
 
   bambooGreen: '#5A8F69',
@@ -77,9 +77,9 @@ export const DarkColors = {
   categoryOther: '#9DA8A4',
 
   
-  selectionBg: '#F2F5F4',
-  selectionText: '#141817',
-  selectionBorder: '#F2F5F4',
+  selectionBg: '#F2F6F4',
+  selectionText: '#131715',
+  selectionBorder: '#F2F6F4',
 
   incomeBg: '#2F6B42',
   incomeText: '#D9F2DF',
@@ -89,8 +89,8 @@ export const DarkColors = {
   savingText: '#BFE9EC',
   savingBorder: '#4F8D93',
 
-  switchTrackOff: '#4A5754',
-  switchThumb: '#F2F5F4',
+  switchTrackOff: '#44504B',
+  switchThumb: '#F2F6F4',
 
   positiveText: '#8FD3A2',
   negativeText: '#FF8A80',

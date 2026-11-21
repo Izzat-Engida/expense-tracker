@@ -80,11 +80,13 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.serif,
     fontSize: 27,
     letterSpacing: -0.3,
+    fontVariant: ['tabular-nums'],
   },
   digital: {
     fontFamily: Fonts.digital,
     fontSize: 40,
-    letterSpacing: 2,
+    letterSpacing: 1,
+    fontVariant: ['tabular-nums'],
   },
   body: {
     fontFamily: Fonts.sans,
@@ -99,6 +101,6 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 12,
     lineHeight: 17,
-    letterSpacing: 0.2,
+    letterSpacing: 0,
   },
 });

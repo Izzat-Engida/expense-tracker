@@ -11,7 +11,6 @@ import {
 import { useRouter } from 'expo-router';
 import {
   Main,
-  BentoCard,
   HankoStamp,
   AppText,
   JapaneseIcon,
@@ -105,20 +104,19 @@ export default function LoginScreen() {
 
   return (
     <>
-      <Main contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <Main
+        showArt
+        artOpacity={0.11}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.contentWrap}>
           {/* Header Row */}
           <View style={styles.headerRow}>
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={handleBack}
-              style={[
-                styles.backBtn,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                },
-              ]}
+              style={styles.backBtn}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <JapaneseIcon
@@ -128,33 +126,37 @@ export default function LoginScreen() {
                 strokeWidth={2.2}
               />
               <AppText variant="caption" color={colors.textPrimary} style={styles.backBtnText}>
-                Onboarding
+                Back
               </AppText>
             </TouchableOpacity>
 
             <HankoStamp size="sm" />
           </View>
 
-          {/* Title Card */}
-          <BentoCard variant="light" style={styles.titleCard}>
-            <View style={styles.titleMeta}>
-              <AppText variant="caption" color={colors.textSecondary} style={styles.kicker}>
-                再訪 · WELCOME BACK
-              </AppText>
-              <AppText variant="serifTitle" style={styles.title}>
-                Sign In
+          {/* Welcome Block */}
+          <View style={styles.welcomeBlock}>
+            <View style={styles.brandLockup}>
+              <AppText style={styles.kanjiLogo}>余白</AppText>
+              <AppText variant="caption" color={colors.textSecondary} style={styles.romajiSub}>
+                Y O H A K U
               </AppText>
             </View>
-            <AppText variant="caption" color={colors.textSecondary} style={styles.subtitle}>
-              Sign in to your existing account
+            <AppText variant="caption" color={colors.textSecondary} style={styles.welcomeKicker}>
+              再訪 · Welcome back
             </AppText>
-          </BentoCard>
+            <AppText variant="serifTitle" style={styles.welcomeTitle}>
+              Sign in to your ledger.
+            </AppText>
+            <AppText variant="body" color={colors.textSecondary} style={styles.welcomeSubtitle}>
+              Sync your accounts and continue tracking with intention.
+            </AppText>
+          </View>
 
-          {/* Credentials Card */}
-          <BentoCard variant="light" style={styles.formCard}>
+          {/* Form Container */}
+          <View style={styles.formContainer}>
             <View style={styles.fieldGroup}>
               <AppText variant="caption" color={colors.textSecondary} style={styles.fieldLabel}>
-                EMAIL ADDRESS
+                Email address
               </AppText>
               <TextInput
                 placeholder="you@example.com"
@@ -170,7 +172,7 @@ export default function LoginScreen() {
                   {
                     color: colors.textPrimary,
                     borderColor: colors.border,
-                    backgroundColor: colors.background,
+                    backgroundColor: colors.card,
                   },
                 ]}
               />
@@ -179,7 +181,7 @@ export default function LoginScreen() {
             <View style={styles.fieldGroup}>
               <View style={styles.passwordLabelRow}>
                 <AppText variant="caption" color={colors.textSecondary} style={styles.fieldLabel}>
-                  PASSWORD
+                  Password
                 </AppText>
                 <TouchableOpacity
                   onPress={() => setShowPassword((prev) => !prev)}
@@ -196,7 +198,7 @@ export default function LoginScreen() {
                   styles.passwordInputWrap,
                   {
                     borderColor: colors.border,
-                    backgroundColor: colors.background,
+                    backgroundColor: colors.card,
                   },
                 ]}
               >
@@ -237,47 +239,38 @@ export default function LoginScreen() {
               {isProcessing ? (
                 <View style={styles.buttonLoadingRow}>
                   <ActivityIndicator size="small" color={colors.background} />
-                  <AppText variant="bodyBold" color={colors.background}>
+                  <AppText variant="bodyBold" color={colors.background} style={styles.buttonText}>
                     Signing in…
                   </AppText>
                 </View>
               ) : (
-                <AppText variant="bodyBold" color={colors.background}>
+                <AppText variant="bodyBold" color={colors.background} style={styles.buttonText}>
                   Sign In
                 </AppText>
               )}
             </TouchableOpacity>
-          </BentoCard>
 
-          {/* New account / Guest options */}
-          <BentoCard variant="light" style={styles.switchCard}>
+            {/* New account / Guest options */}
             <View style={styles.switchRow}>
-              <View style={{ flex: 1 }}>
-                <AppText variant="bodyBold">New to Yohaku?</AppText>
-                <AppText variant="caption" color={colors.textSecondary}>
-                  Create a new synced account or use local Guest Mode.
-                </AppText>
-              </View>
+              <AppText variant="caption" color={colors.textSecondary}>
+                New to Yohaku?
+              </AppText>
               <TouchableOpacity
-                activeOpacity={0.7}
+                activeOpacity={0.8}
                 onPress={() => {
                   triggerHaptic.selection();
                   router.replace('/(auth)/onboarding');
                 }}
-                style={[
-                  styles.secondaryActionBtn,
-                  { borderColor: colors.border, backgroundColor: colors.cardElevated },
-                ]}
               >
-                <AppText variant="caption" color={colors.textPrimary} style={styles.actionBtnText}>
-                  Get Started →
+                <AppText variant="bodyBold" color={colors.textPrimary}>
+                  Get started
                 </AppText>
               </TouchableOpacity>
             </View>
-          </BentoCard>
+          </View>
         </View>
 
-        <AppText variant="caption" color={colors.textSecondary} style={styles.footerText}>
+        <AppText variant="caption" color={colors.textMuted} style={styles.footerText}>
           Less noise. More intention.
         </AppText>
       </Main>
@@ -298,7 +291,7 @@ export default function LoginScreen() {
             <View style={styles.modalHeaderRow}>
               <View style={{ flex: 1 }}>
                 <AppText variant="serifTitle" style={styles.modalTitle}>
-                  Reset Password
+                  Reset password
                 </AppText>
                 <AppText variant="caption" color={colors.textSecondary} style={styles.modalSubtitle}>
                   Enter your registered email address and we will dispatch a reset link to your inbox.
@@ -307,16 +300,16 @@ export default function LoginScreen() {
               <TouchableOpacity
                 onPress={() => setShowForgotModal(false)}
                 disabled={isResetting}
-                style={[styles.modalCloseBtn, { borderColor: colors.border, backgroundColor: colors.cardElevated }]}
+                style={styles.modalCloseBtn}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <AppText style={{ fontSize: 16, color: colors.textPrimary }}>✕</AppText>
+                <AppText style={{ fontSize: 16, color: colors.textSecondary }}>✕</AppText>
               </TouchableOpacity>
             </View>
 
             <View style={styles.modalInputGroup}>
               <AppText variant="caption" color={colors.textSecondary} style={styles.fieldLabel}>
-                EMAIL ADDRESS
+                Email address
               </AppText>
               <TextInput
                 value={resetEmailInput}
@@ -330,7 +323,7 @@ export default function LoginScreen() {
                 onSubmitEditing={handleSendResetLink}
                 style={[
                   styles.input,
-                  { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.background },
+                  { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.cardElevated },
                 ]}
               />
             </View>
@@ -344,13 +337,13 @@ export default function LoginScreen() {
               {isResetting ? (
                 <View style={styles.buttonLoadingRow}>
                   <ActivityIndicator size="small" color={colors.background} />
-                  <AppText variant="bodyBold" color={colors.background}>
+                  <AppText variant="bodyBold" color={colors.background} style={styles.buttonText}>
                     Dispatching link…
                   </AppText>
                 </View>
               ) : (
-                <AppText variant="bodyBold" color={colors.background}>
-                  Send Password Reset Link
+                <AppText variant="bodyBold" color={colors.background} style={styles.buttonText}>
+                  Send password reset link
                 </AppText>
               )}
             </TouchableOpacity>
@@ -372,7 +365,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   contentWrap: {
-    gap: 14,
+    gap: 16,
   },
   headerRow: {
     flexDirection: 'row',
@@ -384,50 +377,60 @@ const styles = StyleSheet.create({
   backBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingVertical: 7,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 2,
   },
   backBtnText: {
     fontFamily: Fonts.sansBold,
-    fontSize: 12,
-    letterSpacing: 0.3,
+    fontSize: 13,
   },
-  titleCard: {
-    padding: 16,
-    gap: 8,
+  welcomeBlock: {
+    alignItems: 'center',
+    paddingTop: 8,
+    paddingHorizontal: 16,
+    gap: 6,
   },
-  titleMeta: {
+  brandLockup: {
     gap: 2,
+    alignItems: 'center',
+    marginBottom: 4,
   },
-  kicker: {
-    letterSpacing: 2,
+  kanjiLogo: {
+    fontFamily: Fonts.serif,
+    fontSize: 34,
+    lineHeight: 40,
+  },
+  romajiSub: {
+    letterSpacing: 3,
     fontSize: 10,
   },
-  title: {
-    fontSize: 24,
+  welcomeKicker: {
+    fontSize: 11,
+    marginTop: 4,
   },
-  subtitle: {
-    lineHeight: 17,
+  welcomeTitle: {
+    fontSize: 26,
+    textAlign: 'center',
   },
-  formCard: {
-    padding: 16,
-    gap: 14,
+  welcomeSubtitle: {
+    maxWidth: 300,
+    textAlign: 'center',
+    lineHeight: 20,
+    fontSize: 13,
+  },
+  formContainer: {
+    paddingHorizontal: 4,
+    gap: 12,
+    maxWidth: 320,
+    width: '100%',
+    alignSelf: 'center',
   },
   fieldGroup: {
     gap: 6,
   },
   fieldLabel: {
-    letterSpacing: 1.2,
-    fontSize: 10,
-    fontWeight: '600',
+    fontSize: 12,
   },
   passwordLabelRow: {
     flexDirection: 'row',
@@ -436,7 +439,7 @@ const styles = StyleSheet.create({
   },
   input: {
     paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingVertical: 11,
     borderRadius: 8,
     borderWidth: 1,
     fontSize: 14,
@@ -447,7 +450,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 12,
-    height: 48,
+    height: 44,
   },
   passwordInput: {
     flex: 1,
@@ -455,56 +458,59 @@ const styles = StyleSheet.create({
   },
   forgotBtn: {
     alignSelf: 'flex-end',
-    marginTop: -4,
+    marginTop: -2,
   },
   primaryButton: {
-    paddingVertical: 14,
-    borderRadius: 10,
+    paddingVertical: 11,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  buttonText: {
+    fontSize: 14,
   },
   buttonLoadingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  switchCard: {
-    padding: 14,
-  },
   switchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  secondaryActionBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  actionBtnText: {
-    fontFamily: Fonts.sansBold,
-    fontSize: 12,
+    justifyContent: 'center',
+    gap: 6,
+    paddingTop: 8,
   },
   footerText: {
     textAlign: 'center',
-    letterSpacing: 1,
     marginVertical: 14,
     fontSize: 11,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(20, 24, 22, 0.45)',
     justifyContent: 'center',
     paddingHorizontal: 20,
   },
   modalCard: {
-    borderRadius: 16,
-    borderWidth: 1.5,
+    borderRadius: 12,
+    borderWidth: 1,
     padding: 20,
     gap: 16,
+    maxWidth: 340,
+    width: '100%',
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   modalHeaderRow: {
     flexDirection: 'row',
@@ -520,10 +526,8 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   modalCloseBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -531,8 +535,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   modalActionBtn: {
-    paddingVertical: 14,
-    borderRadius: 10,
+    paddingVertical: 11,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 4,

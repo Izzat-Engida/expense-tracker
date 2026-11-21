@@ -85,12 +85,11 @@ export default function DaySection({group,badgeVariant,showDivider = false,}: {
   );
 }
 const styles = StyleSheet.create({
-
   dayHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   dayBadgeGroup: {
     flexDirection: 'row',
@@ -101,13 +100,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   rowBorder: {
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   expenseInfo: {
-    gap: 3,
+    gap: 2,
   },
   categoryLine: {
     flexDirection: 'row',
@@ -116,7 +115,7 @@ const styles = StyleSheet.create({
   },
 
   sectionDivider: {
-    height: 1.5,
+    height: StyleSheet.hairlineWidth,
     marginVertical: 8,
   },
 

@@ -115,20 +115,20 @@ export default BentoCard;
 
 const styles = StyleSheet.create({
   cardBase: {
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: Colors.border,
-    padding: 18,
+    padding: 16,
     shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
     elevation: 1,
     position: 'relative',
   },
   artClipper: {
     ...StyleSheet.absoluteFill,
-    borderRadius: 20,
+    borderRadius: 16,
     overflow: 'hidden',
   },
   artWagara: {

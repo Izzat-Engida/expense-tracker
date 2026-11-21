@@ -3,7 +3,7 @@ import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { Main, BentoCard, AppText, JapaneseIcon } from '@/components/ui';
-import { Fonts, useThemeColors } from '@/constants/theme';
+import { useThemeColors } from '@/constants/theme';
 import { useLedger } from '@/hooks/useLedger';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -30,18 +30,22 @@ export default function DataSettings() {
   };
 
   return (
-    <Main contentContainerStyle={styles.container}>
+    <Main
+      showArt
+      artOpacity={0.11}
+      contentContainerStyle={styles.container}
+    >
       <View style={styles.headerRow}>
         <TouchableOpacity
           onPress={() => {
             triggerHaptic.selection();
             router.replace('/(tabs)/settings' as Href);
           }}
-          style={[styles.backBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+          style={styles.backBtn}
           activeOpacity={0.7}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <AppText style={[styles.backChevron, { color: colors.textPrimary }]}>‹</AppText>
+          <JapaneseIcon name="chevronLeft" size={16} color={colors.textPrimary} strokeWidth={2.2} />
         </TouchableOpacity>
         <View style={styles.headerTitleWrap}>
           <AppText variant="serifTitle" style={styles.headerTitle}>Data & Export</AppText>
@@ -53,7 +57,7 @@ export default function DataSettings() {
 
       {/* Export */}
       <BentoCard variant="light" style={styles.card}>
-        <AppText variant="caption" color={colors.textSecondary}>ARCHIVING & SOVEREIGNTY</AppText>
+        <AppText variant="caption" color={colors.textSecondary}>Archiving & sovereignty</AppText>
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={async () => {
@@ -76,7 +80,7 @@ export default function DataSettings() {
       {/* Cloud Sync */}
       {!activeAccount?.isLocal && (
         <BentoCard variant="light" style={styles.card}>
-          <AppText variant="caption" color={colors.textSecondary}>CLOUD SYNC</AppText>
+          <AppText variant="caption" color={colors.textSecondary}>Cloud sync</AppText>
           <TouchableOpacity
             activeOpacity={0.7}
             disabled={isSyncing || !isDeviceOnline}
@@ -106,7 +110,7 @@ export default function DataSettings() {
 
       {/* Danger zone */}
       <BentoCard variant="light" style={styles.card}>
-        <AppText variant="caption" color={colors.hankoRed}>DANGER ZONE</AppText>
+        <AppText variant="caption" color={colors.hankoRed}>Danger zone</AppText>
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => {
@@ -152,19 +156,10 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   backBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    borderWidth: 1.5,
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  backChevron: {
-    fontSize: 22,
-    lineHeight: 24,
-    marginTop: -2,
-    marginLeft: -1,
-    fontFamily: Fonts.sansBold,
   },
   headerTitleWrap: {
     flex: 1,

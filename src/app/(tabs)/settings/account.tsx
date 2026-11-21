@@ -299,7 +299,11 @@ export default function AccountSettings() {
   const currentPreset = getPresetAvatar(activeAccount?.avatarUrl);
 
   return (
-    <Main contentContainerStyle={styles.container}>
+    <Main
+      showArt
+      artOpacity={0.11}
+      contentContainerStyle={styles.container}
+    >
       {/* Header */}
       <View style={styles.headerRow}>
         <TouchableOpacity
@@ -307,7 +311,7 @@ export default function AccountSettings() {
             triggerHaptic.selection();
             router.replace('/(tabs)/settings' as Href);
           }}
-          style={[styles.backBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+          style={styles.backBtn}
           activeOpacity={0.7}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
@@ -323,7 +327,7 @@ export default function AccountSettings() {
 
       {/* Active Profile Card */}
       <BentoCard variant="light" style={styles.card}>
-        <AppText variant="caption" color={colors.textSecondary}>ACTIVE PROFILE</AppText>
+        <AppText variant="caption" color={colors.textSecondary}>Active profile</AppText>
         <View style={styles.profileRow}>
           <TouchableOpacity
             activeOpacity={0.8}
@@ -392,7 +396,7 @@ export default function AccountSettings() {
         >
           <View style={{ flex: 1 }}>
             <AppText variant="caption" color={colors.textMuted} style={styles.detailLabel}>
-              USERNAME
+              Username
             </AppText>
             <AppText variant="bodyBold" numberOfLines={1}>
               {activeAccount?.name || 'Not set'}
@@ -414,7 +418,7 @@ export default function AccountSettings() {
           >
             <View style={{ flex: 1 }}>
               <AppText variant="caption" color={colors.textMuted} style={styles.detailLabel}>
-                EMAIL ADDRESS
+                Email address
               </AppText>
               <AppText variant="bodyBold" numberOfLines={1}>
                 {activeAccount?.email || 'Not set'}
@@ -436,7 +440,7 @@ export default function AccountSettings() {
         >
           <View style={{ flex: 1 }}>
             <AppText variant="caption" color={colors.textMuted} style={styles.detailLabel}>
-              {activeAccount?.isLocal ? 'DEVICE PASSCODE / PIN' : 'ACCOUNT PASSWORD'}
+              {activeAccount?.isLocal ? 'Device passcode or PIN' : 'Account password'}
             </AppText>
             <AppText variant="caption" color={colors.textSecondary}>
               ••••••••
@@ -452,7 +456,7 @@ export default function AccountSettings() {
 
       {/* Account actions */}
       <BentoCard variant="light" style={styles.card}>
-        <AppText variant="caption" color={colors.textSecondary}>SESSION</AppText>
+        <AppText variant="caption" color={colors.textSecondary}>Session</AppText>
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => {
@@ -477,7 +481,7 @@ export default function AccountSettings() {
 
       {/* Danger zone */}
       <BentoCard variant="light" style={styles.card}>
-        <AppText variant="caption" color={colors.hankoRed}>DANGER ZONE</AppText>
+        <AppText variant="caption" color={colors.hankoRed}>Danger zone</AppText>
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={handleSignOut}
@@ -532,10 +536,10 @@ export default function AccountSettings() {
               <TouchableOpacity
                 onPress={closeAvatarModal}
                 disabled={isSubmitting}
-                style={[styles.closeBtn, { borderColor: colors.border, backgroundColor: colors.cardElevated }]}
+                style={styles.closeBtn}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <AppText style={{ fontSize: 16, color: colors.textPrimary }}>✕</AppText>
+                <AppText style={{ fontSize: 16, color: colors.textSecondary }}>✕</AppText>
               </TouchableOpacity>
             </View>
 
@@ -555,7 +559,7 @@ export default function AccountSettings() {
               {/* Option 1: Custom Image from Device */}
               <View style={styles.avatarSection}>
                 <AppText variant="caption" color={colors.textSecondary} style={styles.avatarSectionLabel}>
-                  DEVICE PHOTO
+                  Device photo
                 </AppText>
                 <TouchableOpacity
                   activeOpacity={0.8}
@@ -569,7 +573,7 @@ export default function AccountSettings() {
                   <JapaneseIcon name="search" size={18} color={colors.textPrimary} />
                   <View style={{ flex: 1 }}>
                     <AppText variant="bodyBold" style={{ fontSize: 13 }}>
-                      {isPickingImage ? 'Selecting…' : 'Choose from Photo Library'}
+                      {isPickingImage ? 'Selecting…' : 'Choose from photo library'}
                     </AppText>
                     <AppText variant="caption" color={colors.textMuted}>
                       Select any image from your device
@@ -581,7 +585,7 @@ export default function AccountSettings() {
               {/* Option 2: Preset Japanese Illustrations */}
               <View style={styles.avatarSection}>
                 <AppText variant="caption" color={colors.textSecondary} style={styles.avatarSectionLabel}>
-                  JAPANESE ILLUSTRATIONS
+                  Traditional motifs
                 </AppText>
                 <View style={styles.presetsGrid}>
                   {PRESET_AVATARS.map((p) => {
@@ -632,7 +636,7 @@ export default function AccountSettings() {
                 style={styles.resetMonogramBtn}
               >
                 <AppText variant="caption" color={colors.textMuted}>
-                  Reset to Letter Monogram
+                  Reset to letter monogram
                 </AppText>
               </TouchableOpacity>
 
@@ -647,7 +651,7 @@ export default function AccountSettings() {
                   <ActivityIndicator size="small" color={colors.background} />
                 ) : (
                   <AppText variant="bodyBold" color={colors.background}>
-                    Save Profile Picture
+                    Save profile picture
                   </AppText>
                 )}
               </TouchableOpacity>
@@ -671,9 +675,9 @@ export default function AccountSettings() {
             <View style={styles.modalHeaderRow}>
               <View style={{ flex: 1 }}>
                 <AppText variant="serifTitle" style={styles.modalTitle}>
-                  {modalType === 'name' && 'Edit Username'}
-                  {modalType === 'email' && 'Update Email'}
-                  {modalType === 'password' && (activeAccount?.isLocal ? 'Change Passcode' : 'Change Password')}
+                  {modalType === 'name' && 'Edit username'}
+                  {modalType === 'email' && 'Update email'}
+                  {modalType === 'password' && (activeAccount?.isLocal ? 'Change passcode' : 'Change password')}
                 </AppText>
                 <AppText variant="caption" color={colors.textSecondary}>
                   {modalType === 'name' && 'Set a new display name for your profile.'}
@@ -684,10 +688,10 @@ export default function AccountSettings() {
               <TouchableOpacity
                 onPress={closeModal}
                 disabled={isSubmitting}
-                style={[styles.closeBtn, { borderColor: colors.border, backgroundColor: colors.cardElevated }]}
+                style={styles.closeBtn}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <AppText style={{ fontSize: 16, color: colors.textPrimary }}>✕</AppText>
+                <AppText style={{ fontSize: 16, color: colors.textSecondary }}>✕</AppText>
               </TouchableOpacity>
             </View>
 
@@ -697,7 +701,7 @@ export default function AccountSettings() {
                 <View style={styles.modalForm}>
                   <View style={styles.fieldGroup}>
                     <AppText variant="caption" color={colors.textSecondary} style={styles.fieldLabel}>
-                      USERNAME
+                      Username
                     </AppText>
                     <TextInput
                       value={newName}
@@ -709,7 +713,7 @@ export default function AccountSettings() {
                       onSubmitEditing={handleSaveName}
                       style={[
                         styles.input,
-                        { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.background },
+                        { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.cardElevated },
                       ]}
                     />
                   </View>
@@ -724,7 +728,7 @@ export default function AccountSettings() {
                       <ActivityIndicator size="small" color={colors.background} />
                     ) : (
                       <AppText variant="bodyBold" color={colors.background}>
-                        Save Username
+                        Save username
                       </AppText>
                     )}
                   </TouchableOpacity>
@@ -736,7 +740,7 @@ export default function AccountSettings() {
                 <View style={styles.modalForm}>
                   <View style={styles.fieldGroup}>
                     <AppText variant="caption" color={colors.textSecondary} style={styles.fieldLabel}>
-                      NEW EMAIL ADDRESS
+                      New email address
                     </AppText>
                     <TextInput
                       value={newEmail}
@@ -749,14 +753,14 @@ export default function AccountSettings() {
                       returnKeyType="next"
                       style={[
                         styles.input,
-                        { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.background },
+                        { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.cardElevated },
                       ]}
                     />
                   </View>
 
                   <View style={styles.fieldGroup}>
                     <AppText variant="caption" color={colors.textSecondary} style={styles.fieldLabel}>
-                      CURRENT ACCOUNT PASSWORD
+                      Current password
                     </AppText>
                     <TextInput
                       value={currentPassword}
@@ -769,7 +773,7 @@ export default function AccountSettings() {
                       onSubmitEditing={handleSaveEmail}
                       style={[
                         styles.input,
-                        { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.background },
+                        { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.cardElevated },
                       ]}
                     />
                     {!activeAccount?.isLocal && Boolean(activeAccount?.email) && (
@@ -803,7 +807,7 @@ export default function AccountSettings() {
                       <ActivityIndicator size="small" color={colors.background} />
                     ) : (
                       <AppText variant="bodyBold" color={colors.background}>
-                        Update Email
+                        Update email
                       </AppText>
                     )}
                   </TouchableOpacity>
@@ -815,7 +819,7 @@ export default function AccountSettings() {
                 <View style={styles.modalForm}>
                   <View style={styles.fieldGroup}>
                     <AppText variant="caption" color={colors.textSecondary} style={styles.fieldLabel}>
-                      CURRENT PASSWORD / PIN
+                      Current password or PIN
                     </AppText>
                     <TextInput
                       value={currentPassword}
@@ -827,7 +831,7 @@ export default function AccountSettings() {
                       returnKeyType="next"
                       style={[
                         styles.input,
-                        { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.background },
+                        { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.cardElevated },
                       ]}
                     />
                     {!activeAccount?.isLocal && Boolean(activeAccount?.email) && (
@@ -854,7 +858,7 @@ export default function AccountSettings() {
                   <View style={styles.fieldGroup}>
                     <View style={styles.labelRowBetween}>
                       <AppText variant="caption" color={colors.textSecondary} style={styles.fieldLabel}>
-                        NEW PASSWORD / PIN
+                        New password or PIN
                       </AppText>
                       <TouchableOpacity onPress={() => setShowPasswords((v) => !v)}>
                         <AppText variant="caption" color={colors.textSecondary}>
@@ -872,14 +876,14 @@ export default function AccountSettings() {
                       returnKeyType="next"
                       style={[
                         styles.input,
-                        { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.background },
+                        { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.cardElevated },
                       ]}
                     />
                   </View>
 
                   <View style={styles.fieldGroup}>
                     <AppText variant="caption" color={colors.textSecondary} style={styles.fieldLabel}>
-                      CONFIRM NEW PASSWORD / PIN
+                      Confirm new password or PIN
                     </AppText>
                     <TextInput
                       value={confirmPassword}
@@ -892,7 +896,7 @@ export default function AccountSettings() {
                       onSubmitEditing={handleSavePassword}
                       style={[
                         styles.input,
-                        { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.background },
+                        { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.cardElevated },
                       ]}
                     />
                   </View>
@@ -907,7 +911,7 @@ export default function AccountSettings() {
                       <ActivityIndicator size="small" color={colors.background} />
                     ) : (
                       <AppText variant="bodyBold" color={colors.background}>
-                        Update Password
+                        Update password
                       </AppText>
                     )}
                   </TouchableOpacity>
@@ -933,10 +937,8 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   backBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    borderWidth: 1.5,
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1016,16 +1018,24 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(20, 24, 22, 0.45)',
     justifyContent: 'center',
     paddingHorizontal: 20,
   },
   modalCard: {
-    borderRadius: 16,
-    borderWidth: 1.5,
-    padding: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 18,
     gap: 14,
     maxHeight: '85%',
+    maxWidth: 360,
+    width: '100%',
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   modalHeaderRow: {
     flexDirection: 'row',
@@ -1038,10 +1048,8 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1099,9 +1107,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   fieldLabel: {
-    letterSpacing: 1,
-    fontSize: 10,
-    fontWeight: '600',
+    fontSize: 12,
   },
   labelRowBetween: {
     flexDirection: 'row',
@@ -1110,7 +1116,7 @@ const styles = StyleSheet.create({
   },
   input: {
     paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingVertical: 11,
     borderRadius: 8,
     borderWidth: 1,
     fontSize: 14,
@@ -1121,10 +1127,15 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   saveBtn: {
-    paddingVertical: 13,
-    borderRadius: 10,
+    paddingVertical: 11,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
 });

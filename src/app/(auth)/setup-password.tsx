@@ -6,14 +6,13 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   Main,
-  BentoCard,
   AppText,
   HankoStamp,
-  PillBadge,
   JapaneseIcon,
 } from '@/components/ui';
 import { Fonts, useThemeColors } from '@/constants/theme';
@@ -36,20 +35,28 @@ export default function SetupPasswordScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!pendingAccount) {
-
     return (
-      <Main>
-        <BentoCard variant="light" style={styles.errorCard}>
-          <AppText variant="bodyBold">No account selected</AppText>
-          <TouchableOpacity
-            style={[styles.primaryButton, { backgroundColor: colors.selectionBg }]}
-            onPress={() => router.replace('/(auth)/onboarding')}
-          >
-            <AppText variant="bodyBold" color={colors.selectionText}>
-              Return to Onboarding
+      <Main
+        showArt
+        artOpacity={0.11}
+        contentContainerStyle={styles.container}
+      >
+        <View style={styles.contentWrap}>
+          <View style={[styles.errorCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <AppText variant="serifTitle" style={styles.welcomeTitle}>No profile selected</AppText>
+            <AppText variant="caption" color={colors.textSecondary}>
+              Please return to the welcome screen to begin.
             </AppText>
-          </TouchableOpacity>
-        </BentoCard>
+            <TouchableOpacity
+              style={[styles.primaryButton, { backgroundColor: colors.textPrimary }]}
+              onPress={() => router.replace('/(auth)/onboarding')}
+            >
+              <AppText variant="bodyBold" color={colors.background} style={styles.buttonText}>
+                Return to onboarding
+              </AppText>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Main>
     );
   }
@@ -64,7 +71,7 @@ export default function SetupPasswordScreen() {
       return;
     }
     if (password.length < 4) {
-      Alert.alert('Too Short', 'Password/PIN should be at least 4 characters.');
+      Alert.alert('Too Short', 'Password or PIN should be at least 4 characters.');
       return;
     }
     if (password !== confirmPassword) {
@@ -79,17 +86,25 @@ export default function SetupPasswordScreen() {
         biometricEnabled,
         pendingAccount.isLocal ? displayName.trim() : undefined
       );
+      triggerHaptic.success();
       router.replace('/(tabs)');
     } catch (err: any) {
-      Alert.alert('Error', err?.message || 'Could not save password.');
+      Alert.alert('Error', err?.message || 'Could not save profile setup.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Main contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled"  >
-        <View style={styles.topNavRow}>
+    <Main
+      showArt
+      artOpacity={0.11}
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View style={styles.contentWrap}>
+        {/* Top Navigation */}
+        <View style={styles.headerRow}>
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => {
@@ -100,18 +115,12 @@ export default function SetupPasswordScreen() {
                 router.replace('/(auth)/onboarding');
               }
             }}
-            style={[
-              styles.backBtn,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-              },
-            ]}
+            style={styles.backBtn}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <JapaneseIcon
               name="chevronLeft"
-              size={16}
+              size={15}
               color={colors.textPrimary}
               strokeWidth={2.2}
             />
@@ -122,249 +131,264 @@ export default function SetupPasswordScreen() {
           <HankoStamp size="sm" />
         </View>
 
-        <View style={styles.headerRow}>
-          <View>
-            <AppText variant="serifTitle">Security Setup</AppText>
-            <AppText variant="caption" color={colors.textSecondary}>
-              {pendingAccount.isLocal ? 'Profile & Passcode' : 'Account Password & Backup'}
+        {/* Welcome Block */}
+        <View style={styles.welcomeBlock}>
+          <View style={styles.brandLockup}>
+            <AppText style={styles.kanjiLogo}>余白</AppText>
+            <AppText variant="caption" color={colors.textSecondary} style={styles.romajiSub}>
+              Y O H A K U
             </AppText>
           </View>
+          <AppText variant="caption" color={colors.textSecondary} style={styles.welcomeKicker}>
+            {pendingAccount.isLocal ? '記帳 · Guest mode setup' : '防護 · Account security'}
+          </AppText>
+          <AppText variant="serifTitle" style={styles.welcomeTitle}>
+            {pendingAccount.isLocal ? 'Name your ledger.' : 'Set your password.'}
+          </AppText>
+          <AppText variant="body" color={colors.textSecondary} style={styles.welcomeSubtitle}>
+            {pendingAccount.isLocal
+              ? 'Your data stays private and stored strictly on this device.'
+              : 'Choose a password to secure your isolated financial records.'}
+          </AppText>
         </View>
 
-        <BentoCard variant="light" style={styles.accountCard}>
-          <View style={styles.accountHeader}>
-            <View
-              style={[
-                styles.avatarCircle,
-                { backgroundColor: colors.selectionBg, borderColor: colors.border },
-              ]}
-            >
-              <AppText variant="bodyBold" color={colors.selectionText}>
-                {pendingAccount.isLocal
-                  ? (displayName.trim().slice(0, 1) || 'G').toUpperCase()
-                  : (pendingAccount.name?.slice(0, 1) || pendingAccount.email?.slice(0, 1) || 'U').toUpperCase()}
+        {/* Form Container */}
+        <View style={styles.formContainer}>
+          {pendingAccount.isLocal && (
+            <View style={styles.fieldGroup}>
+              <AppText variant="caption" color={colors.textSecondary} style={styles.fieldLabel}>
+                Profile name
               </AppText>
-            </View>
-            <View style={{ flex: 1 }}>
-              <AppText variant="bodyBold">
-                {pendingAccount.isLocal
-                  ? (displayName.trim() || 'New Guest Profile')
-                  : pendingAccount.name}
-              </AppText>
-              <AppText variant="caption" color={colors.textSecondary}>
-                {pendingAccount.isLocal
-                  ? 'Device only · Private offline ledger'
-                  : pendingAccount.email}
-              </AppText>
-            </View>
-            <PillBadge
-              variant="outline"
-              label={pendingAccount.isLocal ? 'Guest Mode' : 'Cloud Sync'}
-            />
-          </View>
-          <View style={[styles.cardDivider, { backgroundColor: colors.border }]} />
-          <AppText variant="caption" color={colors.textSecondary}>
-            {pendingAccount.isLocal
-              ? 'Enter a profile name and password or PIN. All your data stays strictly on this device.'
-              : 'Set a password or PIN. If biometrics fail or you restart your phone, this password unlocks your separate data.'}
-          </AppText>
-        </BentoCard>
-
-        {pendingAccount.isLocal && (
-          <BentoCard variant="light" style={styles.formCard}>
-            <AppText variant="caption" color={colors.textSecondary}>
-              Username
-            </AppText>
-            <View
-              style={[
-                styles.inputWrap,
-                { backgroundColor: colors.background, borderColor: colors.border },
-              ]}
-            >
               <TextInput
                 value={displayName}
                 onChangeText={setDisplayName}
-                placeholder="Kakarot"
+                placeholder="e.g. Personal or Business"
                 placeholderTextColor={colors.textMuted}
-                style={[styles.input, { color: colors.textPrimary }]}
+                style={[
+                  styles.input,
+                  {
+                    color: colors.textPrimary,
+                    borderColor: colors.border,
+                    backgroundColor: colors.card,
+                  },
+                ]}
                 autoCapitalize="words"
                 maxLength={30}
+                returnKeyType="next"
               />
             </View>
-          
-          </BentoCard>
-        )}
+          )}
 
-        <BentoCard variant="light" style={styles.formCard}>
-          <AppText variant="caption" color={colors.textSecondary}>
-            Create Password or PIN
-          </AppText>
-          <View
-            style={[
-              styles.inputWrap,
-              { backgroundColor: colors.background, borderColor: colors.border },
-            ]}
-          >
+          <View style={styles.fieldGroup}>
+            <View style={styles.labelRow}>
+              <AppText variant="caption" color={colors.textSecondary} style={styles.fieldLabel}>
+                {pendingAccount.isLocal ? 'Create passcode or PIN' : 'Password or PIN'}
+              </AppText>
+              <TouchableOpacity
+                onPress={() => setShowPassword((v) => !v)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <AppText variant="caption" color={colors.textSecondary}>
+                  {showPassword ? 'Hide' : 'Show'}
+                </AppText>
+              </TouchableOpacity>
+            </View>
             <TextInput
               secureTextEntry={!showPassword}
               value={password}
               onChangeText={setPassword}
-              placeholder="Enter at least 4 characters"
+              placeholder="Minimum 4 characters"
               placeholderTextColor={colors.textMuted}
-              style={[styles.input, { color: colors.textPrimary }]}
+              style={[
+                styles.input,
+                {
+                  color: colors.textPrimary,
+                  borderColor: colors.border,
+                  backgroundColor: colors.card,
+                },
+              ]}
               autoCapitalize="none"
+              returnKeyType="next"
             />
-            <TouchableOpacity onPress={() => setShowPassword((v) => !v)}>
-              <AppText variant="caption" color={colors.textSecondary}>
-                {showPassword ? 'Hide' : 'Show'}
-              </AppText>
-            </TouchableOpacity>
           </View>
 
-          <AppText variant="caption" color={colors.textSecondary} style={{ marginTop: 8 }}>
-            Confirm Password or PIN
-          </AppText>
-          <View
-            style={[
-              styles.inputWrap,
-              { backgroundColor: colors.background, borderColor: colors.border },
-            ]}
-          >
+          <View style={styles.fieldGroup}>
+            <AppText variant="caption" color={colors.textSecondary} style={styles.fieldLabel}>
+              {pendingAccount.isLocal ? 'Confirm passcode or PIN' : 'Confirm password'}
+            </AppText>
             <TextInput
               secureTextEntry={!showPassword}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
-              placeholder="Re-enter password or PIN"
+              placeholder="Re-enter passcode or PIN"
               placeholderTextColor={colors.textMuted}
-              style={[styles.input, { color: colors.textPrimary }]}
+              style={[
+                styles.input,
+                {
+                  color: colors.textPrimary,
+                  borderColor: colors.border,
+                  backgroundColor: colors.card,
+                },
+              ]}
               autoCapitalize="none"
+              returnKeyType="done"
+              onSubmitEditing={handleSave}
             />
           </View>
-        </BentoCard>
 
-        {biometricHardwareAvailable && (
-          <BentoCard variant="light" style={styles.biometricCard}>
-            <View style={styles.switchRow}>
-              <View style={{ flex: 1, paddingRight: 8 }}>
-                <AppText variant="bodyBold">Enable Biometrics</AppText>
-                <AppText variant="caption" color={colors.textSecondary}>
-                  Unlock instantly with Fingerprint or Face ID
+          {biometricHardwareAvailable && (
+            <View
+              style={[
+                styles.biometricCard,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <View style={styles.switchRow}>
+                <View style={{ flex: 1, paddingRight: 8 }}>
+                  <AppText variant="bodyBold" style={{ fontSize: 13 }}>
+                    Biometric unlock
+                  </AppText>
+                  <AppText variant="caption" color={colors.textSecondary}>
+                    Quick access with fingerprint or Face ID
+                  </AppText>
+                </View>
+                <Switch
+                  value={biometricEnabled}
+                  onValueChange={setBiometricEnabled}
+                  trackColor={{ false: colors.switchTrackOff, true: colors.bambooGreen }}
+                  thumbColor={colors.switchThumb}
+                  ios_backgroundColor={colors.switchTrackOff}
+                />
+              </View>
+            </View>
+          )}
+
+          <TouchableOpacity
+            activeOpacity={0.85}
+            disabled={isSubmitting}
+            onPress={handleSave}
+            style={[
+              styles.primaryButton,
+              {
+                backgroundColor: colors.textPrimary,
+              },
+            ]}
+          >
+            {isSubmitting ? (
+              <View style={styles.buttonLoadingRow}>
+                <ActivityIndicator size="small" color={colors.background} />
+                <AppText variant="bodyBold" color={colors.background} style={styles.buttonText}>
+                  Setting up ledger…
                 </AppText>
               </View>
-              <Switch
-                value={biometricEnabled}
-                onValueChange={setBiometricEnabled}
-                trackColor={{ false: colors.switchTrackOff, true: colors.bambooGreen }}
-                thumbColor={colors.switchThumb}
-              />
-            </View>
-          </BentoCard>
-        )}
+            ) : (
+              <AppText variant="bodyBold" color={colors.background} style={styles.buttonText}>
+                {pendingAccount.isLocal ? 'Start local ledger' : 'Complete setup'}
+              </AppText>
+            )}
+          </TouchableOpacity>
+        </View>
 
-        <TouchableOpacity
-          activeOpacity={0.85}
-          disabled={isSubmitting}
-          onPress={handleSave}
-          style={[
-            styles.primaryButton,
-            {
-              backgroundColor: colors.selectionBg,
-              borderColor: colors.selectionBorder,
-              shadowColor: colors.shadow,
-            },
-          ]}
-        >
-          <AppText variant="bodyBold" color={colors.selectionText}>
-            {isSubmitting
-              ? 'Saving Security Setup…'
-              : pendingAccount.isLocal
-              ? 'Create Local Profile'
-              : 'Enter Yohaku'}
-          </AppText>
-        </TouchableOpacity>
-      </Main>
+        <AppText variant="caption" color={colors.textMuted} style={styles.footerText}>
+          Less noise. More intention.
+        </AppText>
+      </View>
+    </Main>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    gap: 14,
-    paddingBottom: 40,
+    paddingVertical: 14,
   },
-  topNavRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 2,
-    marginBottom: 2,
-  },
-  backBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 7,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  backBtnText: {
-    fontFamily: Fonts.sansBold,
-    fontSize: 12,
-    letterSpacing: 0.3,
+  contentWrap: {
+    maxWidth: 340,
+    width: '100%',
+    alignSelf: 'center',
+    gap: 16,
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 2,
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 2,
+  },
+  backBtnText: {
+    fontFamily: Fonts.sansBold,
+    fontSize: 13,
+  },
+  welcomeBlock: {
+    paddingHorizontal: 4,
+    gap: 4,
+  },
+  brandLockup: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
     marginBottom: 4,
   },
-  accountCard: {
-    gap: 10,
-    paddingVertical: 14,
+  kanjiLogo: {
+    fontFamily: Fonts.serif,
+    fontSize: 22,
+    fontWeight: '700',
+    letterSpacing: 2,
   },
-  accountHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  romajiSub: {
+    fontSize: 10,
+    letterSpacing: 3,
+  },
+  welcomeKicker: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  welcomeTitle: {
+    fontSize: 22,
+  },
+  welcomeSubtitle: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 2,
+  },
+  formContainer: {
     gap: 12,
   },
-  avatarCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardDivider: {
-    height: 1,
-    width: '100%',
-    opacity: 0.15,
-  },
-  formCard: {
+  fieldGroup: {
     gap: 6,
-    paddingVertical: 16,
   },
-  inputWrap: {
+  labelRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 46,
-    marginTop: 4,
+  },
+  fieldLabel: {
+    fontSize: 12,
   },
   input: {
-    flex: 1,
-    fontSize: 15,
-    fontFamily: Fonts.mono,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    borderRadius: 8,
+    borderWidth: 1,
+    fontSize: 14,
   },
   biometricCard: {
-    paddingVertical: 14,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
   switchRow: {
     flexDirection: 'row',
@@ -372,19 +396,35 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   primaryButton: {
-    borderRadius: 999,
-    borderWidth: 1.5,
-    paddingVertical: 16,
+    paddingVertical: 11,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowOffset: { width: 2, height: 3 },
-    shadowOpacity: 1,
-    elevation: 3,
-    marginTop: 8,
+    marginTop: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  buttonText: {
+    fontSize: 14,
+  },
+  buttonLoadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   errorCard: {
-    padding: 24,
-    gap: 16,
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 12,
     alignItems: 'center',
+  },
+  footerText: {
+    textAlign: 'center',
+    marginVertical: 10,
+    fontSize: 11,
   },
 });

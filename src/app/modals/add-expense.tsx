@@ -260,6 +260,8 @@ export default function AddExpenseModal() {
 
   return (
     <Main
+      showArt
+      artOpacity={0.11}
       contentContainerStyle={[styles.mainScroll, { paddingBottom: 36 }]}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
@@ -278,9 +280,10 @@ export default function AddExpenseModal() {
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => router.back()}
-          style={[styles.closeBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+          style={styles.closeBtn}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <AppText variant="body" color={colors.textPrimary}>
+          <AppText variant="body" color={colors.textSecondary}>
             ✕
           </AppText>
         </TouchableOpacity>
@@ -305,7 +308,7 @@ export default function AddExpenseModal() {
             color={isExpense ? colors.selectionText : colors.textSecondary}
             style={styles.segmentText}
           >
-            支出 Expense
+            Expense · 支出
           </AppText>
         </TouchableOpacity>
 
@@ -325,7 +328,7 @@ export default function AddExpenseModal() {
             color={isIncome ? colors.incomeText : colors.textSecondary}
             style={styles.segmentText}
           >
-            収入 Salary
+            Salary · 収入
           </AppText>
         </TouchableOpacity>
 
@@ -345,7 +348,7 @@ export default function AddExpenseModal() {
             color={isSavingMode ? colors.savingText : colors.textSecondary}
             style={styles.segmentText}
           >
-            貯蓄 Saving
+            Saving · 貯蓄
           </AppText>
         </TouchableOpacity>
       </View>
@@ -617,38 +620,30 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.divider,
-    backgroundColor: Colors.card,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
   segmentContainer: {
     flexDirection: 'row',
     backgroundColor: Colors.card,
-    borderRadius: 999,
+    borderRadius: 8,
     padding: 3,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: Colors.border,
-    marginBottom: 10,
+    marginBottom: 12,
     marginTop: 2,
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 1, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 0,
-    elevation: 2,
+    elevation: 0,
   },
   segmentButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 9,
-    borderRadius: 999,
-    borderWidth: 1.5,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
     borderColor: 'transparent',
   },
   segmentText: {
@@ -729,9 +724,10 @@ const styles = StyleSheet.create({
   },
   keyButton: {
     width: '33.33%',
-    height: 54,
+    height: 50,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 6,
   },
   keyText: {
     fontFamily: Fonts.serif,
@@ -745,22 +741,22 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     backgroundColor: Colors.cardDark,
-    borderRadius: 999,
-    borderWidth: 1.5,
+    borderRadius: 8,
+    borderWidth: 1,
     borderColor: Colors.border,
-    paddingVertical: 16,
+    paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: Colors.shadow,
-    shadowOffset: { width: 2, height: 3 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   deleteButton: {
-    borderRadius: 999,
-    borderWidth: 1.5,
-    paddingVertical: 13,
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,

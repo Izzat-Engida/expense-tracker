@@ -72,7 +72,11 @@ export default function LedgerHistoryModal() {
   }, [filtered]);
 
   return (
-    <Main contentContainerStyle={styles.container}>
+    <Main
+      showArt
+      artOpacity={0.11}
+      contentContainerStyle={styles.container}
+    >
       {/* Header */}
       <View style={styles.headerRow}>
         <View>
@@ -85,9 +89,10 @@ export default function LedgerHistoryModal() {
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => router.back()}
-          style={[styles.closeBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+          style={styles.closeBtn}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <AppText variant="body" color={colors.textPrimary}>✕</AppText>
+          <AppText variant="body" color={colors.textSecondary}>✕</AppText>
         </TouchableOpacity>
       </View>
 
@@ -220,18 +225,16 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   closeBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 1.5,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderRadius: 12,
+    borderWidth: 1,
+    borderRadius: 8,
     paddingHorizontal: 12,
     height: 44,
     gap: 8,

@@ -92,7 +92,7 @@ export default function OverviewScreen() {
 
   if (error) {
     return (
-      <Main>
+      <Main showArt artOpacity={0.11}>
         <BentoCard variant="light" style={styles.statusCard}>
           <AppText variant="bodyBold">Could not load your ledger</AppText>
           <AppText variant="caption" color={colors.textSecondary}>
@@ -104,7 +104,7 @@ export default function OverviewScreen() {
   }
 
   return (
-    <Main>
+    <Main showArt artOpacity={0.11}>
       <View style={styles.headerRow}>
         <AppText variant="serifTitle">Overview</AppText>
 
@@ -553,18 +553,18 @@ const styles = StyleSheet.create({
   monthSelectorPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    borderWidth: 1.5,
-    borderRadius: 999,
+    gap: 2,
+    borderWidth: 1,
+    borderRadius: 8,
     paddingHorizontal: 4,
     paddingVertical: 2,
   },
   monthArrowBtn: {
-    width: 36,
-    height: 36,
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 18,
+    borderRadius: 6,
   },
   monthPillText: {
     fontFamily: Fonts.sansBold,

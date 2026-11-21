@@ -176,12 +176,12 @@ export default function WishlistScreen() {
   };
 
   return (
-    <Main>
+    <Main showArt artOpacity={0.11}>
       
       <View style={styles.headerRow}>
         <View>
           <AppText variant="serifTitle">Wishlist</AppText>
-          <AppText variant="caption" color={Colors.textSecondary}>
+          <AppText variant="caption" color={colors.textSecondary}>
             Save toward the things you want
           </AppText>
         </View>
@@ -229,12 +229,12 @@ export default function WishlistScreen() {
             <AppText variant="serifTitle" style={styles.progressPercentText}>
               {stats.overallPercent}%
             </AppText>
-            <AppText variant="caption" color={Colors.textSecondary}>
+            <AppText variant="caption" color={colors.textSecondary}>
               completed
             </AppText>
           </View>
           <ProgressBar progress={stats.overallProgress} fillColor={colors.bambooGreen} height={7} />
-          <AppText variant="caption" color={Colors.textSecondary} style={styles.leftSummaryText}>
+          <AppText variant="caption" color={colors.textSecondary} style={styles.leftSummaryText}>
             {stats.totalRemaining.toLocaleString()} {currency} left to save
           </AppText>
         </BentoCard>
@@ -277,7 +277,7 @@ export default function WishlistScreen() {
                     {item.title}
                   </AppText>
                   {item.note ? (
-                    <AppText variant="caption" color={Colors.textSecondary}>
+                    <AppText variant="caption" color={colors.textSecondary}>
                       {item.note}
                     </AppText>
                   ) : null}
@@ -307,7 +307,7 @@ export default function WishlistScreen() {
               >
                 <View style={styles.savedRow}>
                   <View>
-                    <AppText variant="caption" color={Colors.textSecondary}>
+                    <AppText variant="caption" color={colors.textSecondary}>
                       Saved
                     </AppText>
                     <AppText variant="bodyBold">
@@ -316,7 +316,7 @@ export default function WishlistScreen() {
                   </View>
 
                   <View style={styles.alignRight}>
-                    <AppText variant="caption" color={Colors.textSecondary}>
+                    <AppText variant="caption" color={colors.textSecondary}>
                       Target
                     </AppText>
                     <AppText variant="bodyBold">
@@ -410,7 +410,7 @@ export default function WishlistScreen() {
             <AppText variant="bodyBold" style={styles.emptyTitle}>
               No wishlist items found
             </AppText>
-            <AppText variant="caption" color={Colors.textSecondary} style={styles.emptySubtitle}>
+            <AppText variant="caption" color={colors.textSecondary} style={styles.emptySubtitle}>
               Add your first saving goal with the button above.
             </AppText>
           </BentoCard>
@@ -437,9 +437,10 @@ export default function WishlistScreen() {
               </View>
               <TouchableOpacity
                 onPress={() => setModalVisible(false)}
-                style={[styles.modalCloseBtn, { backgroundColor: isDark ? colors.cardDark : colors.card, borderColor: colors.border }]}
+                style={styles.modalCloseBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <AppText variant="body" color={colors.textPrimary}>
+                <AppText variant="body" color={colors.textSecondary}>
                   ✕
                 </AppText>
               </TouchableOpacity>
@@ -586,9 +587,10 @@ export default function WishlistScreen() {
               </View>
               <TouchableOpacity
                 onPress={() => setDepositModalVisible(false)}
-                style={[styles.modalCloseBtn, { backgroundColor: isDark ? colors.cardDark : colors.card, borderColor: colors.border }]}
+                style={styles.modalCloseBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <AppText variant="body" color={colors.textPrimary}>
+                <AppText variant="body" color={colors.textSecondary}>
                   ✕
                 </AppText>
               </TouchableOpacity>
@@ -655,15 +657,15 @@ const styles = StyleSheet.create({
   },
   addBtn: {
     backgroundColor: Colors.cardDark,
-    borderRadius: 999,
+    borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: Colors.border,
     shadowColor: Colors.shadow,
-    shadowOffset: { width: 1, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
     elevation: 2,
   },
   statsRow: {
@@ -806,14 +808,14 @@ const styles = StyleSheet.create({
   },
   depositBtn: {
     backgroundColor: Colors.bambooGreen,
-    borderRadius: 999,
+    borderRadius: 6,
     paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
   },
   deleteBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 26,
+    height: 26,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: Colors.divider,
     backgroundColor: Colors.card,
@@ -841,17 +843,17 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: Colors.card,
-    borderRadius: 22,
-    borderWidth: 1.5,
+    borderRadius: 16,
+    borderWidth: 1,
     borderColor: Colors.border,
     padding: 20,
     gap: 14,
     maxHeight: '90%',
     flexShrink: 1,
     shadowColor: Colors.shadow,
-    shadowOffset: { width: 2, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
     elevation: 5,
   },
   modalScrollBody: {
@@ -875,12 +877,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalCloseBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.divider,
-    backgroundColor: Colors.background,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -923,23 +921,23 @@ const styles = StyleSheet.create({
   },
   submitModalBtn: {
     backgroundColor: Colors.cardDark,
-    borderRadius: 999,
-    borderWidth: 1.5,
+    borderRadius: 8,
+    borderWidth: 1,
     borderColor: Colors.border,
-    paddingVertical: 14,
+    paddingVertical: 11,
     alignItems: 'center',
     marginTop: 4,
     shadowColor: Colors.shadow,
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
   },
   depositSubmitBtn: {
     backgroundColor: Colors.bambooGreen,
-    borderRadius: 999,
-    borderWidth: 1.5,
+    borderRadius: 8,
+    borderWidth: 1,
     borderColor: Colors.border,
-    paddingVertical: 14,
+    paddingVertical: 11,
     alignItems: 'center',
   },
 });

@@ -82,9 +82,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
     gap: 6,
   },
   dot: {
@@ -95,6 +95,6 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: Fonts.sans,
     fontSize: 12,
-    letterSpacing: 0.2,
+    letterSpacing: 0,
   },
 });

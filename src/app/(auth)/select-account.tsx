@@ -4,20 +4,20 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   Main,
-  BentoCard,
   AppText,
   HankoStamp,
   PillBadge,
   UserAvatar,
+  JapaneseIcon,
 } from '@/components/ui';
 import { Fonts, useThemeColors } from '@/constants/theme';
 import { useAuthStore } from '@/stores/authStore';
 import type { GoogleAccount } from '@/types/auth';
+import { triggerHaptic } from '@/utils/haptics';
 
 export default function SelectAccountScreen() {
   const router = useRouter();
@@ -25,13 +25,13 @@ export default function SelectAccountScreen() {
 
   const accounts = useAuthStore((s) => s.accounts);
   const unlockWithBiometrics = useAuthStore((s) => s.unlockWithBiometrics);
-  const removeAccount = useAuthStore((s) => s.removeAccount);
-  const deleteAccount = useAuthStore((s) => s.deleteAccount);
 
   const handleSelectAccount = async (account: GoogleAccount) => {
+    triggerHaptic.selection();
     if (account.biometricEnabled) {
       const success = await unlockWithBiometrics(account.id);
       if (success) {
+        triggerHaptic.success();
         router.replace('/(tabs)');
         return;
       }
@@ -44,83 +44,88 @@ export default function SelectAccountScreen() {
   };
 
   const handleAddAccount = () => {
+    triggerHaptic.selection();
     router.push('/(auth)/onboarding');
   };
 
-  const confirmRemoveAccount = (account: GoogleAccount) => {
-    const isLocal = account.isLocal;
-    Alert.alert(
-      'Profile Options',
-      isLocal
-        ? `Manage profile "${account.name}":`
-        : `Manage "${account.name}" (${account.email}):`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove from Device',
-          style: 'default',
-          onPress: async () => {
-            await removeAccount(account.id);
-            if (accounts.length <= 1) {
-              router.replace('/(auth)/onboarding');
-            }
-          },
-        },
-        {
-          text: 'Delete Profile & Data',
-          style: 'destructive',
-          onPress: async () => {
-            Alert.alert(
-              'Confirm Permanent Deletion',
-              isLocal
-                ? `Are you sure you want to permanently delete profile "${account.name}"? All local ledger data on this device will be deleted.`
-                : `Are you sure you want to permanently delete "${account.name}"? All local and cloud data will be destroyed.`,
-              [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Delete Permanently',
-                  style: 'destructive',
-                  onPress: async () => {
-                    await deleteAccount(account.id);
-                    if (accounts.length <= 1) {
-                      router.replace('/(auth)/onboarding');
-                    }
-                  },
-                },
-              ]
-            );
-          },
-        },
-      ]
-    );
-  };
-
   return (
-    <Main contentContainerStyle={styles.container}>
-      <View style={styles.topRow}>
-        <View style={styles.headerLeft}>
-          <AppText variant="caption" color={colors.textSecondary} style={styles.kicker}>
-            ACCOUNT SWITCHER
+    <Main
+      showArt
+      artOpacity={0.11}
+      contentContainerStyle={styles.container}
+    >
+      <View style={styles.contentWrap}>
+        {/* Header Row */}
+        <View style={styles.headerRow}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => {
+              triggerHaptic.selection();
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/(auth)/onboarding');
+              }
+            }}
+            style={styles.backBtn}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <JapaneseIcon
+              name="chevronLeft"
+              size={15}
+              color={colors.textPrimary}
+              strokeWidth={2.2}
+            />
+            <AppText variant="caption" color={colors.textPrimary} style={styles.backBtnText}>
+              Back
+            </AppText>
+          </TouchableOpacity>
+
+          <HankoStamp size="sm" />
+        </View>
+
+        {/* Welcome / Section Title */}
+        <View style={styles.welcomeBlock}>
+          <View style={styles.brandLockup}>
+            <AppText style={styles.kanjiLogo}>余白</AppText>
+            <AppText variant="caption" color={colors.textSecondary} style={styles.romajiSub}>
+              Y O H A K U
+            </AppText>
+          </View>
+          <AppText variant="caption" color={colors.textSecondary} style={styles.welcomeKicker}>
+            口座 · Switch account
           </AppText>
-          <AppText variant="serifTitle" style={styles.title}>
-            Select Account
+          <AppText variant="serifTitle" style={styles.welcomeTitle}>
+            Select your ledger.
+          </AppText>
+          <AppText variant="body" color={colors.textSecondary} style={styles.welcomeSubtitle}>
+            Choose an account to continue tracking with clarity.
           </AppText>
         </View>
-        <HankoStamp size="sm" />
-      </View>
 
-      <ScrollView contentContainerStyle={styles.accountList} showsVerticalScrollIndicator={false}>
-        {accounts.map((acc) => (
-          <BentoCard key={acc.id} variant="light" style={styles.accountCard}>
+        {/* Account List */}
+        <ScrollView
+          contentContainerStyle={styles.accountList}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          {accounts.map((acc) => (
             <TouchableOpacity
-              style={styles.cardTouch}
+              key={acc.id}
+              style={[
+                styles.accountCard,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                },
+              ]}
               activeOpacity={0.7}
               onPress={() => handleSelectAccount(acc)}
             >
               <UserAvatar
                 avatarUrl={acc.avatarUrl}
                 name={acc.name}
-                size={44}
+                size={42}
               />
 
               <View style={styles.accountMeta}>
@@ -130,108 +135,159 @@ export default function SelectAccountScreen() {
                 <AppText variant="caption" color={colors.textSecondary} numberOfLines={1}>
                   {acc.isLocal ? 'Local Profile · Offline' : acc.email}
                 </AppText>
-                <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
+                <View style={styles.badgeRow}>
                   {acc.isLocal && (
-                    <PillBadge label="Local" variant="outline" style={styles.biometricBadge} />
+                    <PillBadge label="Local" variant="outline" style={styles.badgePill} />
                   )}
                   {acc.biometricEnabled && (
-                    <PillBadge label="Biometrics" variant="outline" style={styles.biometricBadge} />
+                    <PillBadge label="Biometrics" variant="outline" style={styles.badgePill} />
                   )}
                 </View>
               </View>
 
-              <TouchableOpacity
-                style={styles.removeBtn}
-                onPress={() => confirmRemoveAccount(acc)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <AppText variant="caption" color={colors.textMuted}>
-                  Remove
-                </AppText>
-              </TouchableOpacity>
+              <JapaneseIcon
+                name="chevronRight"
+                size={16}
+                color={colors.textSecondary}
+                strokeWidth={2}
+              />
             </TouchableOpacity>
-          </BentoCard>
-        ))}
+          ))}
 
-        <TouchableOpacity
-          style={[styles.addCard, { borderColor: colors.border }]}
-          activeOpacity={0.8}
-          onPress={handleAddAccount}
-        >
-          <AppText variant="bodyBold" color={colors.textPrimary}>
-            + Add Another Account
-          </AppText>
-          <AppText variant="caption" color={colors.textSecondary}>
-            Sign in with email or guest mode
-          </AppText>
-        </TouchableOpacity>
-      </ScrollView>
+          {/* Add Account Action */}
+          <TouchableOpacity
+            style={[
+              styles.addCard,
+              {
+                borderColor: colors.border,
+                backgroundColor: colors.card,
+              },
+            ]}
+            activeOpacity={0.8}
+            onPress={handleAddAccount}
+          >
+            <AppText variant="bodyBold" color={colors.textPrimary} style={styles.addTitle}>
+              + Add another account
+            </AppText>
+            <AppText variant="caption" color={colors.textSecondary}>
+              Sign in with email or start fresh in guest mode
+            </AppText>
+          </TouchableOpacity>
+        </ScrollView>
+
+        <AppText variant="caption" color={colors.textMuted} style={styles.footerText}>
+          Less noise. More intention.
+        </AppText>
+      </View>
     </Main>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 18,
+    paddingVertical: 14,
+  },
+  contentWrap: {
+    maxWidth: 340,
+    width: '100%',
+    alignSelf: 'center',
     gap: 16,
   },
-  topRow: {
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: 4,
+    alignItems: 'center',
+    paddingHorizontal: 2,
   },
-  headerLeft: {
-    gap: 4,
-  },
-  kicker: {
-    letterSpacing: 2,
-    fontSize: 10,
-  },
-  title: {
-    fontSize: 24,
-  },
-  accountList: {
-    gap: 12,
-    paddingBottom: 24,
-  },
-  accountCard: {
-    padding: 12,
-  },
-  cardTouch: {
+  backBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 2,
   },
-  avatarBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
+  backBtnText: {
     fontFamily: Fonts.sansBold,
-    fontSize: 18,
+    fontSize: 13,
+  },
+  welcomeBlock: {
+    paddingHorizontal: 4,
+    gap: 4,
+  },
+  brandLockup: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+    marginBottom: 4,
+  },
+  kanjiLogo: {
+    fontFamily: Fonts.serif,
+    fontSize: 22,
+    fontWeight: '700',
+    letterSpacing: 2,
+  },
+  romajiSub: {
+    fontSize: 10,
+    letterSpacing: 3,
+  },
+  welcomeKicker: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  welcomeTitle: {
+    fontSize: 22,
+  },
+  welcomeSubtitle: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 2,
+  },
+  accountList: {
+    gap: 10,
+    paddingVertical: 4,
+  },
+  accountCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 12,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
   accountMeta: {
     flex: 1,
     gap: 2,
   },
-  biometricBadge: {
-    alignSelf: 'flex-start',
+  badgeRow: {
+    flexDirection: 'row',
+    gap: 6,
     marginTop: 4,
   },
-  removeBtn: {
-    padding: 6,
+  badgePill: {
+    alignSelf: 'flex-start',
   },
   addCard: {
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderRadius: 14,
-    padding: 18,
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: 2,
+    marginTop: 4,
+  },
+  addTitle: {
+    fontSize: 13,
+  },
+  footerText: {
+    textAlign: 'center',
+    marginVertical: 10,
+    fontSize: 11,
   },
 });

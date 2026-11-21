@@ -160,14 +160,14 @@ const styles = StyleSheet.create({
   },
   tabs: {
     flexDirection: 'row',
-    gap: 2,
+    gap: 4,
     flex: 1,
     marginRight: 8,
   },
   tab: {
-    paddingHorizontal: 11,
+    paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 10,
+    borderRadius: 8,
     borderWidth: 0,
     borderColor: 'transparent',
     alignItems: 'center',
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     elevation: 0,
   },
   tabActiveSurface: {
-    borderRadius: 10,
+    borderRadius: 8,
   },
   tabLabel: {
     fontFamily: Fonts.sans,

@@ -5,11 +5,11 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
   Main,
-  BentoCard,
   AppText,
   HankoStamp,
   PillBadge,
@@ -42,18 +42,27 @@ export default function UnlockPasswordScreen() {
 
   if (!targetAccount) {
     return (
-      <Main>
-        <BentoCard variant="light" style={styles.errorCard}>
-          <AppText variant="bodyBold">Account not found</AppText>
-          <TouchableOpacity
-            style={[styles.primaryButton, { backgroundColor: colors.selectionBg }]}
-            onPress={() => router.replace('/(auth)/select-account')}
-          >
-            <AppText variant="bodyBold" color={colors.selectionText}>
-              Go to Account Selection
+      <Main
+        showArt
+        artOpacity={0.11}
+        contentContainerStyle={styles.container}
+      >
+        <View style={styles.contentWrap}>
+          <View style={[styles.errorCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <AppText variant="serifTitle" style={styles.welcomeTitle}>Account not found</AppText>
+            <AppText variant="caption" color={colors.textSecondary}>
+              The requested profile could not be located on this device.
             </AppText>
-          </TouchableOpacity>
-        </BentoCard>
+            <TouchableOpacity
+              style={[styles.primaryButton, { backgroundColor: colors.textPrimary }]}
+              onPress={() => router.replace('/(auth)/select-account')}
+            >
+              <AppText variant="bodyBold" color={colors.background} style={styles.buttonText}>
+                Choose another account
+              </AppText>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Main>
     );
   }
@@ -68,8 +77,10 @@ export default function UnlockPasswordScreen() {
     try {
       const success = await unlockWithPassword(targetAccount.id, password);
       if (success) {
+        triggerHaptic.success();
         router.replace('/(tabs)');
       } else {
+        triggerHaptic.heavy();
         Alert.alert('Incorrect Password', 'The password or PIN entered is incorrect.');
       }
     } catch (err: any) {
@@ -80,8 +91,10 @@ export default function UnlockPasswordScreen() {
   };
 
   const handleBiometricTry = async () => {
+    triggerHaptic.selection();
     const success = await unlockWithBiometrics(targetAccount.id);
     if (success) {
+      triggerHaptic.success();
       router.replace('/(tabs)');
     }
   };
@@ -127,75 +140,86 @@ export default function UnlockPasswordScreen() {
   };
 
   return (
-    <Main contentContainerStyle={styles.container}>
+    <Main
+      showArt
+      artOpacity={0.11}
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View style={styles.contentWrap}>
+        {/* Header Row */}
         <View style={styles.headerRow}>
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={handleBack}
-            style={[
-              styles.backBtn,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-              },
-            ]}
+            style={styles.backBtn}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <JapaneseIcon
               name="chevronLeft"
-              size={16}
+              size={15}
               color={colors.textPrimary}
               strokeWidth={2.2}
             />
             <AppText variant="caption" color={colors.textPrimary} style={styles.backBtnText}>
-              Switch Account
+              Switch account
             </AppText>
           </TouchableOpacity>
           <HankoStamp size="sm" />
         </View>
 
-        <BentoCard variant="light" style={styles.profileCard}>
+        {/* Profile Card */}
+        <View style={[styles.profileCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <UserAvatar
             avatarUrl={targetAccount.avatarUrl}
             name={targetAccount.name || targetAccount.email}
-            size={68}
+            size={58}
           />
-          <AppText variant="serifTitle" style={styles.nameText}>
-            {targetAccount.name || 'Profile'}
-          </AppText>
-          <AppText variant="caption" color={colors.textSecondary}>
-            {targetAccount.isLocal ? 'Local Profile · Offline' : targetAccount.email}
-          </AppText>
-          <View style={[styles.divider, { backgroundColor: colors.border }]} />
-          <PillBadge variant="outline" label="Isolated Ledger" />
-        </BentoCard>
+          <View style={styles.profileTextWrap}>
+            <AppText variant="serifTitle" style={styles.nameText}>
+              {targetAccount.name || 'Profile'}
+            </AppText>
+            <AppText variant="caption" color={colors.textSecondary}>
+              {targetAccount.isLocal ? 'Local Profile · Offline' : targetAccount.email}
+            </AppText>
+          </View>
+          <PillBadge variant="outline" label="Isolated ledger" />
+        </View>
 
-        <BentoCard variant="light" style={styles.formCard}>
-          <AppText variant="caption" color={colors.textSecondary}>
-            Enter Account Password or PIN
-          </AppText>
-          <View
-            style={[
-              styles.inputWrap,
-              { backgroundColor: colors.background, borderColor: colors.border },
-            ]}
-          >
+        {/* Form Container */}
+        <View style={styles.formContainer}>
+          <View style={styles.fieldGroup}>
+            <View style={styles.labelRow}>
+              <AppText variant="caption" color={colors.textSecondary} style={styles.fieldLabel}>
+                Password or PIN
+              </AppText>
+              <TouchableOpacity
+                onPress={() => setShowPassword((v) => !v)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <AppText variant="caption" color={colors.textSecondary}>
+                  {showPassword ? 'Hide' : 'Show'}
+                </AppText>
+              </TouchableOpacity>
+            </View>
             <TextInput
               secureTextEntry={!showPassword}
               value={password}
               onChangeText={setPassword}
-              placeholder="Password or PIN"
+              placeholder="Enter password or PIN"
               placeholderTextColor={colors.textMuted}
-              style={[styles.input, { color: colors.textPrimary }]}
+              style={[
+                styles.input,
+                {
+                  color: colors.textPrimary,
+                  borderColor: colors.border,
+                  backgroundColor: colors.card,
+                },
+              ]}
               autoCapitalize="none"
               returnKeyType="done"
               onSubmitEditing={handleUnlock}
             />
-            <TouchableOpacity onPress={() => setShowPassword((v) => !v)}>
-              <AppText variant="caption" color={colors.textSecondary}>
-                {showPassword ? 'Hide' : 'Show'}
-              </AppText>
-            </TouchableOpacity>
           </View>
 
           {!targetAccount.isLocal && Boolean(targetAccount.email) && (
@@ -210,53 +234,70 @@ export default function UnlockPasswordScreen() {
               </AppText>
             </TouchableOpacity>
           )}
-        </BentoCard>
 
-        <View style={styles.actionsWrap}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            disabled={isUnlocking}
-            onPress={handleUnlock}
-            style={[
-              styles.primaryButton,
-              {
-                backgroundColor: colors.selectionBg,
-                borderColor: colors.selectionBorder,
-                shadowColor: colors.shadow,
-              },
-            ]}
-          >
-            <AppText variant="bodyBold" color={colors.selectionText}>
-              {isUnlocking ? 'Unlocking…' : 'Unlock Profile'}
-            </AppText>
-          </TouchableOpacity>
-
-          {targetAccount.biometricEnabled && (
+          <View style={styles.actionsWrap}>
             <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={handleBiometricTry}
+              activeOpacity={0.85}
+              disabled={isUnlocking}
+              onPress={handleUnlock}
               style={[
-                styles.secondaryButton,
+                styles.primaryButton,
                 {
-                  borderColor: colors.border,
-                  backgroundColor: colors.cardElevated,
+                  backgroundColor: colors.textPrimary,
                 },
               ]}
             >
-              <AppText variant="bodyBold" color={colors.textPrimary}>
-                Use Biometrics (Fingerprint / Face ID)
-              </AppText>
+              {isUnlocking ? (
+                <View style={styles.buttonLoadingRow}>
+                  <ActivityIndicator size="small" color={colors.background} />
+                  <AppText variant="bodyBold" color={colors.background} style={styles.buttonText}>
+                    Unlocking…
+                  </AppText>
+                </View>
+              ) : (
+                <AppText variant="bodyBold" color={colors.background} style={styles.buttonText}>
+                  Unlock profile
+                </AppText>
+              )}
             </TouchableOpacity>
-          )}
+
+            {targetAccount.biometricEnabled && (
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={handleBiometricTry}
+                style={[
+                  styles.secondaryButton,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: colors.card,
+                  },
+                ]}
+              >
+                <AppText variant="bodyBold" color={colors.textPrimary} style={styles.buttonText}>
+                  Unlock with biometrics
+                </AppText>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
-      </Main>
+
+        <AppText variant="caption" color={colors.textMuted} style={styles.footerText}>
+          Less noise. More intention.
+        </AppText>
+      </View>
+    </Main>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    paddingVertical: 14,
+  },
+  contentWrap: {
+    maxWidth: 340,
+    width: '100%',
+    alignSelf: 'center',
     gap: 16,
-    paddingBottom: 24,
   },
   headerRow: {
     flexDirection: 'row',
@@ -267,96 +308,104 @@ const styles = StyleSheet.create({
   backBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingVertical: 7,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 2,
   },
   backBtnText: {
     fontFamily: Fonts.sansBold,
-    fontSize: 12,
-    letterSpacing: 0.3,
+    fontSize: 13,
   },
   profileCard: {
     alignItems: 'center',
-    paddingVertical: 24,
-    gap: 8,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
-  avatarLarge: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    borderWidth: 2,
+  profileTextWrap: {
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  avatarLetter: {
-    fontSize: 28,
-    fontFamily: Fonts.serif,
+    gap: 2,
   },
   nameText: {
-    fontSize: 22,
+    fontSize: 20,
   },
-  divider: {
-    width: 36,
-    height: 1.5,
-    marginVertical: 4,
-    opacity: 0.2,
+  formContainer: {
+    gap: 12,
   },
-  formCard: {
+  fieldGroup: {
     gap: 6,
-    paddingVertical: 18,
   },
-  inputWrap: {
+  labelRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 48,
-    marginTop: 6,
+  },
+  fieldLabel: {
+    fontSize: 12,
   },
   input: {
-    flex: 1,
-    fontSize: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    borderRadius: 8,
+    borderWidth: 1,
+    fontSize: 14,
     fontFamily: Fonts.mono,
   },
   forgotBtn: {
     alignSelf: 'flex-end',
-    marginTop: 6,
+    marginTop: -2,
     paddingVertical: 4,
   },
   actionsWrap: {
-    gap: 10,
+    gap: 8,
     marginTop: 4,
   },
   primaryButton: {
-    borderRadius: 999,
-    borderWidth: 1.5,
-    paddingVertical: 16,
+    paddingVertical: 11,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowOffset: { width: 2, height: 3 },
-    shadowOpacity: 1,
-    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   secondaryButton: {
-    borderRadius: 999,
-    borderWidth: 1.5,
-    paddingVertical: 14,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  errorCard: {
-    padding: 24,
-    gap: 16,
+  buttonText: {
+    fontSize: 14,
+  },
+  buttonLoadingRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+  },
+  errorCard: {
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 12,
+    alignItems: 'center',
+  },
+  welcomeTitle: {
+    fontSize: 20,
+  },
+  footerText: {
+    textAlign: 'center',
+    marginVertical: 10,
+    fontSize: 11,
   },
 });

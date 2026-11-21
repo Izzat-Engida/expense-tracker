@@ -6,7 +6,6 @@ import {
   BentoCard,
   AppText,
   PillBadge,
-  ProgressBar,
   JapaneseIcon,
 } from '@/components/ui';
 import DaySection from '@/components/ui/DaySection'
@@ -48,7 +47,7 @@ export default function HomeScreen() {
     [expenses, incomes, budgets],
   );
 
-  const { monthKey, monthSpent, monthIncome, budgetTotal, budgetProgress, budgetPercent } =
+  const { monthKey, monthSpent, monthIncome, budgetTotal, budgetPercent } =
     summary;
   const [monthName, yearLabel] = formatMonthLabel(monthKey).split(' ');
   const overBudget = budgetTotal > 0 && monthSpent > budgetTotal;
@@ -98,7 +97,7 @@ export default function HomeScreen() {
 
   if (error) {
     return (
-      <Main>
+      <Main showArt artOpacity={0.11}>
         <BentoCard variant="light" style={styles.statusCard}>
           <AppText variant="bodyBold">Could not load your ledger</AppText>
           <AppText variant="caption" color={colors.textSecondary}>
@@ -110,8 +109,8 @@ export default function HomeScreen() {
   }
 
   return (
-    <Main>
-      <BentoCard variant="light" art="crane" style={styles.monthHeaderCard}>
+    <Main showArt artOpacity={0.11}>
+      <BentoCard variant="light" style={styles.monthHeaderCard}>
         <View style={styles.monthLeft}>
           <AppText style={styles.kanjiMonth}>{formatMonthKanji(monthKey)}</AppText>
           <View style={[styles.verticalDivider, { backgroundColor: colors.divider }]} />
@@ -137,9 +136,8 @@ export default function HomeScreen() {
             <AppText
               variant="caption"
               color={colors.textMuted}
-              style={{ fontSize: 9, letterSpacing: 0.5 }}
             >
-              Local Profile
+              Local
             </AppText>
           </View>
         ) : (
@@ -148,21 +146,22 @@ export default function HomeScreen() {
             onPress={() => router.push('/modals/sync-status')}
             style={styles.syncStatusBtn}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <AppText
-                variant="caption"
-                color={
-                  syncStatus === 'syncing'
-                    ? colors.categoryFun
-                    : !isDeviceOnline
-                    ? colors.hankoRed
-                    : pendingCount > 0
-                    ? colors.categoryFood
-                    : colors.bambooGreen
-                }
-              >
-                ●
-              </AppText>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor:
+                    syncStatus === 'syncing'
+                      ? colors.categoryFun
+                      : !isDeviceOnline
+                      ? colors.textMuted
+                      : pendingCount > 0
+                      ? colors.categoryFood
+                      : colors.bambooGreen,
+                }}
+              />
               <AppText variant="caption" color={colors.textSecondary}>
                 {syncStatus === 'syncing'
                   ? 'Syncing…'
@@ -170,14 +169,13 @@ export default function HomeScreen() {
                   ? 'Offline'
                   : pendingCount > 0
                   ? `${pendingCount} queued`
-                  : 'Cloud synced'}
+                  : 'Synced'}
               </AppText>
             </View>
             {activeAccount && (
               <AppText
                 variant="caption"
                 color={colors.textMuted}
-                style={{ fontSize: 9, letterSpacing: 0.5 }}
                 numberOfLines={1}
               >
                 {activeAccount.name}
@@ -193,7 +191,7 @@ export default function HomeScreen() {
             Spent this month
           </AppText>
           <View style={styles.spentAmountRow}>
-            <AppText variant="digital" color={colors.textPrimary}>
+            <AppText variant="digital" color={colors.textPrimary} style={{ fontVariant: ['tabular-nums'] }}>
               {Math.round(monthSpent).toLocaleString()}
             </AppText>
             <AppText variant="caption" color={colors.textMuted}>
@@ -205,7 +203,7 @@ export default function HomeScreen() {
             label={
               monthIncome > 0
                 ? `Income ${Math.round(monthIncome).toLocaleString()} ${currency}`
-                : 'No income yet'
+                : 'No income logged'
             }
             onPress={() => router.push('/modals/income-budget')}
           />
@@ -217,21 +215,18 @@ export default function HomeScreen() {
             style={styles.budgetTouchArea}
             onPress={() => router.push('/modals/income-budget')}
           >
-            <View style={[styles.budgetCircle, { borderColor: budgetColor }]}>
+            <View style={[styles.budgetCircle, { borderColor: budgetTotal > 0 ? budgetColor : colors.border }]}>
               <AppText variant="bodyBold" style={styles.budgetPercent}>
                 {budgetTotal > 0 ? `${budgetPercent}%` : '—'}
               </AppText>
               <AppText variant="caption" color={colors.textSecondary} style={styles.budgetSub}>
-                of budget
+                used
               </AppText>
             </View>
-            <View style={styles.budgetBarWrap}>
-              <ProgressBar progress={budgetProgress} fillColor={budgetColor} height={6} />
-            </View>
 
-            <AppText variant="caption" color={colors.textSecondary}>
+            <AppText variant="caption" color={colors.textSecondary} numberOfLines={1}>
               {budgetTotal > 0
-                ? `${Math.round(budgetTotal).toLocaleString()} ${currency}`
+                ? `${Math.round(monthSpent).toLocaleString()} / ${Math.round(budgetTotal).toLocaleString()} ${currency}`
                 : 'No budget set'}
             </AppText>
           </TouchableOpacity>
@@ -248,7 +243,7 @@ export default function HomeScreen() {
             style={[styles.allTransactionsBtn, { borderColor: colors.border, backgroundColor: colors.cardElevated }]}
           >
             <AppText variant="bodyBold" style={{ fontSize: 12 }}>
-              View All Transactions ({expenses.length})
+              View all transactions ({expenses.length})
             </AppText>
           </TouchableOpacity>
         </BentoCard>
@@ -260,9 +255,9 @@ export default function HomeScreen() {
           accessibilityLabel="Add expense"
         >
           <BentoCard variant="light" style={styles.emptyCard}>
-            <AppText variant="bodyBold">Nothing logged yet</AppText>
+            <AppText variant="bodyBold">No expenses recorded yet</AppText>
             <AppText variant="caption" color={colors.textSecondary}>
-              Tap here or the stamp below to add your first expense.
+              Tap below to log your first transaction.
             </AppText>
           </BentoCard>
         </TouchableOpacity>
@@ -315,7 +310,7 @@ export default function HomeScreen() {
                   onPress={() => handleDeleteSaving(saving.id, saving.title)}
                   style={[styles.savingsDeleteBtn, { borderColor: colors.border }]}
                 >
-                  <AppText variant="caption" color={colors.hankoRed}>
+                  <AppText variant="caption" color={colors.textMuted}>
                     ✕
                   </AppText>
                 </TouchableOpacity>
@@ -341,7 +336,7 @@ export default function HomeScreen() {
             onPress={() => router.push('/(tabs)/settings' as any)}
           >
             <AppText variant="caption" color={colors.textMuted} style={{ fontSize: 11 }}>
-              {dailyLimit > 0 ? `Limit: ${Math.round(dailyLimit).toLocaleString()} ${currency}` : 'Set a limit ›'}
+              {dailyLimit > 0 ? `Limit: ${Math.round(dailyLimit).toLocaleString()} ${currency}` : 'Set daily limit'}
             </AppText>
           </TouchableOpacity>
         </View>
@@ -369,7 +364,7 @@ export default function HomeScreen() {
           ]}>
             <JapaneseIcon
               name={streakResult.streak >= 30 ? 'kiku' : streakResult.streak >= 7 ? 'sakura' : streakResult.isCleanToday ? 'enso' : 'take'}
-              size={24}
+              size={20}
               color={streakResult.isCleanToday ? '#FFFFFF' : colors.textPrimary}
             />
           </View>
@@ -377,7 +372,7 @@ export default function HomeScreen() {
 
         {streakResult.longestStreak > 0 && (
           <AppText variant="caption" color={colors.textMuted}>
-            Personal best: {streakResult.longestStreak} {streakResult.longestStreak === 1 ? 'day' : 'days'}
+            Best: {streakResult.longestStreak} {streakResult.longestStreak === 1 ? 'day' : 'days'} clean
           </AppText>
         )}
       </BentoCard>
@@ -404,11 +399,13 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   verticalDivider: {
-    width: 1.5,
-    height: 34,
+    width: 1,
+    height: 32,
   },
   monthTitle: {
-    fontSize: 18,
+    fontFamily: Fonts.sansBold,
+    fontSize: 17,
+    lineHeight: 22,
   },
   syncStatusBtn: {
     alignItems: 'flex-end',
@@ -421,8 +418,8 @@ const styles = StyleSheet.create({
   spentCard: {
     flex: 1.45,
     justifyContent: 'space-between',
-    paddingVertical: 16,
-    gap: 10,
+    padding: 16,
+    gap: 12,
   },
   spentAmountRow: {
     flexDirection: 'row',
@@ -431,42 +428,39 @@ const styles = StyleSheet.create({
   },
   budgetCard: {
     flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
+    padding: 16,
+    justifyContent: 'center',
   },
   budgetTouchArea: {
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     gap: 8,
   },
   budgetCircle: {
-    width: 78,
-    height: 78,
-    borderRadius: 39,
-    borderWidth: 5,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 3,
     alignItems: 'center',
     justifyContent: 'center',
   },
   budgetPercent: {
-    fontSize: 17,
+    fontSize: 16,
   },
   budgetSub: {
     fontSize: 10,
   },
-  budgetBarWrap: {
-    width: '100%',
-  },
   ledgerCard: {
-    paddingVertical: 16,
+    padding: 16,
     gap: 8,
   },
   allTransactionsBtn: {
-    borderWidth: 1.5,
-    borderRadius: 10,
+    borderWidth: 1,
+    borderRadius: 8,
     paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 6,
+    marginTop: 8,
   },
  
   emptyCard: {
@@ -474,8 +468,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   savingsCard: {
-    paddingVertical: 16,
-    gap: 10,
+    padding: 16,
+    gap: 12,
   },
   savingsHeaderRow: {
     flexDirection: 'row',
@@ -510,9 +504,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   savingsDeleteBtn: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 24,
+    height: 24,
+    borderRadius: 6,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -523,8 +517,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   streakCard: {
-    paddingVertical: 16,
-    gap: 10,
+    padding: 16,
+    gap: 12,
   },
   streakHeaderRow: {
     flexDirection: 'row',
@@ -537,14 +531,14 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   streakNumber: {
-    fontSize: 40,
-    lineHeight: 44,
+    fontSize: 36,
+    lineHeight: 40,
   },
   streakBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 2,
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },

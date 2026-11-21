@@ -67,6 +67,8 @@ export default function SettingsScreen() {
 
   return (
     <Main
+      showArt
+      artOpacity={0.11}
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
@@ -119,10 +121,8 @@ export default function SettingsScreen() {
         <BentoCard variant="light" art="wagara" style={styles.limitCard}>
           <View style={styles.limitHeaderRow}>
             <View style={{ flex: 1 }}>
-              <AppText variant="bodyBold">DAILY SPENDING LIMIT</AppText>
-
+              <AppText variant="bodyBold">Daily spending limit</AppText>
             </View>
-          
           </View>
 
           <View style={[styles.limitInputRow, { borderColor: colors.border, backgroundColor: colors.cardElevated }]}>
@@ -141,14 +141,12 @@ export default function SettingsScreen() {
             />
             <AppText variant="caption" color={colors.textMuted} style={styles.currencySuffix}>{currency}</AppText>
           </View>
-
-         
         </BentoCard>
 
         {/* Menu sections */}
         <View style={styles.menuSection}>
           <AppText variant="caption" color={colors.textMuted} style={styles.sectionLabel}>
-            PREFERENCES
+            Preferences
           </AppText>
           <MenuRow
             icon="sensu"
@@ -166,7 +164,7 @@ export default function SettingsScreen() {
 
         <View style={styles.menuSection}>
           <AppText variant="caption" color={colors.textMuted} style={styles.sectionLabel}>
-            DATA
+            Data & storage
           </AppText>
           <MenuRow
             icon="makimono"

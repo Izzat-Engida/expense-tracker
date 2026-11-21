@@ -27,14 +27,12 @@ export function HankoStamp({ size = 'md', onPress }: HankoStampProps) {
   const { colors } = useThemeColors();
   const dimension = SIZE_MAP[size];
   const fontSize = FONT_MAP[size];
-  const isFab = size === 'fab';
   const pressed = useSharedValue(0);
   const animatedPressStyle = useAnimatedStyle(() => ({
     transform: [
-      ...(isFab ? [{ rotate: '-3deg' }] : []),
-      { scale: withSpring(pressed.value ? 0.94 : 1, { damping: 16, stiffness: 260 }) },
+      { scale: withSpring(pressed.value ? 0.95 : 1, { damping: 20, stiffness: 300 }) },
     ],
-  }), [isFab]);
+  }));
 
   const containerStyle = [
     styles.stamp,

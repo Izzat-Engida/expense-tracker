@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { Main, BentoCard, AppText, JapaneseIcon } from '@/components/ui';
 import type { JapaneseIconName } from '@/components/ui';
-import { Fonts, useThemeColors } from '@/constants/theme';
+import { useThemeColors } from '@/constants/theme';
 import {
   CURRENCIES,
   useSettingsStore,
@@ -27,18 +27,22 @@ export default function AppearanceSettings() {
   ];
 
   return (
-    <Main contentContainerStyle={styles.container}>
+    <Main
+      showArt
+      artOpacity={0.11}
+      contentContainerStyle={styles.container}
+    >
       <View style={styles.headerRow}>
         <TouchableOpacity
           onPress={() => {
             triggerHaptic.selection();
             router.replace('/(tabs)/settings' as Href);
           }}
-          style={[styles.backBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+          style={styles.backBtn}
           activeOpacity={0.7}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <AppText style={[styles.backChevron, { color: colors.textPrimary }]}>‹</AppText>
+          <JapaneseIcon name="chevronLeft" size={16} color={colors.textPrimary} strokeWidth={2.2} />
         </TouchableOpacity>
         <View style={styles.headerTitleWrap}>
           <AppText variant="serifTitle" style={styles.headerTitle}>Appearance</AppText>
@@ -50,7 +54,7 @@ export default function AppearanceSettings() {
 
       {/* Theme */}
       <BentoCard variant="light" style={styles.card}>
-        <AppText variant="caption" color={colors.textSecondary}>THEME</AppText>
+        <AppText variant="caption" color={colors.textSecondary}>Theme</AppText>
         <View style={styles.themeRow}>
           {themeOptions.map((opt) => {
             const active = themeMode === opt.mode;
@@ -95,7 +99,7 @@ export default function AppearanceSettings() {
 
       {/* Currency */}
       <BentoCard variant="light" style={styles.card}>
-        <AppText variant="caption" color={colors.textSecondary}>CURRENCY</AppText>
+        <AppText variant="caption" color={colors.textSecondary}>Currency</AppText>
         <View style={styles.currencyRow}>
           {CURRENCIES.map((code) => {
             const active = currency === code;
@@ -130,7 +134,7 @@ export default function AppearanceSettings() {
 
       {/* Haptics */}
       <BentoCard variant="light" style={styles.card}>
-        <AppText variant="caption" color={colors.textSecondary}>HAPTICS</AppText>
+        <AppText variant="caption" color={colors.textSecondary}>Haptics</AppText>
         <View style={styles.switchRow}>
           <View style={{ flex: 1, paddingRight: 8 }}>
             <AppText variant="bodyBold">Haptic Feedback</AppText>
@@ -162,19 +166,10 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   backBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    borderWidth: 1.5,
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  backChevron: {
-    fontSize: 22,
-    lineHeight: 24,
-    marginTop: -2,
-    marginLeft: -1,
-    fontFamily: Fonts.sansBold,
   },
   headerTitleWrap: {
     flex: 1,

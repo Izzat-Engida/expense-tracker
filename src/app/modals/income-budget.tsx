@@ -187,17 +187,20 @@ export default function IncomeBudgetModal() {
 
   return (
     <Main
+      showArt
+      artOpacity={0.11}
       contentContainerStyle={styles.contentContainer}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
     >
-        <View style={styles.headerRow}>
+      <View style={styles.headerRow}>
         <AppText variant="serifTitle">Income & Budget</AppText>
         <TouchableOpacity
           onPress={() => router.back()}
-          style={[styles.closeBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+          style={styles.closeBtn}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <AppText variant="body" color={colors.textPrimary}>✕</AppText>
+          <AppText variant="body" color={colors.textSecondary}>✕</AppText>
         </TouchableOpacity>
       </View>
 
@@ -430,10 +433,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
