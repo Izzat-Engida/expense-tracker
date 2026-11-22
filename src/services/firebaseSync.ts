@@ -71,18 +71,19 @@ export async function syncAccountWithFirebase(accountId: string): Promise<SyncRe
             for (const exp of cloudData.expenses) {
               if (pendingIds.has(exp.id)) continue;
               await localDb.runAsync(
-                `INSERT INTO expenses (id, title, amount, category, note, date, created_at, updated_at, deleted_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `INSERT INTO expenses (id, title, amount, category, wishlist_id, note, date, created_at, updated_at, deleted_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                  ON CONFLICT(id) DO UPDATE SET
                    title = excluded.title,
                    amount = excluded.amount,
                    category = excluded.category,
+                   wishlist_id = excluded.wishlist_id,
                    note = excluded.note,
                    date = excluded.date,
                    updated_at = excluded.updated_at,
                    deleted_at = excluded.deleted_at
                  WHERE excluded.updated_at >= expenses.updated_at`,
-                [exp.id, exp.title, exp.amount, exp.category, exp.note || null, exp.date, exp.created_at, exp.updated_at, exp.deleted_at || null]
+                [exp.id, exp.title, exp.amount, exp.category, exp.wishlist_id || null, exp.note || null, exp.date, exp.created_at, exp.updated_at, exp.deleted_at || null]
               );
             }
           }

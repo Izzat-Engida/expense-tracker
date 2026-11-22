@@ -23,6 +23,7 @@ import {
   getWeekdaySpending,
   getYearSummary,
   monthlyIncome,
+  monthlySavings,
 } from '@/lib/ledger';
 
 export default function OverviewScreen() {
@@ -39,6 +40,11 @@ export default function OverviewScreen() {
   const monthIncome = useMemo(
     () => monthlyIncome(incomes, selectedMonth),
     [incomes, selectedMonth],
+  );
+
+  const monthSaved = useMemo(
+    () => monthlySavings(savings, selectedMonth),
+    [savings, selectedMonth],
   );
 
   const weekdaySpending = useMemo(
@@ -74,7 +80,7 @@ export default function OverviewScreen() {
   );
 
   const hasData = summary.totalSpent > 0;
-  const net = monthIncome - summary.totalSpent;
+  const net = monthIncome - summary.totalSpent - monthSaved;
   const axisLabels = [1, 7, 14, 21, summary.days];
 
   if (!isInitialized) {
@@ -328,6 +334,9 @@ export default function OverviewScreen() {
               data={[
                 { label: 'Income', value: monthIncome, color: colors.bambooGreen },
                 { label: 'Spent', value: summary.totalSpent, color: colors.hankoRed },
+                ...(monthSaved > 0
+                  ? [{ label: 'Saved', value: monthSaved, color: colors.categoryTransport }]
+                  : []),
               ]}
               height={104}
               showValues

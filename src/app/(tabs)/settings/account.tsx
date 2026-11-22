@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -26,7 +26,13 @@ import { Fonts, useThemeColors } from '@/constants/theme';
 import { useAuthStore } from '@/stores/authStore';
 import { useSyncStore } from '@/stores/syncStore';
 import { triggerHaptic } from '@/utils/haptics';
-import { getAuthErrorMessage, sendPasswordReset } from '@/services/firebaseAuth';
+import {
+  getAuthErrorMessage,
+  sendPasswordReset,
+  resendVerificationEmail,
+  isCurrentUserEmailVerified,
+  reloadCurrentUser,
+} from '@/services/firebaseAuth';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 type EditModalType = 'none' | 'name' | 'email' | 'password';
@@ -58,6 +64,35 @@ export default function AccountSettings() {
   // Confirmation Modals State
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
+
+  // Email Verification State
+  const [emailVerified, setEmailVerified] = useState<boolean>(() => isCurrentUserEmailVerified());
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+
+  useEffect(() => {
+    if (!activeAccount?.isLocal) {
+      reloadCurrentUser().then((verified) => {
+        setEmailVerified(verified);
+      }).catch(() => {});
+    }
+  }, [activeAccount?.isLocal]);
+
+  const handleResendVerification = async () => {
+    triggerHaptic.selection();
+    setIsCheckingEmail(true);
+    try {
+      await resendVerificationEmail();
+      triggerHaptic.success();
+      Alert.alert(
+        'Verification Link Dispatched',
+        `A new verification link has been sent to ${activeAccount?.email}. Please check your inbox and click the link to verify.`
+      );
+    } catch (err: any) {
+      Alert.alert('Notice', getAuthErrorMessage(err));
+    } finally {
+      setIsCheckingEmail(false);
+    }
+  };
 
   // Avatar Modal State
   const [showAvatarModal, setShowAvatarModal] = useState(false);
@@ -371,25 +406,51 @@ export default function AccountSettings() {
 
         {/* Email Row (Cloud Accounts Only) */}
         {!activeAccount?.isLocal && (
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => openModal('email')}
-            style={[styles.profileDetailRow, { borderColor: colors.border }]}
-          >
-            <View style={{ flex: 1 }}>
-              <AppText variant="caption" color={colors.textMuted} style={styles.detailLabel}>
-                Email address
-              </AppText>
+          <View style={[styles.profileDetailRow, { borderColor: colors.border }]}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => openModal('email')}
+              style={{ flex: 1 }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <AppText variant="caption" color={colors.textMuted} style={styles.detailLabel}>
+                  Email address
+                </AppText>
+                {emailVerified ? (
+                  <PillBadge variant="income" label="Verified" />
+                ) : (
+                  <PillBadge variant="expense" label="Unverified" />
+                )}
+              </View>
               <AppText variant="bodyBold" numberOfLines={1}>
                 {activeAccount?.email || 'Not set'}
               </AppText>
+            </TouchableOpacity>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              {!emailVerified && (
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  disabled={isCheckingEmail}
+                  onPress={handleResendVerification}
+                  style={[styles.editPill, { borderColor: colors.border, backgroundColor: colors.cardElevated }]}
+                >
+                  <AppText variant="caption" color={colors.textPrimary} style={styles.editPillText}>
+                    {isCheckingEmail ? 'Sending…' : 'Verify'}
+                  </AppText>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => openModal('email')}
+                style={[styles.editPill, { borderColor: colors.border, backgroundColor: colors.cardElevated }]}
+              >
+                <AppText variant="caption" color={colors.textPrimary} style={styles.editPillText}>
+                  Update
+                </AppText>
+              </TouchableOpacity>
             </View>
-            <View style={[styles.editPill, { borderColor: colors.border, backgroundColor: colors.cardElevated }]}>
-              <AppText variant="caption" color={colors.textPrimary} style={styles.editPillText}>
-                Update
-              </AppText>
-            </View>
-          </TouchableOpacity>
+          </View>
         )}
 
         {/* Password / Passcode Row */}

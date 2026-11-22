@@ -72,6 +72,11 @@ export default function DaySection({group,badgeVariant,showDivider = false,}: {
                 <AppText variant="caption" color={colors.textSecondary}>
                   {CATEGORY_LABELS[item.category]}
                 </AppText>
+                {Boolean(item.wishlist_id) && (
+                  <AppText variant="caption" color={colors.bambooGreen} style={{ fontSize: 10, fontWeight: '600' }}>
+                    · Pre-funded
+                  </AppText>
+                )}
               </View>
             </View>
             <PillBadge

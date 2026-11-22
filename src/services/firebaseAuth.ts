@@ -4,6 +4,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
+  sendEmailVerification,
   updateProfile,
   updateEmail,
   verifyBeforeUpdateEmail,
@@ -61,13 +62,23 @@ export async function signInWithEmail(
 
 export async function signUpWithEmail(
   email: string,
-  pass: string
+  pass: string,
+  sendVerification: boolean = true
 ): Promise<{
   profile: GoogleUserProfile;
   tokens: AuthTokens;
 }> {
   const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), pass);
   const user = userCredential.user;
+
+  if (sendVerification) {
+    try {
+      await sendEmailVerification(user);
+    } catch (verErr) {
+      console.warn('Failed to dispatch Firebase email verification:', verErr);
+    }
+  }
+
   const profile: GoogleUserProfile = {
     id: user.uid,
     email: user.email || email.trim(),
@@ -81,6 +92,25 @@ export async function signUpWithEmail(
   };
 
   return { profile, tokens };
+}
+
+export async function resendVerificationEmail(): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error('No user is currently signed in to cloud.');
+  }
+  await sendEmailVerification(user);
+}
+
+export function isCurrentUserEmailVerified(): boolean {
+  return auth.currentUser?.emailVerified ?? false;
+}
+
+export async function reloadCurrentUser(): Promise<boolean> {
+  const user = auth.currentUser;
+  if (!user) return false;
+  await user.reload();
+  return user.emailVerified;
 }
 
 export async function sendPasswordReset(email: string): Promise<void> {

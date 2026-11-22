@@ -4,6 +4,7 @@ export const CREATE_EXPENSES_TABLE = `
     title       TEXT NOT NULL,
     amount      REAL NOT NULL,
     category    TEXT NOT NULL,
+    wishlist_id TEXT,
     note        TEXT,
     date        TEXT NOT NULL,
     created_at  TEXT NOT NULL,
@@ -82,6 +83,7 @@ export const CREATE_OUTBOX_PENDING_INDEX = `
 
 export const ADD_RECURRING_COLUMNS = `ALTER TABLE expenses ADD COLUMN is_recurring INTEGER NOT NULL DEFAULT 0;` as const;
 export const ADD_RECURRING_INTERVAL = `ALTER TABLE expenses ADD COLUMN recurrence_interval TEXT DEFAULT 'monthly';` as const;
+export const ADD_EXPENSE_WISHLIST_ID = `ALTER TABLE expenses ADD COLUMN wishlist_id TEXT DEFAULT NULL;` as const;
 
 export const ALL_MIGRATIONS = [
   CREATE_EXPENSES_TABLE,
@@ -93,4 +95,5 @@ export const ALL_MIGRATIONS = [
   CREATE_OUTBOX_PENDING_INDEX,
   ADD_RECURRING_COLUMNS,
   ADD_RECURRING_INTERVAL,
+  ADD_EXPENSE_WISHLIST_ID,
 ] as const;

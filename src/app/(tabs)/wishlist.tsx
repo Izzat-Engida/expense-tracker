@@ -29,8 +29,14 @@ const PRIORITIES: ('low' | 'medium' | 'high')[] = ['high', 'medium', 'low'];
 export default function WishlistScreen() {
   const { colors, isDark } = useThemeColors();
   const currency = useSettingsStore((s) => s.currency);
-  const { wishlist, createWishlistItem, updateWishlistItem, deleteWishlistItem, createSaving } =
-    useLedger();
+  const {
+    wishlist,
+    createWishlistItem,
+    updateWishlistItem,
+    deleteWishlistItem,
+    createSaving,
+    createExpense,
+  } = useLedger();
 
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'ready'>('all');
   const [modalVisible, setModalVisible] = useState(false);
@@ -156,8 +162,51 @@ export default function WishlistScreen() {
   };
 
   const togglePurchased = async (item: WishlistItem) => {
-    const updatedStatus = item.is_purchased === 1 ? 0 : 1;
-    await updateWishlistItem(item.id, { is_purchased: updatedStatus });
+    if (item.is_purchased === 1) {
+      // Un-mark as purchased
+      await updateWishlistItem(item.id, { is_purchased: 0 });
+      return;
+    }
+
+    if (item.saved_amount > 0) {
+      Alert.alert(
+        'Purchase Goal',
+        `Record purchase of "${item.title}" for ${Math.round(item.saved_amount).toLocaleString()} ${currency} funded from this goal?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Just Mark Done',
+            style: 'default',
+            onPress: async () => {
+              await updateWishlistItem(item.id, { is_purchased: 1 });
+            },
+          },
+          {
+            text: 'Log Expense & Deduct',
+            style: 'default',
+            onPress: async () => {
+              const catMap: Record<string, 'food' | 'bills' | 'transport' | 'fun' | 'other'> = {
+                Tech: 'fun',
+                Travel: 'transport',
+                Home: 'bills',
+                Style: 'fun',
+                Other: 'other',
+              };
+              await createExpense({
+                title: item.title,
+                amount: item.saved_amount || item.target_amount,
+                category: catMap[item.category] || 'other',
+                wishlist_id: item.id,
+                note: item.note ?? null,
+                date: localDateKey(),
+              });
+            },
+          },
+        ]
+      );
+    } else {
+      await updateWishlistItem(item.id, { is_purchased: 1 });
+    }
   };
 
   const handleDelete = (item: WishlistItem) => {

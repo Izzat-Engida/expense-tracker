@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -17,7 +17,6 @@ import {
 import { Fonts, useThemeColors } from '@/constants/theme';
 import { useAuthStore } from '@/stores/authStore';
 import { signUpWithEmail, getAuthErrorMessage } from '@/services/firebaseAuth';
-import { sendEmailVerificationCode, verifyEmailCode } from '@/services/emailVerification';
 import { triggerHaptic } from '@/utils/haptics';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
@@ -29,24 +28,10 @@ export default function OnboardingScreen() {
   const startLocalAccountOnboarding = useAuthStore((s) => s.startLocalAccountOnboarding);
 
   const [isProcessing, setIsProcessing] = useState(false);
-  const [authMode, setAuthMode] = useState<'options' | 'emailInput' | 'verifyCode'>('options');
+  const [authMode, setAuthMode] = useState<'options' | 'emailInput'>('options');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [verificationCode, setVerificationCode] = useState('');
-  const [resendTimer, setResendTimer] = useState(0);
-
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | undefined;
-    if (resendTimer > 0) {
-      interval = setInterval(() => {
-        setResendTimer((t) => (t > 0 ? t - 1 : 0));
-      }, 1000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [resendTimer]);
 
   const handleGuestMode = async () => {
     setIsProcessing(true);
@@ -60,7 +45,7 @@ export default function OnboardingScreen() {
     }
   };
 
-  const handleRequestVerificationCode = async () => {
+  const handleSignUp = async () => {
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
       Alert.alert('Required', 'Please enter your email address.');
@@ -76,48 +61,22 @@ export default function OnboardingScreen() {
       return;
     }
 
-    triggerHaptic.selection();
-    setIsProcessing(true);
-    try {
-      await sendEmailVerificationCode(trimmedEmail);
-      triggerHaptic.success();
-      setVerificationCode('');
-      setAuthMode('verifyCode');
-      setResendTimer(30);
-    } catch (err: any) {
-      Alert.alert('Verification Notice', err?.message || 'Could not dispatch verification code.');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleResendCode = async () => {
-    if (resendTimer > 0 || isProcessing) return;
-    await handleRequestVerificationCode();
-  };
-
-  const handleVerifyAndSignUp = async () => {
-    const trimmedCode = verificationCode.trim();
-    if (!trimmedCode || trimmedCode.length !== 6) {
-      Alert.alert('Verification Code', 'Please enter the 6-digit verification code.');
-      return;
-    }
-
     triggerHaptic.medium();
     setIsProcessing(true);
     try {
-      const verifyResult = verifyEmailCode(email, trimmedCode);
-      if (!verifyResult.valid) {
-        Alert.alert('Verification Failed', verifyResult.message);
-        setIsProcessing(false);
-        return;
-      }
-
-      // Code is valid! Proceed to create the Firebase account
-      const res = await signUpWithEmail(email.trim(), password.trim());
+      const res = await signUpWithEmail(trimmedEmail, password.trim(), true);
       await startAccountOnboarding(res.profile, res.tokens);
       triggerHaptic.success();
-      router.push('/(auth)/setup-password');
+      Alert.alert(
+        'Account Created',
+        `A verification link has been sent to ${trimmedEmail}.\n\nPlease check your inbox and tap the link to verify your email.`,
+        [
+          {
+            text: 'Continue',
+            onPress: () => router.push('/(auth)/setup-password'),
+          },
+        ]
+      );
     } catch (err: any) {
       if (err?.code === 'auth/email-already-in-use') {
         Alert.alert(
@@ -165,11 +124,7 @@ export default function OnboardingScreen() {
                   activeOpacity={0.7}
                   onPress={() => {
                     triggerHaptic.selection();
-                    if (authMode === 'verifyCode') {
-                      setAuthMode('emailInput');
-                    } else {
-                      setAuthMode('options');
-                    }
+                    setAuthMode('options');
                   }}
                   style={styles.backBtn}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -181,7 +136,7 @@ export default function OnboardingScreen() {
                     strokeWidth={2.2}
                   />
                   <AppText variant="caption" color={colors.textPrimary} style={styles.backBtnText}>
-                    {authMode === 'verifyCode' ? 'Edit email' : 'Options'}
+                    Options
                   </AppText>
                 </TouchableOpacity>
 
@@ -197,203 +152,120 @@ export default function OnboardingScreen() {
                   </AppText>
                 </View>
                 <AppText variant="caption" color={colors.textSecondary} style={styles.welcomeKicker}>
-                  {authMode === 'verifyCode' ? '認証 · Verify email' : '新規登録 · Create account'}
+                  新規登録 · Create account
                 </AppText>
                 <AppText variant="serifTitle" style={styles.welcomeTitle}>
-                  {authMode === 'verifyCode' ? 'Verification code' : 'Create your account'}
+                  Create your account
                 </AppText>
                 <AppText variant="body" color={colors.textSecondary} style={styles.welcomeSubtitle}>
-                  {authMode === 'verifyCode'
-                    ? `Enter the 6-digit code sent to ${email}`
-                    : 'A quiet ledger for everyday life. Sync securely across your devices.'}
+                  A quiet ledger for everyday life. Sync securely across your devices.
                 </AppText>
               </View>
 
-              {authMode === 'verifyCode' ? (
-                /* Verification Form Container */
-                <View style={styles.formContainer}>
-                  <View style={styles.fieldGroup}>
-                    <AppText variant="caption" color={colors.textSecondary} style={styles.fieldLabel}>
-                      6-digit verification code
-                    </AppText>
-                    <TextInput
-                      placeholder="• • • • • •"
-                      placeholderTextColor={colors.textMuted}
-                      value={verificationCode}
-                      onChangeText={setVerificationCode}
-                      keyboardType="number-pad"
-                      maxLength={6}
-                      returnKeyType="done"
-                      onSubmitEditing={handleVerifyAndSignUp}
-                      style={[
-                        styles.codeInput,
-                        {
-                          color: colors.textPrimary,
-                          borderColor: colors.border,
-                          backgroundColor: colors.card,
-                        },
-                      ]}
-                    />
-                  </View>
-
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    disabled={isProcessing}
+              {/* Credentials Form Container */}
+              <View style={styles.formContainer}>
+                <View style={styles.fieldGroup}>
+                  <AppText variant="caption" color={colors.textSecondary} style={styles.fieldLabel}>
+                    Email address
+                  </AppText>
+                  <TextInput
+                    placeholder="you@example.com"
+                    placeholderTextColor={colors.textMuted}
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    returnKeyType="next"
                     style={[
-                      styles.primaryButton,
-                      { backgroundColor: colors.textPrimary },
+                      styles.input,
+                      {
+                        color: colors.textPrimary,
+                        borderColor: colors.border,
+                        backgroundColor: colors.card,
+                      },
                     ]}
-                    onPress={handleVerifyAndSignUp}
-                  >
-                    {isProcessing ? (
-                      <View style={styles.buttonLoadingRow}>
-                        <ActivityIndicator size="small" color={colors.background} />
-                        <AppText variant="bodyBold" color={colors.background} style={styles.buttonText}>
-                          Verifying…
-                        </AppText>
-                      </View>
-                    ) : (
-                      <AppText variant="bodyBold" color={colors.background} style={styles.buttonText}>
-                        Verify & create account
-                      </AppText>
-                    )}
-                  </TouchableOpacity>
+                  />
+                </View>
 
-                  <TouchableOpacity
-                    onPress={handleResendCode}
-                    disabled={resendTimer > 0 || isProcessing}
-                    style={styles.resendCodeBtn}
-                  >
-                    <AppText
-                      variant="caption"
-                      color={resendTimer > 0 ? colors.textMuted : colors.textPrimary}
-                      style={{ fontFamily: resendTimer === 0 ? Fonts.sansBold : Fonts.sans, textAlign: 'center' }}
-                    >
-                      {resendTimer > 0 ? `Resend code in ${resendTimer}s` : 'Resend verification code'}
-                    </AppText>
-                  </TouchableOpacity>
-
-                  <View style={styles.switchRow}>
-                    <AppText variant="caption" color={colors.textSecondary}>
-                      Wrong email address?
+                <View style={styles.fieldGroup}>
+                  <View style={styles.passwordLabelRow}>
+                    <AppText variant="caption" color={colors.textSecondary} style={styles.fieldLabel}>
+                      Password
                     </AppText>
                     <TouchableOpacity
-                      activeOpacity={0.8}
-                      onPress={() => setAuthMode('emailInput')}
-                      disabled={isProcessing}
+                      onPress={() => setShowPassword((prev) => !prev)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
-                      <AppText variant="bodyBold" color={colors.textPrimary}>
-                        Edit email
+                      <AppText variant="caption" color={colors.textSecondary}>
+                        {showPassword ? 'Hide' : 'Show'}
                       </AppText>
                     </TouchableOpacity>
                   </View>
-                </View>
-              ) : (
-                /* Credentials Form Container */
-                <View style={styles.formContainer}>
-                  <View style={styles.fieldGroup}>
-                    <AppText variant="caption" color={colors.textSecondary} style={styles.fieldLabel}>
-                      Email address
-                    </AppText>
+
+                  <View
+                    style={[
+                      styles.passwordInputWrap,
+                      {
+                        borderColor: colors.border,
+                        backgroundColor: colors.card,
+                      },
+                    ]}
+                  >
                     <TextInput
-                      placeholder="you@example.com"
+                      placeholder="Min 6 characters"
                       placeholderTextColor={colors.textMuted}
-                      value={email}
-                      onChangeText={setEmail}
-                      keyboardType="email-address"
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry={!showPassword}
                       autoCapitalize="none"
-                      autoCorrect={false}
-                      returnKeyType="next"
-                      style={[
-                        styles.input,
-                        {
-                          color: colors.textPrimary,
-                          borderColor: colors.border,
-                          backgroundColor: colors.card,
-                        },
-                      ]}
+                      returnKeyType="done"
+                      onSubmitEditing={handleSignUp}
+                      style={[styles.passwordInput, { color: colors.textPrimary }]}
                     />
                   </View>
+                </View>
 
-                  <View style={styles.fieldGroup}>
-                    <View style={styles.passwordLabelRow}>
-                      <AppText variant="caption" color={colors.textSecondary} style={styles.fieldLabel}>
-                        Password
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  disabled={isProcessing}
+                  style={[
+                    styles.primaryButton,
+                    { backgroundColor: colors.textPrimary },
+                  ]}
+                  onPress={handleSignUp}
+                >
+                  {isProcessing ? (
+                    <View style={styles.buttonLoadingRow}>
+                      <ActivityIndicator size="small" color={colors.background} />
+                      <AppText variant="bodyBold" color={colors.background} style={styles.buttonText}>
+                        Creating account…
                       </AppText>
-                      <TouchableOpacity
-                        onPress={() => setShowPassword((prev) => !prev)}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <AppText variant="caption" color={colors.textSecondary}>
-                          {showPassword ? 'Hide' : 'Show'}
-                        </AppText>
-                      </TouchableOpacity>
                     </View>
+                  ) : (
+                    <AppText variant="bodyBold" color={colors.background} style={styles.buttonText}>
+                      Create account
+                    </AppText>
+                  )}
+                </TouchableOpacity>
 
-                    <View
-                      style={[
-                        styles.passwordInputWrap,
-                        {
-                          borderColor: colors.border,
-                          backgroundColor: colors.card,
-                        },
-                      ]}
-                    >
-                      <TextInput
-                        placeholder="Min 6 characters"
-                        placeholderTextColor={colors.textMuted}
-                        value={password}
-                        onChangeText={setPassword}
-                        secureTextEntry={!showPassword}
-                        autoCapitalize="none"
-                        returnKeyType="done"
-                        onSubmitEditing={handleRequestVerificationCode}
-                        style={[styles.passwordInput, { color: colors.textPrimary }]}
-                      />
-                    </View>
-                  </View>
-
+                <View style={styles.switchRow}>
+                  <AppText variant="caption" color={colors.textSecondary}>
+                    Already have an account?
+                  </AppText>
                   <TouchableOpacity
                     activeOpacity={0.8}
-                    disabled={isProcessing}
-                    style={[
-                      styles.primaryButton,
-                      { backgroundColor: colors.textPrimary },
-                    ]}
-                    onPress={handleRequestVerificationCode}
+                    onPress={() => {
+                      triggerHaptic.selection();
+                      router.push('/(auth)/login');
+                    }}
                   >
-                    {isProcessing ? (
-                      <View style={styles.buttonLoadingRow}>
-                        <ActivityIndicator size="small" color={colors.background} />
-                        <AppText variant="bodyBold" color={colors.background} style={styles.buttonText}>
-                          Sending code…
-                        </AppText>
-                      </View>
-                    ) : (
-                      <AppText variant="bodyBold" color={colors.background} style={styles.buttonText}>
-                        Send verification code
-                      </AppText>
-                    )}
-                  </TouchableOpacity>
-
-                  <View style={styles.switchRow}>
-                    <AppText variant="caption" color={colors.textSecondary}>
-                      Already have an account?
+                    <AppText variant="bodyBold" color={colors.textPrimary}>
+                      Sign in
                     </AppText>
-                    <TouchableOpacity
-                      activeOpacity={0.8}
-                      onPress={() => {
-                        triggerHaptic.selection();
-                        router.push('/(auth)/login');
-                      }}
-                    >
-                      <AppText variant="bodyBold" color={colors.textPrimary}>
-                        Sign in
-                      </AppText>
-                    </TouchableOpacity>
-                  </View>
+                  </TouchableOpacity>
                 </View>
-              )}
+              </View>
             </>
           ) : (
             <>

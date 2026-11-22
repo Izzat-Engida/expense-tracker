@@ -136,6 +136,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
     const expense: Expense = {
       id: uuid(),
       ...input,
+      wishlist_id: input.wishlist_id ?? null,
       is_recurring: input.is_recurring ?? 0,
       recurrence_interval: input.recurrence_interval ?? null,
       created_at: now(),
@@ -146,13 +147,14 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
     await db.withExclusiveTransactionAsync(async (txn) => {
       await txn.runAsync(
         `INSERT INTO expenses
-           (id, title, amount, category, note, date, created_at, updated_at, deleted_at, is_recurring, recurrence_interval)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)`,
+           (id, title, amount, category, wishlist_id, note, date, created_at, updated_at, deleted_at, is_recurring, recurrence_interval)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)`,
         [
           expense.id,
           expense.title,
           expense.amount,
           expense.category,
+          expense.wishlist_id ?? null,
           expense.note ?? null,
           expense.date,
           expense.created_at,
@@ -165,6 +167,18 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
     });
 
     set((s) => ({ expenses: [expense, ...s.expenses] }));
+
+    if (expense.wishlist_id) {
+      const wishItem = get().wishlist.find((w) => w.id === expense.wishlist_id);
+      if (wishItem) {
+        const remainingSaved = Math.max(0, wishItem.saved_amount - expense.amount);
+        await get().updateWishlistItem(expense.wishlist_id, {
+          saved_amount: remainingSaved,
+          is_purchased: remainingSaved <= 0 || expense.amount >= wishItem.target_amount ? 1 : wishItem.is_purchased,
+        });
+      }
+    }
+
     return expense;
   },
 
@@ -178,13 +192,14 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
     await db.withExclusiveTransactionAsync(async (txn) => {
       await txn.runAsync(
         `UPDATE expenses
-         SET title = ?, amount = ?, category = ?, note = ?,
+         SET title = ?, amount = ?, category = ?, wishlist_id = ?, note = ?,
              date = ?, updated_at = ?, is_recurring = ?, recurrence_interval = ?
          WHERE id = ?`,
         [
           updated.title,
           updated.amount,
           updated.category,
+          updated.wishlist_id ?? null,
           updated.note ?? null,
           updated.date,
           updated.updated_at,
@@ -216,6 +231,15 @@ export const useLedgerStore = create<LedgerStore>((set, get) => ({
       );
       await enqueueOutbox(txn, 'expenses', id, 'DELETE', deleted);
     });
+
+    if (existing.wishlist_id) {
+      const wishItem = get().wishlist.find((w) => w.id === existing.wishlist_id);
+      if (wishItem) {
+        await get().updateWishlistItem(existing.wishlist_id, {
+          saved_amount: Math.min(wishItem.target_amount, wishItem.saved_amount + existing.amount),
+        });
+      }
+    }
 
     set((s) => ({ expenses: s.expenses.filter((e) => e.id !== id) }));
   },

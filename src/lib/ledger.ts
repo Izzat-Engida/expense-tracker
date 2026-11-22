@@ -128,6 +128,12 @@ export function monthlyBudget(budgets: Budget[], monthKey: string): number {
     .reduce((sum, budget) => sum + budget.percentage_or_limit, 0);
 }
 
+export function monthlySavings(savings: Saving[], monthKey: string): number {
+  return savings
+    .filter((s) => s.date.slice(0, 7) === monthKey)
+    .reduce((sum, s) => sum + s.amount, 0);
+}
+
 
 export interface DayGroup {
   label: 'Today' | 'Yesterday';
@@ -140,9 +146,16 @@ export interface HomeSummary {
   monthKey: string;
   monthSpent: number;
   monthIncome: number;
+  monthSaved: number;
+  availableCash: number;
+  operationalSpent: number;
+  fundedSpent: number;
   budgetTotal: number;
   budgetProgress: number;
   budgetPercent: number;
+  overBudgetAmount: number;
+  totalSavingsPool: number;
+  isCoveredBySavings: boolean;
   today: DayGroup;
   yesterday: DayGroup;
 }
@@ -151,6 +164,7 @@ export function getHomeSummary(
   expenses: Expense[],
   incomes: Income[],
   budgets: Budget[],
+  savings: Saving[] = [],
   now = new Date(),
 ): HomeSummary {
   const monthKey = currentMonthKey(now);
@@ -161,16 +175,36 @@ export function getHomeSummary(
   const todayExpenses = expensesForDate(expenses, todayKey);
   const yesterdayExpenses = expensesForDate(expenses, yesterdayKey);
   const monthSpent = totalAmount(monthExpenses);
+  const monthIncome = monthlyIncome(incomes, monthKey);
+  const monthSaved = monthlySavings(savings, monthKey);
+
+  const fundedExpenses = monthExpenses.filter((e) => Boolean(e.wishlist_id));
+  const fundedSpent = totalAmount(fundedExpenses);
+  const operationalSpent = Math.max(0, monthSpent - fundedSpent);
+
   const budgetTotal = monthlyBudget(budgets, monthKey);
-  const budgetProgress = budgetTotal > 0 ? monthSpent / budgetTotal : 0;
+  const budgetProgress = budgetTotal > 0 ? operationalSpent / budgetTotal : 0;
+  const overBudgetAmount = budgetTotal > 0 ? Math.max(0, operationalSpent - budgetTotal) : 0;
+  const totalSavingsPool = savings.reduce((sum, s) => sum + s.amount, 0);
+  const isCoveredBySavings = overBudgetAmount > 0 && totalSavingsPool >= overBudgetAmount;
+
+  // Available cash = Income - Operational Everyday Spending - Money set aside in Savings/Wishlist
+  const availableCash = monthIncome - operationalSpent - monthSaved;
 
   return {
     monthKey,
     monthSpent,
-    monthIncome: monthlyIncome(incomes, monthKey),
+    monthIncome,
+    monthSaved,
+    availableCash,
+    operationalSpent,
+    fundedSpent,
     budgetTotal,
     budgetProgress,
     budgetPercent: Math.round(budgetProgress * 100),
+    overBudgetAmount,
+    totalSavingsPool,
+    isCoveredBySavings,
     today: {
       label: 'Today',
       badge: '今日',

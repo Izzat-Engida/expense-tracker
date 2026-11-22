@@ -96,7 +96,7 @@ export default function AddExpenseModal() {
   const [selectedIncomeSource, setSelectedIncomeSource] = useState<string>('Salary');
   const [selectedSavingGoal, setSelectedSavingGoal] = useState<string>('General');
   const [selectedWishlistId, setSelectedWishlistId] = useState<string | null>(
-    params.wishlistId ?? null
+    params.wishlistId ?? existingExpense?.wishlist_id ?? null
   );
   const [note, setNote] = useState(existingExpense?.note ?? '');
   // When editing, allow overriding the auto-generated title
@@ -172,6 +172,7 @@ export default function AddExpenseModal() {
           title: finalTitle,
           amount: numAmount,
           category: selectedCategory,
+          wishlist_id: selectedWishlistId,
           note: note.trim() || null,
           date: existingExpense.date,
           is_recurring: isRecurring ? 1 : 0,
@@ -182,6 +183,7 @@ export default function AddExpenseModal() {
           title,
           amount: numAmount,
           category: selectedCategory,
+          wishlist_id: selectedWishlistId,
           note: note.trim() || null,
           date: dateStr,
           is_recurring: isRecurring ? 1 : 0,
@@ -460,6 +462,44 @@ export default function AddExpenseModal() {
           )}
         </View>
       </BentoCard>
+
+      {/* Pay from Wishlist / Savings Goal (Optional for Expenses) */}
+      {isExpense && unpurchasedWishlist.length > 0 && (
+        <BentoCard variant="light" style={styles.categoryCard}>
+          <View style={styles.categoryHeaderRow}>
+            <View style={{ flex: 1 }}>
+              <AppText variant="caption" color={colors.textSecondary}>
+                Pay from Wishlist / Savings Goal (Optional)
+              </AppText>
+              <AppText variant="caption" color={colors.textMuted} style={{ fontSize: 10, marginTop: 2 }}>
+                Deducts from your saved balance and avoids double-counting against your monthly budget.
+              </AppText>
+            </View>
+          </View>
+
+          <View style={styles.categoryPillsRow}>
+            <PillBadge
+              variant={selectedWishlistId === null ? 'dark' : 'outline'}
+              label="Standard Cash"
+              onPress={() => setSelectedWishlistId(null)}
+            />
+            {unpurchasedWishlist.map((item) => {
+              const isSelected = selectedWishlistId === item.id;
+              return (
+                <PillBadge
+                  key={item.id}
+                  variant={isSelected ? 'income' : 'outline'}
+                  label={`${item.title} (${Math.round(item.saved_amount).toLocaleString()} ${currency})`}
+                  onPress={() => {
+                    setSelectedWishlistId(item.id);
+                    if (!note) setNote(item.title);
+                  }}
+                />
+              );
+            })}
+          </View>
+        </BentoCard>
+      )}
 
       {/* Recurring Monthly Switch */}
       {isExpense && (

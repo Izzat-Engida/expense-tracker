@@ -43,14 +43,25 @@ export default function HomeScreen() {
   }, [activeAccount?.isLocal, refreshStatus, autoSyncIfConnected]);
 
   const summary = useMemo(
-    () => getHomeSummary(expenses, incomes, budgets),
-    [expenses, incomes, budgets],
+    () => getHomeSummary(expenses, incomes, budgets, savings),
+    [expenses, incomes, budgets, savings],
   );
 
-  const { monthKey, monthSpent, monthIncome, budgetTotal, budgetPercent } =
-    summary;
+  const {
+    monthKey,
+    monthSpent,
+    monthIncome,
+    monthSaved,
+    availableCash,
+    operationalSpent,
+    fundedSpent,
+    budgetTotal,
+    budgetPercent,
+    overBudgetAmount,
+    isCoveredBySavings,
+  } = summary;
   const [monthName, yearLabel] = formatMonthLabel(monthKey).split(' ');
-  const overBudget = budgetTotal > 0 && monthSpent > budgetTotal;
+  const overBudget = budgetTotal > 0 && operationalSpent > budgetTotal;
   const budgetColor = overBudget ? colors.hankoRed : colors.bambooGreen;
   const hasDayData = summary.today.expenses.length > 0 || summary.yesterday.expenses.length > 0;
 
@@ -185,6 +196,73 @@ export default function HomeScreen() {
         )}
       </BentoCard>
 
+      {/* Available to Spend & Free Cash Card */}
+      <BentoCard variant="light" style={styles.availableCard}>
+        <View style={styles.availableRow}>
+          <View style={{ flex: 1 }}>
+            <AppText variant="caption" color={colors.textSecondary} style={styles.availableLabel}>
+              AVAILABLE TO SPEND · 残金
+            </AppText>
+            <View style={styles.availableAmountRow}>
+              <AppText
+                variant="digital"
+                color={availableCash < 0 ? colors.hankoRed : colors.textPrimary}
+                style={styles.availableNumber}
+              >
+                {Math.round(availableCash).toLocaleString()}
+              </AppText>
+              <AppText variant="caption" color={colors.textMuted} style={styles.availableCurrency}>
+                {currency}
+              </AppText>
+            </View>
+          </View>
+
+          <View style={styles.availableBadges}>
+            <PillBadge
+              variant="income"
+              label={`+${Math.round(monthIncome).toLocaleString()} In`}
+              onPress={() => router.push('/modals/income-budget')}
+            />
+            {monthSaved > 0 && (
+              <PillBadge
+                variant="outline"
+                label={`-${Math.round(monthSaved).toLocaleString()} Saved`}
+                onPress={() => router.push('/(tabs)/wishlist')}
+              />
+            )}
+          </View>
+        </View>
+
+        {overBudget && (
+          <View
+            style={[
+              styles.overBudgetStrip,
+              {
+                backgroundColor: isCoveredBySavings
+                  ? 'rgba(46, 93, 75, 0.08)'
+                  : 'rgba(197, 65, 47, 0.08)',
+                borderColor: isCoveredBySavings ? colors.bambooGreen : colors.hankoRed,
+              },
+            ]}
+          >
+            <JapaneseIcon
+              name={isCoveredBySavings ? 'sensu' : 'tomoe'}
+              size={13}
+              color={isCoveredBySavings ? colors.bambooGreen : colors.hankoRed}
+            />
+            <AppText
+              variant="caption"
+              color={isCoveredBySavings ? colors.bambooGreen : colors.hankoRed}
+              style={{ flex: 1 }}
+            >
+              {isCoveredBySavings
+                ? `Over budget by ${Math.round(overBudgetAmount).toLocaleString()} ${currency} · Absorbed by your savings buffer`
+                : `Over budget by ${Math.round(overBudgetAmount).toLocaleString()} ${currency} · Exceeds your savings!`}
+            </AppText>
+          </View>
+        )}
+      </BentoCard>
+
       <View style={styles.bentoRow}>
         <BentoCard variant="dark" style={styles.spentCard}>
           <AppText variant="caption" color={colors.textMuted}>
@@ -198,15 +276,15 @@ export default function HomeScreen() {
               {currency}
             </AppText>
           </View>
-          <PillBadge
-            variant="income"
-            label={
-              monthIncome > 0
-                ? `Income ${Math.round(monthIncome).toLocaleString()} ${currency}`
-                : 'No income logged'
-            }
-            onPress={() => router.push('/modals/income-budget')}
-          />
+          {fundedSpent > 0 ? (
+            <AppText variant="caption" color={colors.textMuted} style={{ fontSize: 10 }}>
+              {Math.round(operationalSpent).toLocaleString()} reg · {Math.round(fundedSpent).toLocaleString()} pre-funded
+            </AppText>
+          ) : (
+            <AppText variant="caption" color={colors.textMuted} style={{ fontSize: 10 }}>
+              Everyday living expenses
+            </AppText>
+          )}
         </BentoCard>
 
         <BentoCard variant="light" style={styles.budgetCard}>
@@ -226,7 +304,7 @@ export default function HomeScreen() {
 
             <AppText variant="caption" color={colors.textSecondary} numberOfLines={1}>
               {budgetTotal > 0
-                ? `${Math.round(monthSpent).toLocaleString()} / ${Math.round(budgetTotal).toLocaleString()} ${currency}`
+                ? `${Math.round(operationalSpent).toLocaleString()} / ${Math.round(budgetTotal).toLocaleString()} ${currency}`
                 : 'No budget set'}
             </AppText>
           </TouchableOpacity>
@@ -382,6 +460,50 @@ export default function HomeScreen() {
 
 
 const styles = StyleSheet.create({
+  availableCard: {
+    padding: 16,
+    gap: 12,
+  },
+  availableRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  availableLabel: {
+    fontSize: 10,
+    letterSpacing: 1.2,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  availableAmountRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
+  },
+  availableNumber: {
+    fontSize: 28,
+    lineHeight: 32,
+    letterSpacing: 0.5,
+  },
+  availableCurrency: {
+    fontSize: 12,
+    letterSpacing: 0.5,
+  },
+  availableBadges: {
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    gap: 6,
+  },
+  overBudgetStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
   monthHeaderCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',

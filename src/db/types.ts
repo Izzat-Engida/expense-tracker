@@ -10,6 +10,7 @@ export interface Expense {
   title: string;
   amount: number;
   category: ExpenseCategory;
+  wishlist_id?: string | null;
   note: string | null;
 
   date: string;
