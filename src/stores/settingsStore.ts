@@ -28,7 +28,7 @@ interface SettingsState {
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   currency: 'ETB',
   themeMode: 'dark',
-  hapticsEnabled: true,
+  hapticsEnabled: false,
   dailyLimit: 0,
   isLoaded: false,
 
@@ -87,7 +87,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       }
       const storedHaptics = await SecureStore.getItemAsync(KEY_HAPTICS);
       if (storedHaptics !== null) {
-        set({ hapticsEnabled: storedHaptics !== '0' });
+        set({ hapticsEnabled: storedHaptics === '1' });
       }
       const storedLimit = await SecureStore.getItemAsync(KEY_DAILY_LIMIT);
       if (storedLimit !== null) {

@@ -17,7 +17,7 @@ import {
 } from '@/components/ui';
 import { Fonts, useThemeColors } from '@/constants/theme';
 import { useAuthStore } from '@/stores/authStore';
-import { triggerHaptic } from '@/utils/haptics';
+import { triggerAuthHaptic } from '@/utils/haptics';
 
 export default function SetupPasswordScreen() {
   const router = useRouter();
@@ -86,7 +86,7 @@ export default function SetupPasswordScreen() {
         biometricEnabled,
         pendingAccount.isLocal ? displayName.trim() : undefined
       );
-      triggerHaptic.success();
+      triggerAuthHaptic.success();
       router.replace('/(tabs)');
     } catch (err: any) {
       Alert.alert('Error', err?.message || 'Could not save profile setup.');
@@ -108,7 +108,7 @@ export default function SetupPasswordScreen() {
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => {
-              triggerHaptic.selection();
+              triggerAuthHaptic.selection();
               if (router.canGoBack()) {
                 router.back();
               } else {

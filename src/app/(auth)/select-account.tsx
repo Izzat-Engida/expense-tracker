@@ -17,7 +17,7 @@ import {
 import { Fonts, useThemeColors } from '@/constants/theme';
 import { useAuthStore } from '@/stores/authStore';
 import type { GoogleAccount } from '@/types/auth';
-import { triggerHaptic } from '@/utils/haptics';
+import { triggerAuthHaptic } from '@/utils/haptics';
 
 export default function SelectAccountScreen() {
   const router = useRouter();
@@ -27,11 +27,11 @@ export default function SelectAccountScreen() {
   const unlockWithBiometrics = useAuthStore((s) => s.unlockWithBiometrics);
 
   const handleSelectAccount = async (account: GoogleAccount) => {
-    triggerHaptic.selection();
+    triggerAuthHaptic.selection();
     if (account.biometricEnabled) {
       const success = await unlockWithBiometrics(account.id);
       if (success) {
-        triggerHaptic.success();
+        triggerAuthHaptic.success();
         router.replace('/(tabs)');
         return;
       }
@@ -44,7 +44,7 @@ export default function SelectAccountScreen() {
   };
 
   const handleAddAccount = () => {
-    triggerHaptic.selection();
+    triggerAuthHaptic.selection();
     router.push('/(auth)/onboarding');
   };
 
@@ -60,7 +60,7 @@ export default function SelectAccountScreen() {
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => {
-              triggerHaptic.selection();
+              triggerAuthHaptic.selection();
               if (router.canGoBack()) {
                 router.back();
               } else {
@@ -93,7 +93,7 @@ export default function SelectAccountScreen() {
             </AppText>
           </View>
           <AppText variant="caption" color={colors.textSecondary} style={styles.welcomeKicker}>
-            口座 · Switch account
+            口座 
           </AppText>
           <AppText variant="serifTitle" style={styles.welcomeTitle}>
             Select your ledger.

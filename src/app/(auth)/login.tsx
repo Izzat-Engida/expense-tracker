@@ -22,7 +22,7 @@ import {
   sendPasswordReset,
   getAuthErrorMessage,
 } from '@/services/firebaseAuth';
-import { triggerHaptic } from '@/utils/haptics';
+import { triggerAuthHaptic } from '@/utils/haptics';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 export default function LoginScreen() {
@@ -39,7 +39,7 @@ export default function LoginScreen() {
   const [isResetting, setIsResetting] = useState(false);
 
   const handleBack = () => {
-    triggerHaptic.selection();
+    triggerAuthHaptic.selection();
     if (router.canGoBack()) {
       router.back();
     } else {
@@ -48,7 +48,7 @@ export default function LoginScreen() {
   };
 
   const handleOpenForgotModal = () => {
-    triggerHaptic.selection();
+    triggerAuthHaptic.selection();
     setResetEmailInput(email.trim());
     setShowForgotModal(true);
   };
@@ -63,7 +63,7 @@ export default function LoginScreen() {
     setIsResetting(true);
     try {
       await sendPasswordReset(trimmed);
-      triggerHaptic.success();
+      triggerAuthHaptic.success();
       setShowForgotModal(false);
       Alert.alert(
         'Reset Email Dispatched',
@@ -87,12 +87,12 @@ export default function LoginScreen() {
       return;
     }
 
-    triggerHaptic.medium();
+    triggerAuthHaptic.medium();
     setIsProcessing(true);
     try {
       const res = await signInWithEmail(trimmedEmail, password);
       await signInExistingAccount(res.profile, res.tokens, password);
-      triggerHaptic.success();
+      triggerAuthHaptic.success();
       router.replace('/(tabs)');
     } catch (err: any) {
       const msg = getAuthErrorMessage(err);
@@ -142,7 +142,7 @@ export default function LoginScreen() {
               </AppText>
             </View>
             <AppText variant="caption" color={colors.textSecondary} style={styles.welcomeKicker}>
-              再訪 · Welcome back
+              再訪 
             </AppText>
             <AppText variant="serifTitle" style={styles.welcomeTitle}>
               Sign in to your ledger.
@@ -258,7 +258,7 @@ export default function LoginScreen() {
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={() => {
-                  triggerHaptic.selection();
+                  triggerAuthHaptic.selection();
                   router.replace('/(auth)/onboarding');
                 }}
               >

@@ -138,7 +138,9 @@ export default function AppearanceSettings() {
         <View style={styles.switchRow}>
           <View style={{ flex: 1, paddingRight: 8 }}>
             <AppText variant="bodyBold">Haptic Feedback</AppText>
-            
+            <AppText variant="caption" color={colors.textMuted}>
+              Vibrate on tabs, buttons, and app interactions
+            </AppText>
           </View>
           <Switch
             value={hapticsEnabled}

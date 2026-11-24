@@ -18,7 +18,7 @@ import {
 } from '@/components/ui';
 import { Fonts, useThemeColors } from '@/constants/theme';
 import { useAuthStore } from '@/stores/authStore';
-import { triggerHaptic } from '@/utils/haptics';
+import { triggerAuthHaptic } from '@/utils/haptics';
 import { sendPasswordReset, getAuthErrorMessage } from '@/services/firebaseAuth';
 
 export default function UnlockPasswordScreen() {
@@ -77,10 +77,10 @@ export default function UnlockPasswordScreen() {
     try {
       const success = await unlockWithPassword(targetAccount.id, password);
       if (success) {
-        triggerHaptic.success();
+        triggerAuthHaptic.success();
         router.replace('/(tabs)');
       } else {
-        triggerHaptic.heavy();
+        triggerAuthHaptic.medium();
         Alert.alert('Incorrect Password', 'The password or PIN entered is incorrect.');
       }
     } catch (err: any) {
@@ -91,16 +91,16 @@ export default function UnlockPasswordScreen() {
   };
 
   const handleBiometricTry = async () => {
-    triggerHaptic.selection();
+    triggerAuthHaptic.selection();
     const success = await unlockWithBiometrics(targetAccount.id);
     if (success) {
-      triggerHaptic.success();
+      triggerAuthHaptic.success();
       router.replace('/(tabs)');
     }
   };
 
   const handleBack = () => {
-    triggerHaptic.selection();
+    triggerAuthHaptic.selection();
     if (router.canGoBack()) {
       router.back();
     } else {
@@ -110,7 +110,7 @@ export default function UnlockPasswordScreen() {
 
   const handleForgotPassword = () => {
     if (!targetAccount?.email) return;
-    triggerHaptic.selection();
+    triggerAuthHaptic.selection();
 
     Alert.alert(
       'Reset Password',
@@ -123,7 +123,7 @@ export default function UnlockPasswordScreen() {
             setIsResetting(true);
             try {
               await sendPasswordReset(targetAccount.email);
-              triggerHaptic.success();
+              triggerAuthHaptic.success();
               Alert.alert(
                 'Reset Email Dispatched',
                 `A password reset link has been dispatched to ${targetAccount.email}. Please follow the link instructions in your email, then return here to unlock.`

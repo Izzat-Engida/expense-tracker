@@ -17,7 +17,7 @@ import {
 import { Fonts, useThemeColors } from '@/constants/theme';
 import { useAuthStore } from '@/stores/authStore';
 import { signUpWithEmail, getAuthErrorMessage } from '@/services/firebaseAuth';
-import { triggerHaptic } from '@/utils/haptics';
+import { triggerAuthHaptic } from '@/utils/haptics';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 
@@ -61,12 +61,12 @@ export default function OnboardingScreen() {
       return;
     }
 
-    triggerHaptic.medium();
+    triggerAuthHaptic.medium();
     setIsProcessing(true);
     try {
       const res = await signUpWithEmail(trimmedEmail, password.trim(), true);
       await startAccountOnboarding(res.profile, res.tokens);
-      triggerHaptic.success();
+      triggerAuthHaptic.success();
       Alert.alert(
         'Account Created',
         `A verification link has been sent to ${trimmedEmail}.\n\nPlease check your inbox and tap the link to verify your email.`,
@@ -118,12 +118,12 @@ export default function OnboardingScreen() {
           >
           {isFormMode ? (
             <>
-              {/* Header Row */}
+              
               <View style={styles.headerRow}>
                 <TouchableOpacity
                   activeOpacity={0.7}
                   onPress={() => {
-                    triggerHaptic.selection();
+                    triggerAuthHaptic.selection();
                     setAuthMode('options');
                   }}
                   style={styles.backBtn}
@@ -143,7 +143,7 @@ export default function OnboardingScreen() {
                 <HankoStamp size="sm" />
               </View>
 
-              {/* Welcome Block */}
+           
               <View style={styles.welcomeBlock}>
                 <View style={styles.brandLockup}>
                   <AppText style={styles.kanjiLogo}>余白</AppText>
@@ -152,7 +152,7 @@ export default function OnboardingScreen() {
                   </AppText>
                 </View>
                 <AppText variant="caption" color={colors.textSecondary} style={styles.welcomeKicker}>
-                  新規登録 · Create account
+                  新規登録
                 </AppText>
                 <AppText variant="serifTitle" style={styles.welcomeTitle}>
                   Create your account
@@ -256,7 +256,7 @@ export default function OnboardingScreen() {
                   <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={() => {
-                      triggerHaptic.selection();
+                      triggerAuthHaptic.selection();
                       router.push('/(auth)/login');
                     }}
                   >
@@ -318,7 +318,7 @@ export default function OnboardingScreen() {
                     color={colors.textMuted}
                     style={styles.guestNote}
                   >
-                    Local only · no account needed
+                    Local only  no account needed
                   </AppText>
 
                   <TouchableOpacity
@@ -343,7 +343,7 @@ export default function OnboardingScreen() {
                       activeOpacity={0.8}
                       disabled={isProcessing}
                       onPress={() => {
-                        triggerHaptic.selection();
+                        triggerAuthHaptic.selection();
                         router.push('/(auth)/login');
                       }}
                     >
