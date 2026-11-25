@@ -196,7 +196,7 @@ export default function HomeScreen() {
         )}
       </BentoCard>
 
-      {/* Available to Spend & Free Cash Card */}
+   
       <BentoCard variant="light" style={styles.availableCard}>
         <View style={styles.availableRow}>
           <View style={{ flex: 1 }}>
